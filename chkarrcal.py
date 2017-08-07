@@ -4,7 +4,7 @@ Program:
 This is a easier way to test the completeness of CCDTEMP, EXPTIME.
 It also check if CCDTEMP < -29.5 deg.
 method:
-0. You need alias /home/Jacob975/bin/python/chkarrcal.py
+0. You need alias /home/Jacob975/bin/tat_python/chkarrcal.py
 1. Choose a folder you like 
 2. $chkarrcal.py
 editor Jacob975

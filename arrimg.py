@@ -80,7 +80,7 @@ for i in range(len(image_list)):
 
 #create folders
 log_file = open("log", "a")
-log_file.write("log from: /home/Jacob975/bin/python/arrimg.py")
+log_file.write("log from: /home/Jacob975/bin/tat_python/arrimg.py")
 for i in xrange(len(object_count)):
     for j in xrange(len(band_list)):
         if object_count[i][j][0] != 0:

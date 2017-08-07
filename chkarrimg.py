@@ -33,6 +33,9 @@ update log
         Now the program will not judge a image only with bkg value.
         The program will read bkg and noise of all images ,and kick out the exotic one.
     2.  The program will write down log now.
+
+20170807 alpha 5
+    1.  Change program path from 'python' to 'tat_python'.
 '''
 import os 
 import pyfits
@@ -116,7 +119,7 @@ if VERBOSE>0:
     print "check end\n##################################"
 
 log_file = open("log", "a")
-log_file.write("log from: /home/Jacob975/bin/python/chkarrimg.py")
+log_file.write("log from: /home/Jacob975/bin/tat_python/chkarrimg.py")
 log_file.write("# Number of total image: {0}\n".format(len(image_list)))
 log_file.write("# Number of success: {0}\n".format(len(image_list) - bad_img_count))
 log_file.write("# Number of fail: {0}\n".format(bad_img_count))
@@ -133,11 +136,11 @@ for name_obj in obj_list:
         for name_filter in filter_list:
             if os.path.isdir(name_filter):
                 os.chdir(name_filter)
-                temp="python /home/Jacob975/bin/python/finddark.py"
+                temp="finddark.py"
                 os.system(temp)
-                temp="python /home/Jacob975/bin/python/findflat.py"
+                temp="findflat.py"
                 os.system(temp)
-                temp="python /home/Jacob975/bin/python/sub_div_r.py"
+                temp="sub_div_r.py"
                 os.system(temp)
                 os.chdir("..")
         os.chdir("..")   
