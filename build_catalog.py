@@ -152,6 +152,7 @@ def create_page(data, id_number, date, band, band_list, ref_band_list, scope, me
                 success = True
         if not success:
             result_file.write("\t\t")
+    result_file.write("\n")
     result_file.close()
 
 # append data to a existing star catalog
@@ -176,6 +177,7 @@ def append_page(data, TAT_id, date, band, band_list, ref_band_list, scope, metho
                 success = True
         if not success:
             result_file.write("\t\t")
+    result_file.write("\n")
     result_file.close()
 
 #--------------------------------------------
@@ -196,6 +198,7 @@ path_of_output = "/home/Jacob975/demo/TAT_star_catalog/"
 os.chdir(path_of_output)
 # list of band
 for name in row_star_catalog_list:
+    if VERBOSE>0:print "--- current: {0} ---".format(name)
     # read a tsv file which haven't been prcoessed
     name_list = name.split("_")
     name_dir = "{0}{1}".format(path_of_data_source, name)
@@ -207,6 +210,7 @@ for name in row_star_catalog_list:
     success = resolve_data(temp_data, date, band, scope, method)
     if success:
         os.rename(name_dir, "{0}done/{1}".format(path_of_data_source, name))
+        if VERBOSE>0:print name+" OK" 
 # measuring time
 elapsed_time = time.time() - start_time
 print "Exiting Main Program, spending ", elapsed_time, "seconds."
