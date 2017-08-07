@@ -15,6 +15,9 @@ update log
 20170310 alpha 2
     change the func. of find flat,
     Flats would been choose if there are 5 flat been taken on that day.
+
+20170807 alpha 3
+    fix a bug about finding the wrong flat.
 '''
 
 import os
@@ -98,10 +101,10 @@ def get_exptime(filters):
             exptime=temp[2]
     return exptime
 
-def find_exptime(date, obj_list, filters):
+def find_exptime(date, date_list, filters):
     exptime=""
-    temp_obj_list=obj_list[:]
-    result_date=match_date(date, obj_list)
+    temp_date_list = date_list[:]
+    result_date=match_date(date, date_list)
     if result_date == -1 :
         print "date list has been zero"
         return -1
@@ -109,14 +112,14 @@ def find_exptime(date, obj_list, filters):
     exptime=get_exptime(filters)
     os.chdir("..")
     if exptime=="":
-        del obj_list[result_date[0]]
-        exptime=find_exptime(date, obj_list, filters)
+        del temp_date_list[result_date[0]]
+        exptime=find_exptime(date, temp_date_list, filters)
     return exptime
 
-def sub_process(telescope, filters, result_date, path_of_median_flat, date, obj_list):
-    del obj_list[result_date[0]]
+def sub_process(telescope, filters, result_date, path_of_median_flat, date, date_list):
+    del date_list[result_date[0]]
     # find new match date
-    result_date=match_date(date, obj_list)
+    result_date=match_date(date, date_list)
     if result_date == -1:
         print "date list has been zero"
         return -1
@@ -128,7 +131,7 @@ def sub_process(telescope, filters, result_date, path_of_median_flat, date, obj_
     if result_date == -1: 
         return -1
     if number<10:
-        number=sub_process(telescope, filters, result_date, path_of_median_flat, date, obj_list)
+        number=sub_process(telescope, filters, result_date, path_of_median_flat, date, date_list)
     return number
 
 def main_process():
@@ -147,14 +150,14 @@ def main_process():
     path_of_calibrate="/"+list_path[0]+"/"+list_path[1]+"/"+list_path[2]+"/"+list_path[3]+"/calibrate"
     os.chdir(path_of_calibrate)
     # get a list of all object in calibrate
-    obj_list=os.listdir(path_of_calibrate)
+    date_list=os.listdir(path_of_calibrate)
     # find the nearest date reference to original date.w
-    result_date=match_date(date , obj_list)
+    result_date=match_date(date , date_list)
     if result_date == -1:
         print "date list has been zero, program ended"
         return -1
     # determind the exptime of flat
-    exptime=find_exptime(date, obj_list, filters)
+    exptime=find_exptime(date, date_list, filters)
     if exptime == -1 :
         print "date list has been zero"
         return -1
@@ -172,7 +175,7 @@ def main_process():
     number=get_flat_to(telescope, filters, result_date[1], path_of_median_flat)
     os.chdir("..") 
     if number<10:
-        number=sub_process(telescope, filters, result_date, path_of_median_flat, date, obj_list)
+        number=sub_process(telescope, filters, result_date, path_of_median_flat, date, date_list)
     if number<10:
         print "The number of flat is not enough, no median flat create."
         return 0
