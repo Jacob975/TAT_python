@@ -1,7 +1,7 @@
 # tat_python
 Program for sorting and processing images of TAT telescope
 
-#Setup
+# Setup
 1. $vim tat_config
 
 	set path in tat_config
@@ -14,7 +14,7 @@ Program for sorting and processing images of TAT telescope
 
 	This code will set up all folder you need, Haven't been composed.
 
-#Below are standard steps of processing TAT data.
+# Below are standard steps of processing TAT data.
 
 0. $chkarrcal.py
 	
