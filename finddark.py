@@ -83,8 +83,11 @@ def main_process():
     list_path=path.split("/")
     del list_path [0]
     # get info from path
-    date=list_path[5]
-    telescope = list_path[3]
+    path_of_source = tat_datactrl.get_path("source")
+    temp_path = path.split(path_of_source)
+    temp_path_2 = temp_path[1].split("/")
+    date=temp_path_2[3]
+    telescope = temp_path_2[1]
     # get exptime from path
     temp=list_path[-1]
     temp_list=temp.split("_")
