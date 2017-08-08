@@ -93,7 +93,6 @@ def main_process():
     temp_list=temp.split("_")
     exptime=temp_list[-1]
     # go to the dir of calibrate 
-    path_of_source = tat_datactrl.get_path("source")
     path_of_calibrate = path_of_source+"/"+telescope+"/calibrate"
     os.chdir(path_of_calibrate)
     # get a list of all object in calibrate
