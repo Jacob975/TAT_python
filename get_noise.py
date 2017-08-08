@@ -56,6 +56,9 @@ update log
 
     20170724 version alpha 5 
     1.  add header about unit of magnitude.
+
+    20170808 version alpha 6
+    1.  use tat_config to control path of result data instead of fix the path in the code.
 '''
 
 import os
@@ -64,17 +67,10 @@ import matplotlib.pyplot as plt
 import pyfits
 import time
 import curvefit
+import tat_datactrl
 from sys import argv, exit
 from numpy import pi, r_
 from scipy import optimize
-
-def readfile(filename):
-    file = open(filename)
-    answer_1 = file.read()
-    answer=answer_1.split("\n")
-    while (answer[-1] == ""):
-        del answer[-1]
-    return answer
 
 # this func will find out noise of  all collection of some list
 # then save result in noise_list
@@ -227,7 +223,7 @@ if VERBOSE>0:print "noise_unit: {0}".format(noise_unit)
 list_name=argv[-1]
 
 # read fits name from list
-fits_list=readfile(list_name)
+fits_list=tat_datactrl.readfile(list_name)
 
 # get property of images from path
 data_list = np.array([])
@@ -239,8 +235,9 @@ obj_name = list_path[-2]
 filter_name = list_path[-1]
 
 # write down header
-result_data_name = "/home/Jacob975/demo/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name)
-result_fig_name = "/home/Jacob975/demo/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.png".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name)
+path_of_result = tat_datactrl.get_path("result")
+result_data_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
+result_fig_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.png".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
 
 result_file = open(result_data_name, "a")
 result_file.write(obj_name + "_Noise_to_time\n")
@@ -274,7 +271,7 @@ result_file.write("*************************************************************
 if noise_unit == "count" and success != 0:
     result_file.write("base: {0:.2f}+-{3:.2f}\nconst: {1:.2f}+-{4:.2f}\npow_: {2:.3f}+-{5:.3f}\n".format(paras[0], paras[1], paras[2], cov[0][0], cov[1][1], cov[2][2]))
     result_file.close()
-    result_file = open("/home/Jacob975/demo/limitation_magnitude_and_noise/noise_in_count.tsv", "a")
+    result_file = open("{0}/limitation_magnitude_and_noise/noise_in_count.tsv".format(path_of_result), "a")
     result_file.write("{6}\t{11}\t{7}\t{8}\t{9}\t{10}\t{0:.2f}\t{3:.2f}\t{1:.2f}\t{4:.2f}\t{2:.3f}\t{5:.3f}\n".format(paras[0], paras[1], paras[2], cov[0][0], cov[1][1], cov[2][2], obj_name, filter_name, date_name, method, list_name, scope_name))
     result_file.close()
     if VERBOSE>1:print "base: ", paras[0], "const: ", paras[1], "pow_: ", paras[2]
@@ -282,7 +279,7 @@ if noise_unit == "count" and success != 0:
 elif noise_unit == "mag" and success != 0:
     result_file.write("amp: {0:.2f}+-{2:.2f}\nconst: {1:.2f}+-{3:.2f}\n".format(paras[0], paras[1], cov[0][0], cov[1][1]))
     result_file.close()
-    result_file = open("/home/Jacob975/demo/limitation_magnitude_and_noise/noise_in_mag.tsv", "a")
+    result_file = open("{0}/limitation_magnitude_and_noise/noise_in_mag.tsv".format(path_of_result), "a")
     result_file.write("{4}\t{9}\t{5}\t{6}\t{7}\t{8}\t{0:.2f}\t{2:.2f}\t{1:.2f}\t{3:.2f}\n".format(paras[0], paras[1], cov[0][0], cov[1][1], obj_name, filter_name, date_name, method, list_name, scope_name))
     result_file.close()
     if VERBOSE>1:print "amp: ", paras[0], "const: ", paras[1]

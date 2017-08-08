@@ -65,32 +65,15 @@ update log
     1.  add new argument "object".
     2.  renew previous argument "band".
         details please read header file.
+
+20170808 version alpha 3
+    1.  use tat_config to control path of result data instead of fix the path in the code.
 '''
 from sys import argv
 import numpy as np
 import pyfits
 import time
-
-def readfile(filename):
-    file = open(filename)
-    answer_1 = file.read()
-    answer=answer_1.split("\n")
-    while answer[-1] == "":
-        del answer[-1]
-    return answer
-
-# This is used to read .tsv file
-def read_tsv_file(file_name):
-    f = open(file_name, 'r')
-    data = []
-    for line in f.readlines():
-        # skip if no data or it's a hint.
-        if not len(line) or line.startswith('#'):
-            continue
-        line_data = line.split("\t")
-        data.append(line_data)
-    f.close()
-    return data
+import tat_datactrl
 
 def get_order(tar_list, property_name_list):
     # determine the order of all property.
@@ -185,11 +168,12 @@ else:
 property_list = [date, scope, band, method, obj]
 property_name_list = ["date", "scope", "band", "method", "object"]
 # read del_m tsv
-path_of_del_m = "/home/Jacob975/demo/limitation_magnitude_and_noise/delta_mag.tsv"
-list_del_m = read_tsv_file(path_of_del_m)
+path_of_result = tat_datactrl.get_path("result")
+path_of_del_m = path_of_result + "/limitation_magnitude_and_noise/delta_mag.tsv"
+list_del_m = tat_datactrl.read_tsv_file(path_of_del_m)
 # read noise tsv
-path_of_noise = "/home/Jacob975/demo/limitation_magnitude_and_noise/noise_in_mag.tsv"
-list_noise = read_tsv_file(path_of_noise)
+path_of_noise = path_of_result + "/limitation_magnitude_and_noise/noise_in_mag.tsv"
+list_noise = tat_datactrl.read_tsv_file(path_of_noise)
 # get order of property in .tsv file
 ord_list_del_m = get_order(list_del_m, property_name_list)
 ord_list_noise = get_order(list_noise, property_name_list)

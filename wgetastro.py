@@ -29,10 +29,14 @@ alpha 3:    20170706:
 
 alpha 4:    20170720:
     It will also save data in /home/Jacob975/demo/TAT_done/
+
+20170808 version alpha 5:
+    1.  use tat_config to control path of result data instead of fix the path in the code.
 '''   
 
 import os
 from sys import argv, exit
+import tat_datactrl
 
 jobnumberlistname = argv[1]
 originallistname = argv[2]
@@ -66,7 +70,8 @@ except:
 else:
     command = "wget 'http://nova.astrometry.net/new_fits_file/{0}' -O {1}".format(jobnumberlistname, originallistname)
     os.system(command)
-    command = "cp {0} /home/Jacob975/demo/TAT_done/{0}".format(originallistname)
+    path_of_result = tat_datactrl.get_path("result")
+    command = "cp {0} {1}/TAT_done/{0}".format(originallistname, path_of_result)
     os.system(command)
     exit(0)
 

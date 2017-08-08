@@ -37,6 +37,7 @@ update log
 
     20170808 version alpha 3
         1.  Now it will record the real mag of each stars.
+        2.  use tat_config to control path of result data instead of fix the path in the code.
 '''
 from sys import argv
 import numpy as np
@@ -44,27 +45,7 @@ import pyfits
 import time
 import glob
 import os
-
-def readfile(filename):
-    file = open(filename)
-    answer_1 = file.read()
-    answer=answer_1.split("\n")
-    while answer[-1] == "":
-        del answer[-1]
-    return answer
-
-# This is used to read .tsv file
-def read_tsv_file(file_name):
-    f = open(file_name, 'r')
-    data = []
-    for line in f.readlines():
-        # skip if no data or it's a hint.
-        if not len(line) or line.startswith('#'):
-            continue
-        line_data = line.split("\t")
-        data.append(line_data)
-    f.close()
-    return data
+import tat_datactrl
 
 # read data from .tsv file 
 # compare their RA and DEC with existing star catalog
@@ -96,7 +77,7 @@ def resolve_data(data_list, date, band, scope, method):
         success = 0
         if len(star_catalog_list) != 0:
             for star_name in star_catalog_list:
-                star_property = read_tsv_file(star_name)
+                star_property = tat_datactrl.read_tsv_file(star_name)
                 ref_RA = float(star_property[2][0])
                 ref_DEC = float(star_property[2][2])
                 # determine that whether they are the same or not
@@ -187,14 +168,15 @@ VERBOSE = 0
 start_time = time.time()
 # get property from argv
 list_name=argv[-1]
-fits_list=readfile(list_name)
+fits_list=tat_datactrl.readfile(list_name)
 
 # path of data source
-path_of_data_source = "/home/Jacob975/demo/TAT_row_star_catalog/"
+path_of_source = tat_datactrl.get_path("result")
+path_of_data_source = "{0}/TAT_row_star_catalog/".format(path_of_source)
 os.chdir(path_of_data_source)
 row_star_catalog_list = glob.glob("*.tsv")
 # path of output
-path_of_output = "/home/Jacob975/demo/TAT_star_catalog/"
+path_of_output = "{0}/TAT_star_catalog/".format(path_of_source)
 os.chdir(path_of_output)
 # list of band
 for name in row_star_catalog_list:
@@ -202,14 +184,14 @@ for name in row_star_catalog_list:
     # read a tsv file which haven't been prcoessed
     name_list = name.split("_")
     name_dir = "{0}{1}".format(path_of_data_source, name)
-    temp_data = read_tsv_file(name_dir)
+    temp_data = tat_datactrl.read_tsv_file(name_dir)
     date = name_list[1]
     band = "{0}_{1}".format(name_list[3], name_list[4])
     scope = name_list[0]
     method = name_list[-3]
     success = resolve_data(temp_data, date, band, scope, method)
     if success:
-        os.rename(name_dir, "{0}done/{1}".format(path_of_data_source, name))
+        os.rename(name_dir, "{0}/done/{1}".format(path_of_data_source, name))
         if VERBOSE>0:print name+" OK" 
 # measuring time
 elapsed_time = time.time() - start_time

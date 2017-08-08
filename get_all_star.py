@@ -32,6 +32,9 @@ update log
         del mag data is produced by $get_mag.py
         Before do $get_all_star.py, you should do $get_mag.py before.
 
+20170808 version alpha 5
+    1.  use tat_config to control path of result data instead of fix the path in the code.
+
 '''
 from sys import argv
 from math import pow
@@ -43,27 +46,7 @@ import time
 import matplotlib.pyplot as plt
 import os
 import glob
-
-def readfile(filename):
-    file = open(filename)
-    answer_1 = file.read()
-    answer=answer_1.split("\n")
-    while answer[-1] == "":
-        del answer[-1]
-    return answer
-
-# This is used to read .tsv file
-def read_tsv_file(file_name):
-    f = open(file_name, 'r')
-    data = []
-    for line in f.readlines():
-        # skip if no data or it's a hint.
-        if not len(line) or line.startswith('#'):
-            continue
-        line_data = line.split("\t")
-        data.append(line_data)
-    f.close()
-    return data
+import tat_datactrl
 
 def get_order(tar_list, property_name_list):
     # determine the order of all property.
@@ -135,7 +118,7 @@ list_name_list = list_name.split(".")
 if list_name_list[-1] == "fits" or list_name_list[-1] == "fit":
     fits_list = [list_name]
 else:
-    fits_list=readfile(list_name)
+    fits_list=tat_datactrl.readfile(list_name)
 
 property_name_list = ["date", "scope", "band", "method", "object"]
 
@@ -172,7 +155,8 @@ for name in fits_list:
     star_list_name = name[0:-5]+"_stls.tsv"
     command = "rm {0}".format(star_list_name)
     os.system(command)
-    del_mag_list = read_tsv_file("/home/Jacob975/demo/limitation_magnitude_and_noise/delta_mag.tsv")
+    path_of_result = tat_datactrl.get_path("result")
+    del_mag_list = tat_datactrl.read_tsv_file("{0}/limitation_magnitude_and_noise/delta_mag.tsv".format(path_of_result))
     ord_del_mag_list = get_order(del_mag_list, property_name_list)
     del_mag_list = select_by_property(del_mag_list, property_list, ord_del_mag_list, property_name_list)
     additional_title, additional_unit = select_additional(del_mag_list)
@@ -214,11 +198,11 @@ for name in fits_list:
         result_file.write("\n")
     result_file.close()
     # check whether the star catalog been generated or not.
-    done_star_list = glob.glob("/home/Jacob975/demo/TAT_row_star_catalog/done/{0}".format(star_list_name))
+    done_star_list = glob.glob("{1}/TAT_row_star_catalog/done/{0}".format(star_list_name, path_of_result))
     if done_star_list == star_list_name:
         print "The star catalog has existed."
     else:
-        command = "cp {0} /home/Jacob975/demo/TAT_row_star_catalog/{0}".format(star_list_name)
+        command = "cp {0} {1}/TAT_row_star_catalog/{0}".format(star_list_name, path_of_result)
         os.system(command)
     # write down region file of stars in wcs and display on ds9
     if VERBOSE>1:

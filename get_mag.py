@@ -63,6 +63,9 @@ update log
     20170728 version alpha 6
         1.  Update the func of error magnitude, now it will be generate by weighted average and stdev.
         2.  fix some bugs about nan. or inf. come into calculation.
+
+    20170808 version alpha 7
+        1.  use tat_config to control path of result data instead of fix the path in the code.
 '''
 from sys import argv, exit
 import numpy as np
@@ -71,6 +74,7 @@ import time
 import curvefit
 import os
 import math
+import tat_datactrl
 
 # This is a code to add several stars, and then find out the equivelent magnitude.
 def get_add_mag(matched_array, band):
@@ -100,19 +104,6 @@ def weighted_avg_and_std(values, weights):
     average = np.average(values, weights=weights)
     variance = np.average((values-average)**2, weights=weights)  # Fast and numerically precise
     return average, math.sqrt(variance)
-
-# This is used to read .tsv file
-def read_tsv_file(file_name):
-    f = open(file_name, 'r')
-    data = []
-    for line in f.readlines():
-        # skip if no data or it's a hint.
-        if not len(line) or line.startswith('#'):
-            continue
-        line_data = line.split("\t")
-        data.append(line_data)
-    f.close()
-    return data
 
 # get property of images from path
 def get_img_property(image_name):
@@ -162,8 +153,8 @@ os.system("get_w_stls.py {1} {0}".format(image_name, band))
 scope_name, date_name, obj_name, filter_name, method = get_img_property(image_name)
 
 # read data from files, and create a list to put these data.
-ref_catalog = read_tsv_file(ref_file)
-local_catalog = read_tsv_file(local_file)
+ref_catalog = tat_datactrl.read_tsv_file(ref_file)
+local_catalog = tat_datactrl.read_tsv_file(local_file)
 # match stars by wcs
 delta_m_list = []
 e_delta_m_list = []
@@ -214,7 +205,8 @@ delta_m_list, e_delta_m_list = curvefit.get_rid_of_exotic_vector(delta_m_list, e
 result_delta_m, result_delta_std = weighted_avg_and_std(delta_m_list, e_delta_m_list)
 if VERBOSE>0:print "In average, delta_mag = {0:.2f}+-{1:.2f}".format(result_delta_m, result_delta_std)
 # save result
-result_file = open("/home/Jacob975/demo/limitation_magnitude_and_noise/delta_mag.tsv", 'a')
+path_of_result = tat_datactrl.get_path("result")
+result_file = open("{0}/limitation_magnitude_and_noise/delta_mag.tsv".format(path_of_result), 'a')
 if float(ecc) > 0 and float(ecc) < 1: 
     writen_ecc = ecc
 else:

@@ -18,10 +18,15 @@ update log
 
 20170807 alpha 3
     fix a bug about finding the wrong flat.
+
+20170808 version alpha 4 
+    1.  Before we get path of calibrate by path of images.
+        now we get path of calibrate from tat_config which is a setting file.
 '''
 
 import os
 import fnmatch
+import tat_datactrl
 
 def readfile(filename):
     file = open(filename)
@@ -146,8 +151,9 @@ def main_process():
     temp=list_path[-1]
     temp_list=temp.split("_") 
     filters=temp_list[0] 
-    # go to the dir of calibrate 
-    path_of_calibrate="/"+list_path[0]+"/"+list_path[1]+"/"+list_path[2]+"/"+list_path[3]+"/calibrate"
+    # go to the dir of calibrate
+    path_of_source = tat_datactrl.get_path("source")
+    path_of_calibrate="{0}/{1}/calibrate".format(path_of_source, telescope)
     os.chdir(path_of_calibrate)
     # get a list of all object in calibrate
     date_list=os.listdir(path_of_calibrate)
@@ -162,7 +168,7 @@ def main_process():
         print "date list has been zero"
         return -1
     # defind the dir of median flat, if it doesn't exist , create it.
-    path_of_median_flat="/"+list_path[0]+"/"+list_path[1]+"/"+list_path[2]+"/"+list_path[3]+"/calibrate/"+result_date[1]+"/median_flat_"+filters+"_"+exptime
+    path_of_median_flat = path_of_source+"/"+telescope+"/calibrate/"+result_date[1]+"/median_flat_"+filters+"_"+exptime
     print "path of median flat is :"+path_of_median_flat
     if os.path.isdir(path_of_median_flat):
         temp="rm -r "+path_of_median_flat
