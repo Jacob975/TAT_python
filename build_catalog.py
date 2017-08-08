@@ -51,7 +51,7 @@ import tat_datactrl
 # compare their RA and DEC with existing star catalog
 # arrange them to proper cataglo
 def resolve_data(data_list, date, band, scope, method):
-    band_list = ["A", "B", "C", "N", "R", "V"]
+    band_list = ["U", "B", "V", "R", "I", "N"]
     ref_band_list = []
     for data in data_list:
         del data[-1]
