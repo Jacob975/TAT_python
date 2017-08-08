@@ -23,6 +23,9 @@ update log
 
     20170728 version alpha 4
     1.  now it will find ref img automatically.
+
+    20170808 version alpha 5
+    1.  use tat_config to control path of result data instead of fix the path in the code.
 '''
 from sys import argv
 import numpy as np
@@ -31,19 +34,10 @@ import time
 import curvefit
 import matplotlib.pyplot as plt
 import os
+import tat_datactrl
 
 # controll how many thing would be printed. 0 mean no, 1 means nessesary, 2 means debug.
 VERBOSE = 3
-
-def readfile(filename):
-    # read file as a array
-    fo = open(filename)
-    answer_1 = fo.read()
-    answer=answer_1.split("\n")
-    fo.close()
-    while answer[-1] == "":
-        del answer[-1]
-    return answer
 
 def regrid_data(data, rotation_matrix_inverse ):
     # construct the translation matrix of two fits
@@ -141,13 +135,14 @@ def get_img_property(VERBOSE = 0):
 start_time = time.time()
 # get all names of fits
 list_name=argv[-1]
-fits_list=readfile(list_name)
+fits_list=tat_datactrl.readfile(list_name)
 #----------------------------------------------------------------------
 # main code
 # get the data of referance img.
 # include mean, std, the position of stars.
 scope_name, date_name, obj_name, filter_name = get_img_property()
-ref_name ="/home/Jacob975/demo/reference/{1}_{0}.fits".format(date_name[:-4], obj_name)
+path_of_result = tat_datactrl.get_path("result")
+ref_name ="{2}/reference/{1}_{0}.fits".format(date_name[:-4], obj_name, path_of_result)
 if VERBOSE>1 :
         print " "
         print "--- ", ref_name, " ---"
@@ -186,8 +181,8 @@ ecc = 1
 ref_star_list = []
 while len(ref_star_list) > 20 or len(ref_star_list) < 3:
     hwl += 1
-    if VERBOSE>1:print "hwl = {0}, len of ref_star_list = {1}".format(hwl, len(ref_star_list))
     ref_star_list = curvefit.get_star(ref_data, ref_peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
+    if VERBOSE>1:print "hwl = {0}, len of ref_star_list = {1}".format(hwl, len(ref_star_list))
 if VERBOSE>3:
     print "star list: "
     for star in ref_star_list:
@@ -241,10 +236,10 @@ for order in xrange(len(fits_list)):
             sz +=1
             peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz)
         hwl = 3
-        while len(star_list) > 25 or len(star_list) < 3:
+        while len(star_list) > 20 or len(star_list) < 3:
             hwl += 1
-            if VERBOSE>1:print "hwl = {0}, len of star_list = {1}".format(hwl, len(star_list))
             star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
+            if VERBOSE>1:print "hwl = {0}, len of star_list = {1}".format(hwl, len(star_list))
     else:
         peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz) 
         star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc )
