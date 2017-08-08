@@ -67,6 +67,7 @@ for i in xrange(len(image_list)):
         except KeyError:
             bad_img_count += 1
             temp = "mv {0} X_{0}_X".format(image_list[i])
+            if VERBOSE>1:print temp
             os.system(temp)
             wrong = True
             break
@@ -77,6 +78,7 @@ for i in xrange(len(image_list)):
     if img_temp >= -29.5:
         bad_img_count += 1
         temp = "mv {0} X_{0}_X".format(image_list[i])
+        if VERBOSE>1:print temp
         os.system(temp)
         continue
     # save the bkg and stdev of each img.
@@ -99,16 +101,18 @@ mean_noise = np.mean(noise_array[np.nonzero(noise_array)])
 std_noise = np.std(noise_array[np.nonzero(noise_array)])
 temp_noise_array = np.subtract(noise_array, mean_noise)
 abs_noise_array = np.absolute(temp_noise_array)
-
+if VERBOSE>1:print "\nstdev section\n"
 for i in xrange(len(image_list)):
-    if abs_bkg_array[i] >= 3 * std_bkg:
+    if abs_bkg_array[i] > 3 * std_bkg:
         bad_img_count += 1
         temp = "mv {0} X_{0}_X".format(image_list[i])
+        if VERBOSE>1:print "mean over\n{0}".format(temp)
         os.system(temp)
         continue
-    elif abs_noise_array[i] >= 3 * std_noise:
+    elif abs_noise_array[i] > 3 * std_noise:
         bad_img_count += 1
         temp = "mv {0} X_{0}_X".format(image_list[i])
+        if VERBOSE>1:print "noise over\n{0}".format(temp)
         os.system(temp)
         continue
 # print and write down the log
