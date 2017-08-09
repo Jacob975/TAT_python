@@ -1,21 +1,34 @@
 # TAT configuration settings
 # letters behind hashtag will be ignored.
 
+#--------------- Setting python path ----------------
+# python path is where you install python
+# tat python can run under both python and python2
+# please check the path by $which python python2
+# and then choose one of them and write down between "path_of_python" and "end"
+path_of_python
+/usr/bin/python
+end
+
 #--------------- Setting source path ----------------
 # source path means where will you put your row image.
 # recommand: /home/username
-# please write down the source path below
-/brick/users/Jacob975
-
+# please write down the source path between "path_of_source" and "end"
+path_of_source
+/Users/jacob975/Documents/tat_data
+end
 #--------------- Setting code path ------------------
 # code path means where do you install these code about tat.
 # recommand: /home/username/bin/tat_python
-# please write down the code path below
-/home/Jacob975/bin/tat_python
-
+# please write down the code path between "path_of_code" and "end"
+path_of_code
+/Users/jacob975/Documents/tat_python
+end
 #--------------- Setting result path ----------------
 # result path means once you produce some data by tat_python.
 # result path will be where to save.
 # recommand: /home/tat_result
-# please write down the result path below
-/home/Jacob975/demo
+# please write down the result path between "path_of_result" and "end"
+path_of_result
+/Users/jacob975/Documents/tat_result
+end

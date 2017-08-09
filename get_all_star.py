@@ -155,7 +155,7 @@ for name in fits_list:
     star_list_name = name[0:-5]+"_stls.tsv"
     command = "rm {0}".format(star_list_name)
     os.system(command)
-    path_of_result = tat_datactrl.get_path("result")
+    path_of_result = tat_datactrl.get_path("path_of_result")
     del_mag_list = tat_datactrl.read_tsv_file("{0}/limitation_magnitude_and_noise/delta_mag.tsv".format(path_of_result))
     ord_del_mag_list = get_order(del_mag_list, property_name_list)
     del_mag_list = select_by_property(del_mag_list, property_list, ord_del_mag_list, property_name_list)

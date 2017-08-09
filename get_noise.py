@@ -235,7 +235,7 @@ obj_name = list_path[-2]
 filter_name = list_path[-1]
 
 # write down header
-path_of_result = tat_datactrl.get_path("result")
+path_of_result = tat_datactrl.get_path("path_of_result")
 result_data_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
 result_fig_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.png".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
 

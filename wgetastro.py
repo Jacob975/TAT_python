@@ -70,7 +70,7 @@ except:
 else:
     command = "wget 'http://nova.astrometry.net/new_fits_file/{0}' -O {1}".format(jobnumberlistname, originallistname)
     os.system(command)
-    path_of_result = tat_datactrl.get_path("result")
+    path_of_result = tat_datactrl.get_path("path_of_result")
     command = "cp {0} {1}/TAT_done/{0}".format(originallistname, path_of_result)
     os.system(command)
     exit(0)

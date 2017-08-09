@@ -171,7 +171,7 @@ list_name=argv[-1]
 fits_list=tat_datactrl.readfile(list_name)
 
 # path of data source
-path_of_source = tat_datactrl.get_path("result")
+path_of_source = tat_datactrl.get_path("path_of_result")
 path_of_data_source = "{0}/TAT_row_star_catalog/".format(path_of_source)
 os.chdir(path_of_data_source)
 row_star_catalog_list = glob.glob("*.tsv")

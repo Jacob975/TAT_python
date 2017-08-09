@@ -83,7 +83,7 @@ def main_process():
     list_path=path.split("/")
     del list_path [0]
     # get info from path
-    path_of_source = tat_datactrl.get_path("source")
+    path_of_source = tat_datactrl.get_path("path_of_source")
     temp_path = path.split(path_of_source)
     temp_path_2 = temp_path[1].split("/")
     date=temp_path_2[3]

@@ -168,7 +168,7 @@ else:
 property_list = [date, scope, band, method, obj]
 property_name_list = ["date", "scope", "band", "method", "object"]
 # read del_m tsv
-path_of_result = tat_datactrl.get_path("result")
+path_of_result = tat_datactrl.get_path("path_of_result")
 path_of_del_m = path_of_result + "/limitation_magnitude_and_noise/delta_mag.tsv"
 list_del_m = tat_datactrl.read_tsv_file(path_of_del_m)
 # read noise tsv

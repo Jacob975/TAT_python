@@ -205,7 +205,7 @@ delta_m_list, e_delta_m_list = curvefit.get_rid_of_exotic_vector(delta_m_list, e
 result_delta_m, result_delta_std = weighted_avg_and_std(delta_m_list, e_delta_m_list)
 if VERBOSE>0:print "In average, delta_mag = {0:.2f}+-{1:.2f}".format(result_delta_m, result_delta_std)
 # save result
-path_of_result = tat_datactrl.get_path("result")
+path_of_result = tat_datactrl.get_path("path_of_result")
 result_file = open("{0}/limitation_magnitude_and_noise/delta_mag.tsv".format(path_of_result), 'a')
 if float(ecc) > 0 and float(ecc) < 1: 
     writen_ecc = ecc

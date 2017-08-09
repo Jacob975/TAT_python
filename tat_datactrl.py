@@ -49,20 +49,21 @@ def read_tsv_file(file_name):
 
 #---------------------------------------------------------
 # Function in this section is for read path from setting.
-def get_path(option, VERBOSE = 0):
-    setting_file = readfile("/home/Jacob975/bin/tat_python/tat_config")
-    if VERBOSE>0:
-        for sentence in setting_file:
-            print sentence
-    if option == "source":
-        answer = setting_file[0]
-        return answer
-    elif option == "code":
-        answer = setting_file[1]
-        return answer
-    elif option == "result":
-        answer = setting_file[2]
-        return answer
+
+def get_path(option, VERBOSE = 1):
+    setting_file = readfile("tat_config")
+    answer = []
+    start_index = setting_file.index(option)
+    #print setting_file
+    for i in xrange(len(setting_file)):
+        if i == 0:
+            continue
+        elif setting_file[start_index + i] == 'end':
+            break
+        answer.append(setting_file[start_index + i])
+    if len(answer) == 0:
+        if VERBOSE>0:print "no match answer"
+	elif len(answer) == 1:
+        return answer[0]
     else:
-        print "illegal command"
-        return 0
+        return answer
