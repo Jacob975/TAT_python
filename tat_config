@@ -15,14 +15,14 @@ end
 # recommand: /home/username
 # please write down the source path between "path_of_source" and "end"
 path_of_source
-/Users/jacob975/Documents/tat_data
+/brick/users/Jacob975
 end
 #--------------- Setting code path ------------------
 # code path means where do you install these code about tat.
 # recommand: /home/username/bin/tat_python
 # please write down the code path between "path_of_code" and "end"
 path_of_code
-/Users/jacob975/Documents/tat_python
+/home/Jacob975/bin/tat_python
 end
 #--------------- Setting result path ----------------
 # result path means once you produce some data by tat_python.
@@ -30,5 +30,5 @@ end
 # recommand: /home/tat_result
 # please write down the result path between "path_of_result" and "end"
 path_of_result
-/Users/jacob975/Documents/tat_result
+/home/Jacob975/demo
 end
