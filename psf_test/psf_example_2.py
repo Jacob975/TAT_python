@@ -1,15 +1,17 @@
 #!/usr/bin/python
 '''
 Program:
-This is a program to demo the style of my code. 
+This is a program to demo the psf fitting.
+all code is copy from https://github.com/astropy/photutils-datasets/blob/master/notebooks/ArtificialCrowdedFieldPSFPhotometry.ipynb
 Usage:
-1. create_an_artificial_image.py [list name]
+1. psf_example_2.py
 editor Jacob975
 20170809
 #################################
 update log
 
-
+20170809 version alpha 1
+	The code can run properly.
 '''
 import numpy as np
 import pyfits
@@ -135,6 +137,9 @@ photometry = BasicPSFPhotometry(group_maker=daogroup, bkg_estimator=mmm_bkg,
                                 fitshape=(11,11))
 result_tab = photometry(image=image, positions=positions)
 residual_image = photometry.get_residual_image()
+
+#--------------------------------------------
+# plot section
 
 residual_fix_result = plt.figure("Residual_fix")
 plt.imshow(residual_image)

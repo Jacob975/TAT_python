@@ -1,14 +1,19 @@
 #!/usr/bin/python
 '''
 Program:
-This is a program to demo the style of my code. 
+This is a program to demo psf fitting
+and save result in path of result.
+all code is copy from http://photutils.readthedocs.io/en/stable/photutils/psf.html
+
 Usage:
-1. std_code.py [list name]
+1. psf_example_1.py 
 editor Jacob975
 20170809
 #################################
 update log
 
+20170809 version alpha 1
+	It can run properly.
 '''
 #---------------------------------------------------
 # import module below is for create simulated image.
