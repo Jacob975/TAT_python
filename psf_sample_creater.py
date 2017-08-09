@@ -31,6 +31,8 @@ from astropy.stats import gaussian_sigma_to_fwhm
 from photutils.psf import IterativelySubtractedPSFPhotometry
 
 #--------------------------------------------
+import tat_datactrl
+
 # main code
 VERBOSE = 0
 # measure times
@@ -54,7 +56,8 @@ simulated_png = plt.figure("simulated.png")
 plt.imshow(image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
 plt.title('Simulated data') 
 plt.colorbar(orientation='horizontal', fraction=0.046, pad=0.04)
-plt.savefig("/Users/jacob975/Documents/tat_data/test/simulated.png")
+path_of_result = tat_datactrl.get_path("result")
+plt.savefig("{0}/simulated.png".format(path_of_result))
 simulated_png.show()
 
 #-------------------------------------------
@@ -81,7 +84,7 @@ residual_png = plt.figure("residual.png")
 plt.imshow(residual_image, cmap='viridis', aspect=1, interpolation='nearest', origin='lower')
 plt.title('Residual Image')
 plt.colorbar(orientation='horizontal', fraction=0.046, pad=0.04)
-plt.savefig("/Users/jacob975/Documents/tat_data/test/residual.png")
+plt.savefig("{0}/residual.png".format(path_of_result))
 residual_png.show()
 
 raw_input()
