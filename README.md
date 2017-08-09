@@ -4,15 +4,15 @@ Program for sorting and processing images of TAT telescope
 # Setup
 1. $vim tat_config
 
-	set path in tat_config
+	set path of tat code, source(your raw data), python, and result in tat_config
 
 2. $vim tat_datactrl.py
 
 	set path of tat_config in tat_datactrl.get_path
 
-3. $setup_tat_folder.py
+3. $tat_setup_linux.py or $tat_setup_mac.py
 
-	This code will set up all folder you need, Haven't been composed.
+	This code will set up all folder you need, reset the python path in each tat program in path of code.
 
 # Below are standard steps of processing TAT data.
 
