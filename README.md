@@ -1,6 +1,26 @@
 # tat_python
 Program for sorting and processing images of TAT telescope
 
+# Preparation
+
+1. Install python or python2 in your computer, recommand python-2.7.13
+
+2. install extra python module below
+
+	numpy
+	pyfits
+	tabulate
+	photutils
+	scikit-image
+
+You can install these module by this command: $python -m pip install modulename
+
+If you want only install locally, please use this command: $ python -m pip --user install modulename
+
+3. install ds9 package
+
+You can access ds9 by yum(for rat-hat), or apt-get(for ubuntu), or homebrew(for mac)
+
 # Setup
 1. $vim tat_config
 
