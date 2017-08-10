@@ -41,7 +41,9 @@ from photutils.psf import IterativelySubtractedPSFPhotometry
 # modules below is used to Plot original and residual images
 from matplotlib import rcParams
 import matplotlib.pyplot as plt
-
+#-------------------------------------------
+# for control table
+from tabulate import tabulate
 #--------------------------------------------
 # modules for Photometry with fixed positions
 from photutils.psf import BasicPSFPhotometry
@@ -99,32 +101,39 @@ residual_image = photometry.get_residual_image()
 #-------------------------------------------
 # Plot original and residual images
 
-rcParams['image.cmap'] = 'viridis'
-rcParams['image.aspect'] = 1  # to get images with square pixels
-rcParams['figure.figsize'] = (20,10)
-rcParams['image.interpolation'] = 'nearest'
-rcParams['image.origin'] = 'lower'
-rcParams['font.size'] = 14
-
-simulated_result = plt.figure("Simulated data")
-plt.imshow(image)
-plt.title('Simulated data')
-plt.colorbar(orientation='horizontal', fraction=0.046, pad=0.04)
-if VERBOSE>0:simulated_result.show()
-
-residual_result = plt.figure("Residual")
-plt.imshow(residual_image)
-plt.title('Residual')
-plt.colorbar(orientation='horizontal', fraction=0.046, pad=0.04)
-if VERBOSE>0:
-	residual_result.show()
+if VERBOSE>1:
+    rcParams['image.cmap'] = 'viridis'
+    rcParams['image.aspect'] = 1  # to get images with square pixels
+    rcParams['figure.figsize'] = (20,10)
+    rcParams['image.interpolation'] = 'nearest'
+    rcParams['image.origin'] = 'lower'
+    rcParams['font.size'] = 14
+    # display origin image
+    simulated_result = plt.figure("Simulated data")
+    plt.imshow(image)
+    plt.title('Simulated data')
+    plt.colorbar(orientation='horizontal', fraction=0.046, pad=0.04)
+    simulated_result.show()
+    # display residual part
+    residual_result = plt.figure("Residual")
+    plt.imshow(residual_image)
+    plt.title('Residual')
+    plt.colorbar(orientation='horizontal', fraction=0.046, pad=0.04)
+    residual_result.show()
 
 result_tab.sort('id')
-if VERBOSE>1:print result_tab
+if VERBOSE>0:print result_tab
+# save star list
+result_file = open("result_tab", "w")
+result_file.write(tabulate(result_tab))
+result_file.close()
+# save as fits in current folder
+pyfits.writeto("simulate.fits", image)
+pyfits.writeto("residual.fits", residual_image)
 
 #--------------------------------------------
 # Photometry with fixed positions
-
+'''
 psf_model.x_0.fixed = True
 psf_model.y_0.fixed = True
 
@@ -148,7 +157,7 @@ plt.colorbar(orientation='horizontal', fraction=0.046, pad=0.04)
 if VERBOSE>0:
 	residual_fix_result.show()
 	raw_input()
-
+'''
 #---------------------------------------------
 # measuring time
 elapsed_time = time.time() - start_time
