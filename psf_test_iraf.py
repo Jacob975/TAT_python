@@ -98,16 +98,15 @@ std = paras_hist[1]
 # wipe out all nan
 nan_index = np.isnan(image)
 image[nan_index] = bkg
-'''
+print "bkg = {0}".format(bkg)
 iraffind = IRAFStarFinder(threshold=3.5*std,
                           fwhm=sigma_psf*gaussian_sigma_to_fwhm,
-                          minsep_fwhm=1, roundhi=5.0, roundlo=-5.0,
+                          minsep_fwhm=0.01, roundhi=5.0, roundlo=-5.0,
                           sharplo=0.0, sharphi=2.0)
 '''
-daofind = DAOStarFinder(threshold=3.5*std,
-                          fwhm=sigma_psf*gaussian_sigma_to_fwhm,
-                          roundhi=5.0, roundlo=-5.0,
-                          sharplo=0.0, sharphi=2.0)
+daofind = DAOStarFinder(fwhm = sigma_psf*gaussian_sigma_to_fwhm,
+                        threshold = 5. * std)
+'''
 daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)
 mmm_bkg = MMMBackground()
 psf_model = IntegratedGaussianPRF(sigma=sigma_psf)
@@ -116,7 +115,7 @@ fitter = LevMarLSQFitter()
 #-------------------------------------------
 # Perform photometry
 print "start to photometry"
-photometry = IterativelySubtractedPSFPhotometry(finder=daofind, group_maker=daogroup,
+photometry = IterativelySubtractedPSFPhotometry(finder=iraffind, group_maker=daogroup,
                                                 bkg_estimator=mmm_bkg, psf_model=psf_model,
                                                 fitter=LevMarLSQFitter(),
                                                 niters=2, fitshape=(11,11))
@@ -152,17 +151,17 @@ if VERBOSE>1:print result_tab
 # save region
 x_pos = result_tab['x_fit'][:]
 y_pos = result_tab['y_fit'][:]
-region_file = open("{0}_region".format(argv[-1][0:-5]), "w")
+region_file = open("{0}_iraffind_region".format(argv[-1][0:-5]), "w")
 for i in xrange(len(x_pos)):
     region_file.write("{0} {1}\n".format(x_pos[i], y_pos[i]))
 region_file.close()
 # save table
-result_file = open("{0}_tab".format(argv[-1][0:-5]), "w")
+result_file = open("{0}_iraffind_tab".format(argv[-1][0:-5]), "w")
 result_file.write(tabulate(result_tab))
 result_file.close()
 # save as fits in current folder
 imh = pyfits.getheader(argv[-1])
-pyfits.writeto("{0}_rest.fits".format(argv[-1][0:-5]), residual_image, imh)
+pyfits.writeto("{0}_iraffind_rest.fits".format(argv[-1][0:-5]), residual_image, imh)
 '''
 #--------------------------------------------
 # Photometry with fixed positions
