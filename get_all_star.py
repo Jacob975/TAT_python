@@ -2,7 +2,7 @@
 '''
 Program:
 This is a program to display and save star catalog found in fits.
-The star catalog will be saved in /home/Jacob975/demo/TAT_star_catalog/
+The star catalog will be saved in /home/Jacob975/demo/TAT_raw_star_catalog/
 
 Usage:
 1. get_all_star.py [fits name]
@@ -198,11 +198,11 @@ for name in fits_list:
         result_file.write("\n")
     result_file.close()
     # check whether the star catalog been generated or not.
-    done_star_list = glob.glob("{1}/TAT_row_star_catalog/done/{0}".format(star_list_name, path_of_result))
+    done_star_list = glob.glob("{1}/TAT_raw_star_catalog/done/{0}".format(star_list_name, path_of_result))
     if done_star_list == star_list_name:
         print "The star catalog has existed."
     else:
-        command = "cp {0} {1}/TAT_row_star_catalog/{0}".format(star_list_name, path_of_result)
+        command = "cp {0} {1}/TAT_raw_star_catalog/{0}".format(star_list_name, path_of_result)
         os.system(command)
     # write down region file of stars in wcs and display on ds9
     if VERBOSE>1:
