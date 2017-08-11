@@ -53,15 +53,16 @@ def read_tsv_file(file_name):
 
 #--------------------------------------------
 # main code
-VERBOSE = 0
-# measure times
-start_time = time.time()
-# get property from argv
-list_name=argv[-1]
-fits_list=readfile(list_name)
+if __name__ == "__main__":
+    VERBOSE = 0
+    # measure times
+    start_time = time.time()
+    # get property from argv
+    list_name=argv[-1]
+    fits_list=readfile(list_name)
 
-# do what you want.
+    # do what you want.
 
-# measuring time
-elapsed_time = time.time() - start_time
-print "Exiting Main Program, spending ", elapsed_time, "seconds."
+    # measuring time
+    elapsed_time = time.time() - start_time
+    print "Exiting Main Program, spending ", elapsed_time, "seconds."
