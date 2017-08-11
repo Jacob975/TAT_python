@@ -99,7 +99,7 @@ std = paras_hist[1]
 nan_index = np.isnan(image)
 image[nan_index] = bkg
 print "bkg = {0}".format(bkg)
-iraffind = IRAFStarFinder(threshold=3.5*std,
+iraffind = IRAFStarFinder(threshold=15*std,
                           fwhm=sigma_psf*gaussian_sigma_to_fwhm,
                           minsep_fwhm=0.01, roundhi=5.0, roundlo=-5.0,
                           sharplo=0.0, sharphi=2.0)

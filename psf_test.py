@@ -104,7 +104,7 @@ iraffind = IRAFStarFinder(threshold=3.5*std,
                           minsep_fwhm=1, roundhi=5.0, roundlo=-5.0,
                           sharplo=0.0, sharphi=2.0)
 '''
-daofind = DAOStarFinder(threshold=3.5*std,
+daofind = DAOStarFinder(threshold=15.*std,
                           fwhm=sigma_psf*gaussian_sigma_to_fwhm,
                           roundhi=5.0, roundlo=-5.0,
                           sharplo=0.0, sharphi=2.0)
