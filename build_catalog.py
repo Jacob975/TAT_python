@@ -108,12 +108,12 @@ def create_page(data, id_number, date, band, band_list, ref_band_list, scope, me
         result_file.write("{0}_mag\te_{0}_mag\t".format(band_2))
     result_file.write("\n")
     # write down the unit
-    result_file.write("degree\tdegree\tdegree\tdegree\tno_unit\tno_unit\tno_unit\tno_unit\tcount_per_sec\tcount_per_sec\tmag_per_sec\tmag_per_sec\tpixel\tpixel\tpixel\tpixel\tpixel\tpixel\tpixel\tpixel\tdegree\tdegree\tcount\tcount")
+    result_file.write("degree\tdegree\tdegree\tdegree\tno_unit\tno_unit\tno_unit\tno_unit\tcount_per_sec\tcount_per_sec\tmag_per_sec\tmag_per_sec\tpixel\tpixel\tpixel\tpixel\tpixel\tpixel\tpixel\tpixel\tdegree\tdegree\tcount\tcount\t")
     for i in xrange(len(band_list)):
         result_file.write("mag_per_sec\tmag_per_sec\t")
     result_file.write("\n")
     # write down the data except of real magnitude
-    result_file.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t{20}\t{21}\t{22}\t{23}".format(data[0], data[1], data[2], data[3], date, band, scope, method, data[8], data[9], data[10], data[11], data[4], data[5], data[6], data[7], data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19]))
+    result_file.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t{20}\t{21}\t{22}\t{23}\t".format(data[0], data[1], data[2], data[3], date, band, scope, method, data[8], data[9], data[10], data[11], data[4], data[5], data[6], data[7], data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19]))
     # check the ref band of real magnitude.
     if len(ref_band_list) == 0:
         result_file.close()
@@ -139,7 +139,7 @@ def create_page(data, id_number, date, band, band_list, ref_band_list, scope, me
 # append data to a existing star catalog
 def append_page(data, TAT_id, date, band, band_list, ref_band_list, scope, method):
     result_file = open(TAT_id, "a")
-    result_file.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t{20}\t{21}\t{22}\t{23}".format(data[0], data[1], data[2], data[3], date, band, scope, method, data[8], data[9], data[10], data[11], data[4], data[5], data[6], data[7], data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19]))
+    result_file.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\t{20}\t{21}\t{22}\t{23}\t".format(data[0], data[1], data[2], data[3], date, band, scope, method, data[8], data[9], data[10], data[11], data[4], data[5], data[6], data[7], data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19]))
     # check the ref band of real magnitude.
     if len(ref_band_list) == 0:
         result_file.close()

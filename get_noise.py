@@ -59,18 +59,21 @@ update log
 
     20170808 version alpha 6
     1.  use tat_config to control path of result data instead of fix the path in the code.
+
+    20170811 version alpha 7
+    1.  add comment behind imported module, used to display their topic.
 '''
 
-import os
+import os                           # for executing linux command
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt     # for plot result, the relation between time and noise
 import pyfits
-import time
-import curvefit
-import tat_datactrl
+import time                         # for detect the lenght of processing time.
+import curvefit                     # library of fitting and data processing of tat data
+import tat_datactrl                 # control tat data.
 from sys import argv, exit
 from numpy import pi, r_
-from scipy import optimize
+from scipy import optimize          # for fitting func
 
 # this func will find out noise of  all collection of some list
 # then save result in noise_list
