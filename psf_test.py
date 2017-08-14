@@ -59,8 +59,10 @@ start_time = time.time()
 image = pyfits.getdata(argv[-1])
 # test how many peak in this image.
 # If too much, raise up the limitation of size
-sz = 29
+
+sz = 30
 tl = 5
+'''
 peak_list = []
 while len(peak_list) >500 or len(peak_list) < 3:
     sz +=1
@@ -69,16 +71,20 @@ if VERBOSE>2:
     print "peak list: "
     for peak in peak_list:
         print peak[1], peak[0]
-
+'''
+peak_list = get_peak_filter(image, tall_limit = tl, size = sz)
 # test how many stars in this figure.
 # If too much, raise up the limitation of half_width with default = 4
-hwl = 3
+hwl = 4
 ecc = 1
+'''
 star_list = []
 while len(star_list) > 20 or len(star_list) < 3:
     hwl += 1
     star_list = get_star(image, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
     if VERBOSE>0:print "hwl = {0}, len of ref_star_list = {1}".format(hwl, len(star_list))
+'''
+star_list = get_star(image, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
 sigma_sum = 0
 for star in star_list:
 	sigma_sum += star[3]
@@ -86,6 +92,7 @@ for star in star_list:
 sigma_psf = np.divide(sigma_sum, len(star_list)*2)
 sigma_psf = round(sigma_psf, 2)
 print "sigma_psf = {0}".format(sigma_psf)
+
 #---------------------------------------------
 # Initialize instances for the IterativelySubtractedPSFPhotometry object
 '''
@@ -95,6 +102,11 @@ std = bkgrms(image)
 paras_hist, cov_hist = hist_gaussian_fitting('default', image)
 bkg = paras_hist[0]
 std = paras_hist[1]
+# set nan on all pixel which near border within 20 pixel.
+image[:,:20] = np.nan
+image[:,-21:] = np.nan
+image[:20,:] = np.nan
+image[-21:,:] = np.nan
 # wipe out all nan
 nan_index = np.isnan(image)
 image[nan_index] = bkg
@@ -104,7 +116,7 @@ iraffind = IRAFStarFinder(threshold=3.5*std,
                           minsep_fwhm=1, roundhi=5.0, roundlo=-5.0,
                           sharplo=0.0, sharphi=2.0)
 '''
-daofind = DAOStarFinder(threshold=15.*std,
+daofind = DAOStarFinder(threshold=3.5*std,
                           fwhm=sigma_psf*gaussian_sigma_to_fwhm,
                           roundhi=5.0, roundlo=-5.0,
                           sharplo=0.0, sharphi=2.0)
@@ -149,20 +161,15 @@ if VERBOSE>1:
 
 result_tab.sort('id')
 if VERBOSE>1:print result_tab
-# save region
-x_pos = result_tab['x_fit'][:]
-y_pos = result_tab['y_fit'][:]
-region_file = open("{0}_region".format(argv[-1][0:-5]), "w")
-for i in xrange(len(x_pos)):
-    region_file.write("{0} {1}\n".format(x_pos[i], y_pos[i]))
-region_file.close()
+
 # save table
-result_file = open("{0}_tab".format(argv[-1][0:-5]), "w")
+result_file = open("{0}_11_shape_tab".format(argv[-1][0:-5]), "w")
 result_file.write(tabulate(result_tab))
 result_file.close()
+
 # save as fits in current folder
 imh = pyfits.getheader(argv[-1])
-pyfits.writeto("{0}_rest.fits".format(argv[-1][0:-5]), residual_image, imh)
+pyfits.writeto("{0}_rest_11_shape.fits".format(argv[-1][0:-5]), residual_image, imh)
 '''
 #--------------------------------------------
 # Photometry with fixed positions
