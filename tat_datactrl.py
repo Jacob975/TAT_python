@@ -13,6 +13,9 @@ update log
 
 20170814 version alpha 1
     1.  add class tsv_editor, star_catalog_editor, row_star_catalog_comparator
+
+20170815 version alpha 2
+    1.  add class raw_star_catalog_editor
 '''
 
 import numpy as np
@@ -21,7 +24,6 @@ import jdcal
 import matplotlib.pyplot as plt
 import jdcal
 import math
-
 #---------------------------------------------------------
 # Function in this section is for reading txt like data.
 
@@ -95,6 +97,37 @@ class tsv_editor:
     def set_data(file_name):
         self.file_name = file_name
         self.data = self.read_tsv_file(file_name)
+
+# This code is for plot histgram of mag vesus number
+class raw_star_catalog_editor(tsv_editor):
+    # This function will plot histogram of mag vesus number of stars.
+    def hist(self, data, centr = 10, half_width = 5, shift = 0):
+        bin_length = half_width*8
+        numbers, bin_edges, patches = plt.hist(data, bins= bin_length, range = [centr - half_width + shift , centr + half_width + shift], normed = False)
+        bin_middles = 0.5*(bin_edges[1:] + bin_edges[:-1])
+        return bin_middles, numbers
+    def hist_plot(self, title, VERBOSE = 0):
+        #------------------------------
+        # grab data section
+        data = self.data
+        # find index of title
+        title_index = data[0].index(title)
+        # read selected data
+        mag_data = [column[title_index] for column in data]
+        # do histogram
+        mag_array = np.array(mag_data[2:], dtype = float)
+        x_plt, y_plt = self.hist(mag_array)
+        max_num_in_mag = x_plt[np.argmax(y_plt)]
+        if VERBOSE>0:print "most stars within {0} mag region".format(max_num_in_mag)
+        #------------------------------
+        # plot section
+        fig = plt.figure("Histogram of {0} in {1}".format(title, self.file_name))
+        plt.title("Histogram of {0} in {1}".format(title, self.file_name))
+        plt.xlabel("{0}({1})".format(mag_data[0], mag_data[1]))
+        plt.yscale("log")
+        plt.ylabel("number(log10(count))")
+        plt.bar(x_plt, y_plt, width = 0.25)
+        fig.show()
 
 # This code is for plot difference of selected property
 class raw_star_catalog_comparator(tsv_editor):
