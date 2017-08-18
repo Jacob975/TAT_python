@@ -99,6 +99,10 @@ iraffind = IRAFStarFinder(threshold=3.0*std,
 daogroup = DAOGroup(2.0*sigma_psf*gaussian_sigma_to_fwhm)
 mmm_bkg = MMMBackground()
 psf_model = IntegratedGaussianPRF(sigma=sigma_psf)
+# save model
+if VERBOSE>1:
+    print psf_model
+    print type(psf_model)
 fitter = LevMarLSQFitter()
 
 #-------------------------------------------
@@ -114,9 +118,11 @@ residual_image = photometry.get_residual_image()
 
 result_tab.sort('id')
 if VERBOSE>1:print result_tab
-
 # save table
 result_tab.write("{0}_iraffind_tab".format(argv[-1][0:-5]), format = 'latex')
+
+#--------------------------------------------
+# Use get_star in curvefit.py to measure the count and position.
 
 # save as fits in current folder
 imh = pyfits.getheader(argv[-1])
