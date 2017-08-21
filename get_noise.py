@@ -62,6 +62,11 @@ update log
 
     20170811 version alpha 7
     1.  add comment behind imported module, used to display their topic.
+
+    20170821 version alpha 8
+    1.  Use table as datatype instead of list.
+    2.  Use .fits as saved type instead of .tsv
+    3.  All changes above is for control data more efficiently.
 '''
 
 import os                           # for executing linux command
@@ -74,6 +79,8 @@ import tat_datactrl                 # control tat data.
 from sys import argv, exit
 from numpy import pi, r_
 from scipy import optimize          # for fitting func
+from astropy.io import fits         # an file I/O module
+from astropy.table import Table     # for manage data
 
 # this func will find out noise of  all collection of some list
 # then save result in noise_list
@@ -237,56 +244,72 @@ date_name = list_path[-3]
 obj_name = list_path[-2]
 filter_name = list_path[-1]
 
-# write down header
+# setup the path of saves
 path_of_result = tat_datactrl.get_path("path_of_result")
-result_data_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
+result_data_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.fits".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
 result_fig_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.png".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
 
-result_file = open(result_data_name, "a")
-result_file.write(obj_name + "_Noise_to_time\n")
-result_file.write("filter: {0}\n".format(filter_name))
-result_file.write("date: {0}\n".format(date_name))
-result_file.write("scope: {0}\n".format(scope_name))
-result_file.write("stack method: {0}\n".format(method))
-result_file.write("list name: {0}\n".format(list_name))
-# mention the noise has been normalize
-result_file.write("normalize noise: yes")
+fitting_func = ""
+title = ('')
+unit = []
 if noise_unit == "count":
-    result_file.write("fitting function: noise = base/np.power(exptime, pow_) + const\n")
-    result_file.write("*************************************************************\n")
-    result_file.write("exptime\t|\tnoise\n")
-if noise_unit == "mag" :
-    result_file.write("fitting function: noise = amp*log_10(exptime) + const\n")
-    result_file.write("*************************************************************\n")
-    result_file.write("exptime\t|\tmag\n")
-result_file.write("-------------------------------------------------------------\n")
-
+    fitting_func = "noise = base/np.power(exptime, pow_) + const"
+    title = ('exptime', 'noise')
+    unit = ['sec', 'count per sec']
+if noise_unit == "mag":
+    fitting_func = "noise = amp*log_10(exptime) + const"
+    title = ('exptime', 'mag')
+    unit = ['sec', 'mag per sec']
 #-------------------------------------
-
 # execute the options and fitting 
 x_plt, noise_plt, paras, cov, success = execute_option(fits_list, method, noise_unit, VERBOSE)
-for i in xrange(len(x_plt)):
-    result_file.write("{0}\t{1}\n".format(x_plt[i],noise_plt[i]))
+result_table = Table([x_plt, noise_plt], names = title)
+for i in xrange(len(title)):
+    result_table[title[i]].unit = unit[i]
+result_table.write(result_data_name, overwrite = True)
 #---------------------------------
 # write down result
-
-result_file.write("***************************************************************\n")
+head_info = [obj_name, filter_name, date_name, scope_name, method, list_name, "yes", fitting_func]
+# full form :"RAWDATANAME", "FILTER", "DATE", "SCOPE", "STACK_METHOD", "LISTNAME", "NORMALIZED_NOISE", "FITTINGFUNCTION"
+head_info_name = ["RAWDATA", "FILTER", "DATE", "SCOPE", "METHOD", "LIST", "NORM_N", "FFUNC"]
+for i in xrange(len(head_info_name)):
+    fits.setval(result_data_name, head_info_name[i], value = head_info[i])
+data_name = np.array([])
+data = np.array([])
+type_list = np.array([])
 if noise_unit == "count" and success != 0:
-    result_file.write("base: {0:.2f}+-{3:.2f}\nconst: {1:.2f}+-{4:.2f}\npow_: {2:.3f}+-{5:.3f}\n".format(paras[0], paras[1], paras[2], cov[0][0], cov[1][1], cov[2][2]))
-    result_file.close()
-    result_file = open("{0}/limitation_magnitude_and_noise/noise_in_count.tsv".format(path_of_result), "a")
-    result_file.write("{6}\t{11}\t{7}\t{8}\t{9}\t{10}\t{0:.2f}\t{3:.2f}\t{1:.2f}\t{4:.2f}\t{2:.3f}\t{5:.3f}\n".format(paras[0], paras[1], paras[2], cov[0][0], cov[1][1], cov[2][2], obj_name, filter_name, date_name, method, list_name, scope_name))
-    result_file.close()
-    if VERBOSE>1:print "base: ", paras[0], "const: ", paras[1], "pow_: ", paras[2]
-
+    value_name = ['BASE', 'CONST', 'POW_']
+    values = [paras[0], paras[1], paras[2]]
+    error = [cov[0][0], cov[1][1], cov[2][2]]
+    for i in xrange(len(values)):
+        fits.setval(result_data_name, "{0}".format(value_name[i]), value = values[i])
+        fits.setval(result_data_name, "E_{0}".format(value_name[i]), value = error[i])
+    if VERBOSE>1:
+        print "base: ", paras[0], "const: ", paras[1], "pow_: ", paras[2]
+    data_name = np.array(['target', 'scope','band', 'date', 'method', 'list_name', 'base', 'e_base', 'const', 'e_const', 'pow_', 'e_pow_'])
+    sub_units = np.array(['no unit', 'no unit', 'no unit', 'yyyymmdd', 'no unit', 'no unit', 'count per sec', 'count per sec', 'count per sec', 'count per sec', 'count per sec', 'count per sec'])
+    data = np.array([obj_name, scope_name, filter_name, date_name, method, list_name, paras[0], cov[0][0], paras[1], cov[1][1], paras[2], cov[2][2]])
 elif noise_unit == "mag" and success != 0:
-    result_file.write("amp: {0:.2f}+-{2:.2f}\nconst: {1:.2f}+-{3:.2f}\n".format(paras[0], paras[1], cov[0][0], cov[1][1]))
-    result_file.close()
-    result_file = open("{0}/limitation_magnitude_and_noise/noise_in_mag.tsv".format(path_of_result), "a")
-    result_file.write("{4}\t{9}\t{5}\t{6}\t{7}\t{8}\t{0:.2f}\t{2:.2f}\t{1:.2f}\t{3:.2f}\n".format(paras[0], paras[1], cov[0][0], cov[1][1], obj_name, filter_name, date_name, method, list_name, scope_name))
-    result_file.close()
+    value_name = ['AMP', 'CONST']
+    values = [paras[0], paras[1]]
+    error = [cov[0][0], cov[1][1]]
+    for i in xrange(len(values)):
+        fits.setval(result_data_name, "{0}".format(value_name[i]), value = values[i])
+        fits.setval(result_data_name, "E_{0}".format(value_name[i]), value = error[i])
     if VERBOSE>1:print "amp: ", paras[0], "const: ", paras[1]
-
+    data_name = np.array(['object', 'scope', 'band', 'date', 'method', 'list_name', 'amp', 'e_amp', 'const', 'e_const'])
+    sub_units = np.array(['no unit', 'no unit', 'no unit', 'yyyymmdd', 'no unit', 'no unit', 'mag per sec', 'mag per sec', 'mag per sec', 'mag per sec'])
+    data = np.array([obj_name, scope_name, filter_name, date_name, method, list_name, paras[0], cov[0][0], paras[1], cov[1][1]])
+# save result in collection database
+try:
+    pre_table = Table.read("{0}/limitation_magnitude_and_noise/noise_in_{1}.fits".format(path_of_result, noise_unit))
+    pre_table.add_row(data)
+    pre_table.write("{0}/limitation_magnitude_and_noise/noise_in_{1}.fits".format(path_of_result, noise_unit), overwrite = True)
+except:
+    sub_table = Table(rows = [data], names = data_name)
+    for i in xrange(len(data)):
+        sub_table[data_name[i]].unit = sub_units[i]
+    sub_table.write("{0}/limitation_magnitude_and_noise/noise_in_{1}.fits".format(path_of_result, noise_unit))
 #---------------------------------
 # draw
 result_plt = plt.figure(scope_name+" "+date_name+" "+obj_name+" "+filter_name+" "+" result")
