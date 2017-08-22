@@ -248,7 +248,7 @@ filter_name = list_path[-1]
 path_of_result = tat_datactrl.get_path("path_of_result")
 result_data_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.fits".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
 result_fig_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.png".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
-
+path_of_noise_to_some = "{0}/limitation_magnitude_and_noise/noise_in_{1}.fits".format(path_of_result, noise_unit)
 fitting_func = ""
 title = ('')
 unit = []
@@ -302,14 +302,24 @@ elif noise_unit == "mag" and success != 0:
     data = np.array([obj_name, scope_name, filter_name, date_name, method, list_name, paras[0], cov[0][0], paras[1], cov[1][1]])
 # save result in collection database
 try:
-    pre_table = Table.read("{0}/limitation_magnitude_and_noise/noise_in_{1}.fits".format(path_of_result, noise_unit))
+    pre_table = Table.read(path_of_noise_to_some)
     pre_table.add_row(data)
-    pre_table.write("{0}/limitation_magnitude_and_noise/noise_in_{1}.fits".format(path_of_result, noise_unit), overwrite = True)
+    pre_table.write(path_of_noise_to_some, overwrite = True)
+    hdulist = fits.open(path_of_noise_to_some, mode = 'update')
+    prihdr = hdulist[0].header
+    prihdr['fitting_function'] = 'y : amp * log_10(exptime) + const'
+    hdulist.flush()
+    hdulist.close()
 except:
     sub_table = Table(rows = [data], names = data_name)
     for i in xrange(len(data)):
         sub_table[data_name[i]].unit = sub_units[i]
-    sub_table.write("{0}/limitation_magnitude_and_noise/noise_in_{1}.fits".format(path_of_result, noise_unit))
+    sub_table.write(path_of_noise_to_some)
+    hdulist = fits.open(path_of_noise_to_some, mode = 'update')
+    prihdr = hdulist[0].header
+    prihdr['fitting_function'] = 'y : amp * log_10(exptime) + const'
+    hdulist.flush()
+    hdulist.close()
 #---------------------------------
 # draw
 result_plt = plt.figure(scope_name+" "+date_name+" "+obj_name+" "+filter_name+" "+" result")

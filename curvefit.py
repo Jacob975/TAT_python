@@ -309,6 +309,10 @@ def get_peak_filter(data, tall_limit = 10, size = 5, VERBOSE = 0):
     coor = zip(y, x)
     return coor
 
+def get_peak_title():
+    answer = np.array(["xcenter", "ycenter"])
+    return answer
+
 def get_peak(data, tall_limit = 10, VERBOSE = 0):
     # get property about data distriution
     paras, cov = hist_gaussian_fitting('default', data)
@@ -351,6 +355,14 @@ def get_half_width(data, data_mean, data_std, pos):
                 return 0
             half_width = half_width + 2
     return half_width
+
+def get_star_title(detailed = False):
+    answer = np.array([])
+    if detailed:
+        answer = np.array(['amplitude', 'e_amplitude', 'xcenter', 'e_xcenter', 'ycenter', 'e_ycenter', 'xsigma', 'e_xsigma', 'ysigma', 'e_ysigma', 'rot', 'e_rot', 'bkg', 'e_bkg'])
+    else :
+        answer = np.array(['amplitude', 'xcenter', 'ycenter', 'xsigma', 'ysigma', 'rot', 'bkg'])
+    return answer
 
 def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detailed = False):
     VERBOSE= 0
