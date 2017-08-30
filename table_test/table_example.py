@@ -14,7 +14,7 @@ update log
 import numpy as np
 import time
 from astropy.table import Table
-
+import os
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
@@ -56,7 +56,20 @@ if __name__ == "__main__":
     # currently, the most suitable one is .fits
     t.write('table.fits')
     u = Table.read('table.fits')
-    print u.info
+    temp_list = []
+    temp_list = list(u.columns[1])
+    print temp_list[1]
+    temp_list.append([1,2,3])
+    print temp_list
+    #---------------------------------------------
+    # forth example
+    # test the datatype
+    result = [(12.76, 0.33, 'SgrNova', 'TF', 'N_100s', '20150416', 'mdn', 'N', 'N')]
+    t2 = Table(rows = result)
+    print t2
+    #---------------------------------------------
+    #clean result
+    os.system("rm table.fits")
     #---------------------------------------------
     # measuring time
     elapsed_time = time.time() - start_time
