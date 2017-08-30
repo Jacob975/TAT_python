@@ -2,16 +2,19 @@
 '''
 Program:
 This is a program to setup tat python code. 
-For Linux only
+For Linux and macOS only
 Usage:
-1. tat_setup_linux.py
+1. tat_setup.py
 editor Jacob975
 20170809
 #################################
 update log
 
 20170809 version alpha 1
-	It can run properly
+    It can run properly
+
+20170830 version alpha 2
+    1. combine the linux version and macOS version
 '''
 import time
 import glob
@@ -89,6 +92,7 @@ if platform == "linux" or platform == "linux2":
             os.chdir(obj)
             temp_path = "{0}/{1}".format(code_path, obj)
             set_path_linux(py_path, temp_path)
+            os.chdir("..")
 
 elif platform == "darwin":
     set_path_mac(py_path, code_path)
@@ -99,6 +103,7 @@ elif platform == "darwin":
             os.chdir(obj)
             temp_path = "{0}/{1}".format(code_path, obj)
             set_path_mac(py_path, temp_path)
+            os.chdir("..")
 
 else:
     print "you system is not fit the requirement of tat_python"
