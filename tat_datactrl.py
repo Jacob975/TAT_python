@@ -47,7 +47,8 @@ def read_tsv_file(file_name):
         # skip if no data or it's a hint.
         if not len(line) or line.startswith('#'):
             continue
-        line_data = line.split("\t")
+        line = line[:-1]
+        line_data = np.array(line.split("\t"))
         data.append(line_data)
     f.close()
     return data
