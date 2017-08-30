@@ -111,7 +111,7 @@ class argv_ctrl:
         return self.e
 #---------------------------------------------------------
 # This code for process image
-class main_process:
+class star_info:
     fitsname = ""
     data = np.array([])
     std = 0.0
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     # 1 : print result
     # 2 : do graph
     # 3 : print debug info
-    VERBOSE = 2
+    VERBOSE = 1
     # get argument form argv by class: argv_ctrl
     argument = argv_ctrl(argv)
     # read a list of fits name
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     if VERBOSE>0 : print "number of under processed fits:", len(fits_list)
     # find star list of all fits and save the result .
     for name in fits_list:
-        execution = main_process(name, ecc)
+        execution = star_info(name, ecc)
 #-----------------------------------------------------------------------
 # measuring time
     elapsed_time = time.time() - start_time

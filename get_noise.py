@@ -348,7 +348,7 @@ elif noise_unit == "mag":
     plt.xscale('log')
     plt.xlabel("time (sec)")
     plt.ylabel("noise equivilent magnitude (instrument mag)")
-# save data in /home/Jacob975/demo/limitation_magnitude_and_noise
+# save figure in /home/Jacob975/demo/limitation_magnitude_and_noise
 plt.savefig(result_fig_name)
 
 if VERBOSE>1:

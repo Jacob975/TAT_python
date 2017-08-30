@@ -21,6 +21,8 @@ fits name
 
 e.g $get_mag.py Median_mdn_w.fits       # method will be set as 'mdn'
     $get_mag.py V Median_mdn_w.fits     # method will be set as 'mdn', band will be set as V band
+    $get_mag.py 1 N Median_mdn_w.fits   # method will be set as 'mdn', band will be set as N band, 
+                                          tolerated eccentricity of stars will be set as 1
 editor Jacob975
 20170710
 #################################
@@ -66,6 +68,10 @@ update log
 
     20170808 version alpha 7
         1.  use tat_config to control path of result data instead of fix the path in the code.
+
+    20170829 version alpha 8
+        1.  set the source code classified completely
+        2.  use fits as save datatype instead of tsv.
 '''
 from sys import argv, exit
 import numpy as np
@@ -75,6 +81,8 @@ import curvefit
 import os
 import math
 import tat_datactrl
+import glob
+from astropy.table import Table
 
 # This is a code to add several stars, and then find out the equivelent magnitude.
 def get_add_mag(matched_array, band):
@@ -124,95 +132,198 @@ def get_img_property(image_name):
     method = image_name_list[-2]
     return scope_name, date_name, obj_name, filter_name, method
 
+#-----------------------------------------------------
+# This class is for control argument from outside.
+class argv_ctrl:
+    argument = []
+    fn = ""
+    e = 1.0
+    b = "N"
+    # initialized with argument from sys.argv
+    def __init__(self, argument):
+        self.argument = argument
+        # check the number of argument is valid.
+        if len(argument) < 2:
+            print "No argument"
+            print "Usage: get_mag.py [eccentricity] [band] [list name]"
+            return
+        elif len(argument) > 4:
+            print "Too many argument"
+            print "Usage: get_mag.py [eccentricity] [band] [list name]"
+            return
+        # distribute value into proper position.
+        for i in xrange(len(argument)):
+            if i == 0:
+                continue
+            elif i == len(argument) - 1:
+                self.fn = argument[i]
+                continue
+            try: float(argument[i])
+            except: pass
+            else: self.e = argument[i]
+
+            try: str(argument[i])
+            except: pass
+            else: self.b = argument[i]
+    # for return value
+    def fits_name(self):
+        return self.fn
+    def ecc(self):
+        return self.e
+    def band(self):
+        return self.b
+
+#--------------------------------------------
+# The class is for control procession of data
+class main_process:
+    fits_name = ""              # fits name.
+    band = ""                   # the band we used for take picture.
+    ecc = 0.0                   # the limitation of tolerated eccentricity.
+    ref_table = 0               # the ref star catalog in table datatype.
+    local_table = 0             # the local star catalog in table datatype.
+    result_delta_m = 0.0        # the delta magnitude.
+    result_delta_std = 0.0      # the error of delta magnitude.
+    result = []                 # the data will be writen in files.
+    def __init__(self, fits_name, band, ecc):
+        # save txt
+        self.fits_name = fits_name
+        self.band = band
+        self.ecc = ecc
+        # grab both refs and locals
+        self.ref_table = self.get_ref()
+        self.local_table = self.get_local()
+        # Match
+        self.result_delta_m, self.result_delta_std = self.match_star()
+        self.save()
+        return
+    def get_ref(self):          # <- debug here, lots of bugs about path
+        # grab ref_star_catalog from [path_of_result]/ref_catalog
+        # If no ref_star_catalog, The code will download proper ref_star_catalog.
+        #--------
+        # get property of images from current path
+        scope_name, date_name, obj_name, filter_name, method = get_img_property(self.fits_name)
+        ref_name = "{0}_{1}_{2}.tsv".format(scope_name, obj_name, self.band)
+        path_of_result = tat_datactrl.get_path("path_of_result")
+        path_of_ref = "{0}/ref_catalog".format(path_of_result)      # the ref catalog pool
+        # check the existance of ref
+        ref_name_list = glob.glob("{0}/*.tsv".format(path_of_ref))
+        try :
+            ref_index = ref_name_list.index("{0}/{1}".format(path_of_ref, ref_name))
+        except:
+            if VERBOSE>0: print "No reference, automatically download reference by ds9."
+            os.system("get_w_stls.py {1} {0}".format(self.fits_name, self.band))
+            temp = "cp {0} {1}/{0}".format(ref_name, path_of_ref)
+            os.system(temp)
+        # read refs
+        ref_catalog = tat_datactrl.read_tsv_file("{0}/{1}".format(path_of_ref, ref_name))
+        ref_table = self.arr2table(ref_catalog, 1)
+        return ref_table
+    # this def is for convert arr like data into table
+    # Because ds9 always return tsv datatype.
+    def arr2table(self, arr, start_point):
+        # start_point mean where is the start of data
+        ans = Table(rows = arr[start_point:], names = np.array(arr[0]))
+        if start_point == 2:
+            for i in xrange(len(arr[0])):
+                ans[arr[0][i]].unit = arr[1][i]
+        return ans
+    def get_local(self):
+        # This code will grab star_catalog( bright star only) by get_info.
+        local_name = "{0}_stls.fits".format(self.fits_name[:-5])
+        os.system("get_info.py {1} {0}".format(self.fits_name, self.ecc))
+        local_table = Table.read(local_name)
+        return local_table
+    def match_star(self):
+        # match stars in refs and locals.
+        # If matched save them in a table.
+        seperation = 0.001
+        local_table = self.local_table
+        ref_table = self.ref_table 
+        delta_m_list = []
+        e_delta_m_list = []
+        for i in xrange(len(local_table)):
+            matched_list = []
+            local_mag = float(local_table[i]['mag'])
+            for j in xrange(len(ref_table)):
+                _RA = float(ref_table[j]['_RAJ2000'])
+                RA = float(local_table[i]['RAJ2000'])
+                _DEC = float(ref_table[j]['_DEJ2000'])
+                DEC = float(local_table[i]['DECJ2000'])
+                # because the resolution of telescope, we tolerate a range for matching stars.
+                the_same_RA = bool(RA - seperation < _RA and RA + seperation > _RA )
+                the_same_DEC = bool(DEC - seperation < _DEC and DEC + seperation > _DEC)
+                if the_same_RA and the_same_DEC:
+                    matched_list.append(list(ref_table[j]))
+                    if VERBOSE>1:
+                        print "Belows are the same"
+                        print "local_pos: {0}, {1}".format(RA, DEC)
+                        print "ref_pos: {0}, {1}".format(_RA, _DEC)
+                        print "mag = {0}+-{1}".format(local_table[i]['mag'], local_table[i]['e_mag'])
+                        print "Ref_mag = "+ref_table.columns[6][j]
+            # Test how many star in the ref is match to the local
+            # If more than 1, the count will add together.
+            if len(matched_list) == 0:
+                print "no matched star"
+                continue
+            matched_list = np.array(matched_list)
+            ref_mag = get_add_mag(matched_list, self.band)
+            delta_mag = ref_mag - local_mag
+            e_mag = float(local_table[i]['e_mag'])
+            if np.isnan(e_mag) or np.isinf(e_mag):
+                continue
+            if np.isnan(delta_mag) or np.isinf(delta_mag):
+                continue
+            delta_m_list.append(delta_mag)
+            e_delta_m_list.append(e_mag)
+            if VERBOSE>0:
+                print "ref_mag: {0:.2f}, local_mag: {1:.2f}+-{3:.2f}, delta: {2:.2f}+-{3:.2f}".format(ref_mag, local_mag, delta_mag, e_mag)
+        # calculate the delta of magnitude.
+        delta_m_list = np.array(delta_m_list)
+        e_delta_m_list = np.array(e_delta_m_list)
+        delta_m_list, e_delta_m_list = curvefit.get_rid_of_exotic_vector(delta_m_list, e_delta_m_list)
+        result_delta_m, result_delta_std = weighted_avg_and_std(delta_m_list, e_delta_m_list)
+        result_delta_m = round(result_delta_m, 2)
+        result_delta_std = round(result_delta_std, 2)
+        if VERBOSE>0:print "In average, delta_mag = {0:.2f}+-{1:.2f}".format(result_delta_m, result_delta_std)
+        return result_delta_m, result_delta_std
+    # This def is for generate the line will be writen in files.
+    def set_result(self):
+        scope_name, date_name, obj_name, filter_name, method = get_img_property(self.fits_name)
+        if float(self.ecc) > 0 and float(self.ecc) < 1:
+            writen_ecc = ecc
+        else:
+            writen_ecc = "N"
+        result = [self.result_delta_m, self.result_delta_std, obj_name, scope_name, filter_name, date_name, method, self.band, writen_ecc]
+        return result
+    # This def is for save data in file.
+    def save(self):
+        path_of_result = tat_datactrl.get_path("path_of_result")
+        result_file_name = "{0}/limitation_magnitude_and_noise/delta_mag.fits".format(path_of_result)
+        result = self.set_result()
+        # Check whether the file exist or nat.
+        try:
+            pre_table = Table.read(result_file_name)
+        # If not exist, create a new one.
+        except:
+            result_title = np.array(["delta_mag", "e_delta_mag", "object", "scope", "band_used", "date", "method", "band_of_ref", "eccentricity"])
+            result_table = Table(rows = [result], names = result_title)
+            result_table.write(result_file_name, overwrite = True)
+        # If exist, append data.
+        else:
+            pre_table.add_row(result)
+            pre_table.write(result_file_name, overwrite = True)
+        return
+
 #--------------------------------------------
 # main code
-VERBOSE = 1
-# measure times
-start_time = time.time()
-# get all names of fits
-if len(argv) == 1:
-    print "No parameters"
-    exit(0)
-image_name = argv[-1]
-band = "N"
-ecc = 0.9
-if len(argv) > 2:
-    band = argv[-2]
-if len(argv) > 3:
-    ecc = argv[-3]
-
-local_file = "{0}_stls.tsv".format(image_name[:-5])
-ref_file = "{0}_{1}.tsv".format(image_name[:-5], band)
-
-# get star catalog from local img and drop star catalog from online database.
-temp = "rm *stls.tsv".format(band)
-os.system(temp)
-os.system("get_info.py {1} {0}".format(image_name, ecc))
-os.system("get_w_stls.py {1} {0}".format(image_name, band))
-# get property of images from path
-scope_name, date_name, obj_name, filter_name, method = get_img_property(image_name)
-
-# read data from files, and create a list to put these data.
-ref_catalog = tat_datactrl.read_tsv_file(ref_file)
-local_catalog = tat_datactrl.read_tsv_file(local_file)
-# match stars by wcs
-delta_m_list = []
-e_delta_m_list = []
-# the merge is about a pixel in wcs
-merge = 0.001
-for i in xrange(len(local_catalog)):
-    matched_list = []
-    if i < 2:
-        continue
-    local_mag = float(local_catalog[i][10])
-    for j in xrange(len(ref_catalog)):
-        if j == 0:
-            continue
-        _RA = float(ref_catalog[j][0])
-        RA = float(local_catalog[i][0])
-        _DEC = float(ref_catalog[j][1])
-        DEC = float(local_catalog[i][2])
-        # because the resolution of telescope, we tolerate a range for matching stars.
-        the_same_RA = bool(RA - merge < _RA and RA + merge > _RA )
-        the_same_DEC = bool(DEC - merge < _DEC and DEC + merge > _DEC)
-        if the_same_RA and the_same_DEC:
-            matched_list.append(ref_catalog[j])
-            if VERBOSE>1:
-                print "Belows are the same"
-                print "local_pos: {0}, {1}".format(RA, DEC)
-                print "ref_pos: {0}, {1}".format(_RA, _DEC)
-                print "mag = {0}+-{1}".format(local_catalog[i][10], local_catalog[i][11])
-                print "Ref_mag = "+ref_catalog[j][6]
-    if len(matched_list) == 0:
-        print "no matched star"
-        continue
-    matched_list = np.array(matched_list)
-    ref_mag = get_add_mag(matched_list, band)
-    delta_mag = ref_mag - local_mag
-    e_mag = float(local_catalog[i][11])
-    if np.isnan(e_mag) or np.isinf(e_mag):
-        continue
-    if np.isnan(delta_mag) or np.isinf(delta_mag):
-        continue
-    delta_m_list.append(delta_mag)
-    e_delta_m_list.append(e_mag)
-    if VERBOSE>0:
-        print "ref_mag: {0:.2f}, local_mag: {1:.2f}+-{3:.2f}, delta: {2:.2f}+-{3:.2f}".format(ref_mag, local_mag, delta_mag, e_mag)
-# calculate the delta of magnitude.
-delta_m_list = np.array(delta_m_list)
-e_delta_m_list = np.array(e_delta_m_list)
-delta_m_list, e_delta_m_list = curvefit.get_rid_of_exotic_vector(delta_m_list, e_delta_m_list)
-result_delta_m, result_delta_std = weighted_avg_and_std(delta_m_list, e_delta_m_list)
-if VERBOSE>0:print "In average, delta_mag = {0:.2f}+-{1:.2f}".format(result_delta_m, result_delta_std)
-# save result
-path_of_result = tat_datactrl.get_path("path_of_result")
-result_file = open("{0}/limitation_magnitude_and_noise/delta_mag.tsv".format(path_of_result), 'a')
-if float(ecc) > 0 and float(ecc) < 1: 
-    writen_ecc = ecc
-else:
-    writen_ecc = "N"
-result_file.write("{0:.2f}\t{1:.2f}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(result_delta_m, result_delta_std, obj_name, scope_name, filter_name, date_name, method, band, writen_ecc))
-result_file.close()
-# measuring time
-elapsed_time = time.time() - start_time
-print "Exiting Main Program, spending ", elapsed_time, "seconds."
+if __name__ == "__main__":
+    VERBOSE = 1
+    # measure times
+    start_time = time.time()
+    # get property form argument
+    argument = argv_ctrl(argv)
+    # Match between ref and local catalog
+    execution = main_process(argument.fits_name(), argument.band(), argument.ecc())
+    # measuring time
+    elapsed_time = time.time() - start_time
+    print "Exiting Main Program, spending ", elapsed_time, "seconds."
