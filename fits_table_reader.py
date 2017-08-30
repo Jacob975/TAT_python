@@ -43,6 +43,8 @@ if __name__ == "__main__":
     # read table and print out
     t = Table.read(argument.name())
     print t
+    print ""
+    print t.info
     # measuring time
     elapsed_time = time.time() - start_time
     print "Exiting Main Program, spending ", elapsed_time, "seconds."
