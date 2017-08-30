@@ -34,9 +34,9 @@ If you use tat code in remote server, you should install x11 or some program usi
 
 	set path of tat_config in tat_datactrl.get_path
 
-3. $tat_setup_linux.py or $tat_setup_mac.py
+3. $tat_setup.py
 
-	This code will set up all folder you need, reset the python path in each tat program in path of code.
+	This code will set up all folder you need, set the python path in each tat program.
 
 # Standard Steps of processing TAT Data.
 
