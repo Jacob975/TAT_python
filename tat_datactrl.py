@@ -28,6 +28,7 @@ import math
 # Function in this section is for reading txt like data.
 
 # This is used to read a list of fits name.
+# and return a list data
 def readfile(filename):
     f = open(filename, 'r')
     data = []
@@ -40,6 +41,7 @@ def readfile(filename):
     return data
 
 # This is used to read .tsv file
+# and return a array data
 def read_tsv_file(file_name):
     f = open(file_name, 'r')
     data = []

@@ -15,6 +15,7 @@ editor Jacob975
 update log
 
 20170901 version alpha 1
+    It works properly.
 '''
 from sys import argv
 from astropy.table import Table
@@ -94,9 +95,9 @@ class lim_mag_grapher:
             # read delta magnitude form fits file
             datah = pyfits.getheader(name)
             try:
-                del_m = datah['D_MAG']
+                del_m = float(datah['D_MAG'])
             except:
-                del_m = 0
+                del_m = 0.0
             # read value and entries
             self.table_list.append(data_table)
             time_array = np.array(data_table['exptime'])
@@ -105,19 +106,17 @@ class lim_mag_grapher:
             # set border
             x_border.set(time_array[0], time_array[-1])
             y_border.set(mag_array[0], mag_array[-1])
-            print x_border
-            print y_border
             axes = plt.gca()
             axes.set_xlim([ x_border.lowerbound() / 10, x_border.upperbound() * 10])
-            axes.set_ylim([ y_border.upperbound() + 0.1, y_border.lowerbound() - 0.1])
+            axes.set_ylim([ y_border.upperbound() + 0.1, y_border.lowerbound() - 1])
             # fitting by lim_mag : amp * log_10(exptime) + const
             paras, cov = curvefit.pow_fitting_mag(time_array, mag_array)
             # plot part
             plt.plot(time_array, mag_array, 'o')
             plt.plot(time_array_ref, curvefit.pow_function_mag(time_array_ref, paras[0], paras[1]), '-', lw= 2)
-            matplotlib.rcParams.update({'font.size': 10})
-            plt.text(time_array[0], mag_array[0], u'formula: lim_mag = amp * log10(t) + const\namp = {0:.4f}+-{1}\nconst = {2:.4f}+-{3}'.format(paras[0], cov[0][0], paras[1], cov[1][1]))
-        plt.savefig("Default", dpi= 100)
+            matplotlib.rcParams.update({'font.size': 8})
+            plt.text(time_array[0], mag_array[0], u'name: {4}\nformula: lim_mag = amp * log10(t) + const\namp = {0:.4f}+-{1}\nconst = {2:.4f}+-{3}'.format(paras[0], cov[0][0], paras[1], cov[1][1], name))
+        plt.savefig("Default", dpi= 300)
         result_fig.show()
         raw_input()
 

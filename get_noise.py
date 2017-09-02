@@ -79,7 +79,7 @@ import tat_datactrl                 # control tat data.
 from sys import argv, exit
 from numpy import pi, r_
 from scipy import optimize          # for fitting func
-from astropy.io import fits         # an file I/O module
+from astropy.io import fits         # an fits file I/O module
 from astropy.table import Table     # for manage data
 
 # this func will find out noise of  all collection of some list
@@ -163,14 +163,14 @@ def execute_option(fits_list, method, noise_unit, VERBOSE = 0):
             success = 1
     elif noise_unit == "mag": 
         try :
-            noise_list = -2.5 * np.log10(noise_list)
+            noise_list = -2.5 * np.log10(noise_list) - 2.5 *np.log10(3)
             paras, cov = pow_fitting_mag(time_list, noise_list)
         except:
             print "fitting fail"
             paras = 0
             cov = 0
         else:
-            success = 1 
+            success = 1
     return time_list, noise_list, paras, cov, success
 #---------------------------------------------------
 # fitting function in count unit
@@ -321,8 +321,8 @@ except:
     hdulist.flush()
     hdulist.close()
 #---------------------------------
-# draw
-result_plt = plt.figure(scope_name+" "+date_name+" "+obj_name+" "+filter_name+" "+" result")
+# draw limitation magnitude to time plot
+result_plt = plt.figure("V_"+scope_name+" "+date_name+" "+obj_name+" "+filter_name+" "+" result")
 plt.plot(x_plt, noise_plt, 'ro')
 x_plt_ref = np.linspace(0, x_plt[-1], len(x_plt)*10)
 if noise_unit == "count":
@@ -331,8 +331,8 @@ if noise_unit == "count":
         plt.text(x_plt[0], noise_plt[0]-0.03, u'formula: count = base * t^{pow_} + const')
         plt.text(x_plt[0], noise_plt[0]-0.05, u'base = {0:.2f}, const = {1:.2f}, pow_ = {2:.2f}'.format(paras[0], paras[1], paras[2] ))
     axes = plt.gca()
-    axes.set_xlim([x_plt[0],x_plt[-1]])
-    axes.set_ylim([noise_plt[-1],noise_plt[0]])
+    axes.set_xlim([x_plt[0]/2.0,x_plt[-1]*2.0])
+    axes.set_ylim([noise_plt[-1]-0.1,noise_plt[0]+0.1])
     plt.xscale('log')
     plt.xlabel("time (sec)")
     plt.yscale('log')
@@ -340,14 +340,14 @@ if noise_unit == "count":
 elif noise_unit == "mag":
     if success != 0:
         plt.plot(x_plt_ref, pow_function_mag(x_plt_ref, paras[0], paras[1]), 'r-', lw= 2)
-        plt.text(x_plt[0]*1.5, noise_plt[-1]-0.03, u'formula: m = amp * log10(t) + const')
-        plt.text(x_plt[0]*1.5, noise_plt[-1]-0.07, u'amp = {0:.2f}\nconst = {0:.2f}'.format(paras[0], paras[1]))
+        plt.text(x_plt[0], noise_plt[-1]-0.1, u'formula: lim_mag = amp * log10(t) + const\namp = {0:.4f}+-{1}\nconst = {2:.4f}+-{3}'.format(paras[0], cov[0][0], paras[1], cov[1][1]))
     axes = plt.gca()
-    axes.set_xlim([x_plt[0],x_plt[-1]])
-    axes.set_ylim([noise_plt[0],noise_plt[-1]])
+    axes.set_xlim([x_plt[0]/2.0,x_plt[-1]*2.0])
+    axes.set_ylim([noise_plt[0]-0.1,noise_plt[-1]+0.1])
+    plt.title('')
     plt.xscale('log')
     plt.xlabel("time (sec)")
-    plt.ylabel("noise equivilent magnitude (instrument mag)")
+    plt.ylabel("Noise equivalent magnitude (instrument mag)")
 # save figure in /home/Jacob975/demo/limitation_magnitude_and_noise
 plt.savefig(result_fig_name)
 
