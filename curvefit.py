@@ -260,6 +260,23 @@ def FitGauss2D_curve_fit(data, ip = None):
     else:
         return paras, cov, 1
 
+#----------------------------------------------------
+# fitting function in mag unit
+def pow_function_mag(x, amp, const):
+    return amp * np.log10(x) + const
+
+# initial value of fitting for pow_function in mag unit
+def moment_pow_fitting_mag(x_plt, value):
+    const = value[0]
+    amp = (value[0] - value[-1])/(np.log10(x_plt[0]) - np.log10(x_plt[-1]))
+    return (amp, const)
+
+# fitting
+def pow_fitting_mag(x_plt, value):
+    moment = moment_pow_fitting_mag(x_plt, value)
+    paras, cov = optimize.curve_fit(pow_function_mag, x_plt, value, p0 = moment)
+    return paras, cov
+
 #---------------------------------------------------------------------
 # star matching program
 # include how to find the peak of a image
