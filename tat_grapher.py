@@ -19,6 +19,7 @@ update log
 '''
 from sys import argv
 from astropy.table import Table
+from numpy import sqrt
 import numpy as np
 import pyfits                       # fits I/O
 import time                         # time controller
@@ -87,6 +88,7 @@ class lim_mag_grapher:
         plt.xscale('log')
         plt.xlabel("time (sec)")
         plt.ylabel("limitation magnitude (mag)")
+        plt.title("fitting formula: lim_mag = amp * log10(time) + const")
         x_border = border_ctrl()
         y_border = border_ctrl()
         for name in self.fits_list:
@@ -111,12 +113,14 @@ class lim_mag_grapher:
             axes.set_ylim([ y_border.upperbound() + 0.1, y_border.lowerbound() - 1])
             # fitting by lim_mag : amp * log_10(exptime) + const
             paras, cov = curvefit.pow_fitting_mag(time_array, mag_array)
+            error = sqrt(cov)
             # plot part
             plt.plot(time_array, mag_array, 'o')
-            plt.plot(time_array_ref, curvefit.pow_function_mag(time_array_ref, paras[0], paras[1]), '-', lw= 2)
-            matplotlib.rcParams.update({'font.size': 8})
-            plt.text(time_array[0], mag_array[0], u'name: {4}\nformula: lim_mag = amp * log10(t) + const\namp = {0:.4f}+-{1}\nconst = {2:.4f}+-{3}'.format(paras[0], cov[0][0], paras[1], cov[1][1], name))
-        plt.savefig("Default", dpi= 300)
+            plt.plot(time_array_ref, curvefit.pow_function_mag(time_array_ref, paras[0], paras[1]), '-', lw= 1, label = "{0}, amp = {1:.4f}+-{2:.4f}, const = {3:.4f}+-{4:.4f}".format(name, paras[0], error[0][0], paras[1], error[1][1]))
+            plt.legend()
+            matplotlib.rcParams.update({'font.size': 8}) 
+            #plt.text(time_array[0], mag_array[0], u'name: {4}\nformula: lim_mag = amp * log10(t) + const\namp = {0:.4f}+-{1}\nconst = {2:.4f}+-{3}'.format(paras[0], error[0][0], paras[1], error[1][1], name))
+        plt.savefig("Default.png", dpi= 300)
         result_fig.show()
         raw_input()
 
