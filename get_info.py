@@ -149,6 +149,8 @@ class star_info:
         paras, cov = curvefit.hist_gaussian_fitting(name, data, shift = -7)
         self.mean = paras[0]
         self.std = paras[1]
+        if VERBOSE>0:
+            print "mean= {0}, std= {1}".format(self.mean, self.std)
         # peak list is a list contain elements with position tuple.
         # we want to control the number of peaks within 500
         sz = 24
