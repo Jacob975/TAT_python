@@ -77,7 +77,7 @@ import time                         # for detect the lenght of processing time.
 import curvefit                     # library of fitting and data processing of tat data
 import tat_datactrl                 # control tat data.
 from sys import argv, exit
-from numpy import pi, r_
+from numpy import pi, r_, sqrt
 from scipy import optimize          # for fitting func
 from astropy.io import fits         # an fits file I/O module
 from astropy.table import Table     # for manage data
@@ -248,6 +248,7 @@ filter_name = list_path[-1]
 path_of_result = tat_datactrl.get_path("path_of_result")
 result_data_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.fits".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
 result_fig_name = "{7}/limitation_magnitude_and_noise/{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.png".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name, path_of_result)
+short_result_name = "{0}_{1}_{2}_{3}_{4}_{5}_{6}_N_to_t.fits".format(obj_name, filter_name, date_name, scope_name, method, noise_unit, list_name)
 path_of_noise_to_some = "{0}/limitation_magnitude_and_noise/noise_in_{1}.fits".format(path_of_result, noise_unit)
 fitting_func = ""
 title = ('')
@@ -267,6 +268,7 @@ result_table = Table([x_plt, noise_plt], names = title)
 for i in xrange(len(title)):
     result_table[title[i]].unit = unit[i]
 result_table.write(result_data_name, overwrite = True)
+result_table.write(short_result_name, overwrite = True)
 #---------------------------------
 # write down result
 head_info = [obj_name, filter_name, date_name, scope_name, method, list_name, "yes", fitting_func]
@@ -280,7 +282,7 @@ type_list = np.array([])
 if noise_unit == "count" and success != 0:
     value_name = ['BASE', 'CONST', 'POW_']
     values = [paras[0], paras[1], paras[2]]
-    error = [cov[0][0], cov[1][1], cov[2][2]]
+    error = [sqrt(cov[0][0]), sqrt(cov[1][1]), sqrt(cov[2][2])]
     for i in xrange(len(values)):
         fits.setval(result_data_name, "{0}".format(value_name[i]), value = values[i])
         fits.setval(result_data_name, "E_{0}".format(value_name[i]), value = error[i])
@@ -288,18 +290,18 @@ if noise_unit == "count" and success != 0:
         print "base: ", paras[0], "const: ", paras[1], "pow_: ", paras[2]
     data_name = np.array(['target', 'scope','band', 'date', 'method', 'list_name', 'base', 'e_base', 'const', 'e_const', 'pow_', 'e_pow_'])
     sub_units = np.array(['no unit', 'no unit', 'no unit', 'yyyymmdd', 'no unit', 'no unit', 'count per sec', 'count per sec', 'count per sec', 'count per sec', 'count per sec', 'count per sec'])
-    data = np.array([obj_name, scope_name, filter_name, date_name, method, list_name, paras[0], cov[0][0], paras[1], cov[1][1], paras[2], cov[2][2]])
+    data = np.array([obj_name, scope_name, filter_name, date_name, method, list_name, paras[0], error[0], paras[1], error[1], paras[2], error[2]])
 elif noise_unit == "mag" and success != 0:
     value_name = ['AMP', 'CONST']
     values = [paras[0], paras[1]]
-    error = [cov[0][0], cov[1][1]]
+    error = [sqrt(cov[0][0]), sqrt(cov[1][1])]
     for i in xrange(len(values)):
         fits.setval(result_data_name, "{0}".format(value_name[i]), value = values[i])
         fits.setval(result_data_name, "E_{0}".format(value_name[i]), value = error[i])
     if VERBOSE>1:print "amp: ", paras[0], "const: ", paras[1]
     data_name = np.array(['object', 'scope', 'band', 'date', 'method', 'list_name', 'amp', 'e_amp', 'const', 'e_const'])
     sub_units = np.array(['no unit', 'no unit', 'no unit', 'yyyymmdd', 'no unit', 'no unit', 'mag per sec', 'mag per sec', 'mag per sec', 'mag per sec'])
-    data = np.array([obj_name, scope_name, filter_name, date_name, method, list_name, paras[0], cov[0][0], paras[1], cov[1][1]])
+    data = np.array([obj_name, scope_name, filter_name, date_name, method, list_name, paras[0], error[0], paras[1], error[1]])
 # save result in collection database
 try:
     pre_table = Table.read(path_of_noise_to_some)

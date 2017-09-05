@@ -73,7 +73,7 @@ import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
 import math
 import pyfits
-from numpy import pi, r_
+from numpy import pi, r_, sqrt
 from scipy.misc import factorial
 from scipy import optimize
 from scipy.signal import argrelextrema
@@ -429,7 +429,8 @@ def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detai
         params[1] = coor[i][0]+params[1]-half_width-margin
         params[2] = coor[i][1]+params[2]-half_width-margin
         if detailed:
-            temp = (params[0], cov[0,0], params[1], cov[1,1], params[2], cov[2,2], params[3], cov[3,3], params[4], cov[4,4], params[5], cov[5,5], params[6], cov[6,6])
+            error = sqrt(cov)
+            temp = (params[0], error[0,0], params[1], error[1,1], params[2], error[2,2], params[3], error[3,3], params[4], error[4,4], params[5], error[5,5], params[6], error[6,6])
         else:
             temp = tuple(params)
         star_list.append(temp)
