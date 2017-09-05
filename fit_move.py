@@ -164,7 +164,7 @@ if VERBOSE>1:
 # test hwo many peak in this figure.
 # If too much, raise up the limitation of size
 sz = 29
-tl = 5
+tl = 15
 ref_peak_list = []
 while len(ref_peak_list) >500 or len(ref_peak_list) < 3:
     sz +=1
@@ -231,7 +231,7 @@ for order in xrange(len(fits_list)):
     star_list = []
     if order == 0:
         sz = 29
-        tl = 5
+        tl = 15
         while len(peak_list) >500 or len(peak_list) < 3:
             sz +=1
             peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz)
