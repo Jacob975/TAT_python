@@ -305,7 +305,7 @@ class main_process:
             pre_table = Table.read(result_file_name)
         # If not exist, create a new one.
         except:
-            result_title = np.array(["delta_mag", "e_delta_mag", "object", "scope", "band_used", "date", "method", "band_of_ref", "eccentricity"])
+            result_title = np.array(["delta_mag", "e_delta_mag", "object", "scope", "band", "date", "method", "band_of_ref", "eccentricity"])
             result_table = Table(rows = [result], names = result_title)
             result_table.write(result_file_name, overwrite = True)
         # If exist, append data.
