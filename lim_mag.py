@@ -66,136 +66,194 @@ update log
     2.  renew previous argument "band".
         details please read header file.
 
-20170808 version alpha 3
+20170808 version alphca 3
     1.  use tat_config to control path of result data instead of fix the path in the code.
+
+20170906 version alpha 4 
+    1.  On classified, input and output remind the same.
+    2.  Now the programm will save the result of your quest
 '''
 from sys import argv
 import numpy as np
 import pyfits
 import time
 import tat_datactrl
+import warnings
+from astropy.table import Table
 
-def get_order(tar_list, property_name_list):
-    # determine the order of all property.
-    ord_list = [ 0 for i in range(len(property_name_list))]
-    for i in xrange(len(tar_list[0])):
-        for j in xrange(len(property_name_list)):
-            if tar_list[0][i] == property_name_list[j]:
-                ord_list[j] = i
-                break
-    return ord_list
-
-def select_property(tar_list, property_list, ord_list, property_name_list, VERBOSE = 0):
-    # create a empty list with length of property list
-    temp_list = [ [] for i in range(len(property_list)) ] 
-    # append original list to back
-    # It wiil seem as
-    # temp_list = [   [], [], [], ... ,[tar_list]  ]
-    temp_list.append(tar_list)
-    for i in xrange(len(ord_list)):
-        if VERBOSE>0:print "current property = ",property_list[i]
-        if property_list[i] == "a":
-            temp_list[i] = temp_list[i-1]
-        if property_name_list[i] == "band": 
-            for tar in temp_list[i-1]: 
-                if tar[ord_list[i]][0] == property_list[i]:
-                    temp_list[i].append(tar)
-            continue
+# This class is argv I/O
+class argv_controller:
+    keywords = {'date':'a', 'scope':'a', 'band':'a', 'method':'a', 'object':'a'}
+    exptime = 600
+    keywords_name_list = ["date", "scope", "band", "method", "object"]
+    band_list = ["A", "B", "C", "V", "R", "N"]
+    obj_list = ["NGC1333", "KELT-17", "Groombridge1830", "WD1253+261", "SgrNova", "HH32", "KIC8462852", "PN", "61Cygni", "IC5146"]
+    def __init__(self, argument):
+        if len(argument) == 1:
+            print "Usage: lim_mag.py [date] [scope] [band] [method] [object] [exptime]"
+            return 
+        elif len(argument) == 2:
+            self.exptime = float(argument[-1])
+            return 
+        elif len(argument) > 2 or len(argument) < 8:
+            for i in xrange(len(argument)):
+                if i == len(argument) -1:
+                    continue
+                # Is it a date?
+                try:
+                    float(argument[i])
+                except :
+                    pass
+                else:
+                    self.keywords['date'] = argument[i]
+                # Is it a scope?
+                if argument[i] =="KU" or argument[i] == "TF":
+                    self.keywords['scope'] = argument[i]
+                # Is it a band?
+                elif len(argument[i]) == 1:
+                    for band in self.band_list:
+                        if argument[i] == band:
+                            self.keywords['band'] = band
+                            continue
+                # Is it a method?
+                elif argument[i] == "mdn" or argument[i] == "mean":
+                    self.keywords['method'] = argument[i]
+                # Is it a object?
+                else:
+                    for obj in self.obj_list:
+                        if obj == argument[i]:
+                            self.keywords['object'] = obj
+                            continue
+            self.exptime = float(argument[-1])
+            if VERBOSE>1: print self.keywords
+            return 
         else:
-            for tar in temp_list[i-1]:
-                if tar[ord_list[i]] == property_list[i]:
-                    temp_list[i].append(tar)
-    return temp_list[len(property_list)-1]
+            print "Usage: lim_mag.py [date] [scope] [band] [method] [object] [exptime]"
+            return 
 
-# Determine this two data are the same at these orders.
-def match_data(noise, ord_list_noise, del_m, ord_list_del_m):
-    for i in xrange(len(ord_list_noise)):
-        if noise[ord_list_noise[i]] != del_m[ord_list_del_m[i]]:
-            return False
-    return True
+# This class is used to read fits table
+# and then print or save the magnitude we search.
+class fits_table_reader:
+    del_mag_table = None
+    inst_mag_table = None
+    keywords_name_list = ["date", "scope", "band", "method", "object"]
+    keywords = None
+    exptime = 0
+    def __init__(self, del_mag_table_name, inst_mag_table_name):
+        self.del_mag_table = Table.read(del_mag_table_name)
+        self.inst_mag_table = Table.read(inst_mag_table_name)
+        if VERBOSE>1:
+            print self.del_mag_table
+            print self.inst_mag_table
+        return
+    # quest for match in keywords
+    # keywords is a dict.
+    def quest(self, keywords, exptime):
+        self.keywords = keywords
+        self.exptime = exptime
+        # wipeout the data having no business with keywords
+        clean_del_mag_table = self.wipeout(self.del_mag_table)
+        clean_inst_mag_table = self.wipeout(self.inst_mag_table)
+        # match data in two table
+        if VERBOSE>0:
+            print "\n   --- result of your quest ---\n"
+        result_table = self.match(clean_del_mag_table, clean_inst_mag_table)
+        # save the info you quest
+        self.save(result_table)
+        return
+    # wipeout the data having no business with keywords
+    def wipeout(self, table):
+        # create a empty list with length of property list
+        temp_table_list = [ None for i in range(len(self.keywords_name_list)) ]
+        # append original list to back
+        # It wiil seem as
+        # temp_list = [   [], [], [], ... ,[tar_list]  ]
+        temp_table_list.append(table)
+        for i in xrange(len(self.keywords_name_list)):
+            if VERBOSE>1:print "current property = {0}".format(self.keywords.keys()[i])
+            # value a mean no limitation on this keywords.
+            ref_table = temp_table_list[i-1]
+            if self.keywords.values()[i] == "a":
+                temp_table_list[i] = ref_table
+            if self.keywords.keys()[i] == "band":
+                for row in ref_table:
+                    if row[self.keywords.keys()[i]][0] == self.keywords.values()[i]:
+                        try:
+                            temp_table_list[i].add_row(row)
+                        except:
+                            temp_table = ref_table.info(out = None)
+                            if VERBOSE>1:print temp_table['name']
+                            temp_table_list[i] = Table(rows = row, names = np.array(temp_table['name']))
+            else:
+                for row in ref_table:
+                    if row[self.keywords.keys()[i]] == self.keywords.values()[i]:
+                        try:
+                            temp_table_list[i].add_row(row)
+                        except:
+                            temp_table = ref_table.info(out = None)
+                            if VERBOSE>1:print temp_table['name']
+                            temp_table_list[i] = Table(rows = row, names = np.array(temp_table['name']))
+        return temp_table_list[len(self.keywords_name_list)-1]
+    # Determine this two data are the same at these orders.
+    def match_data(self, inst_row, del_row):
+        for name in self.keywords_name_list:
+            if inst_row[name] != del_row[name]:
+                return False
+        return True
+    # match data in two table
+    def match(self, clean_del_mag_table, clean_inst_mag_table):
+        table_title = np.array(['amp', 'e_amp', 'const', 'e_const', 'delta_mag', 'e_delta_mag', 'date', 'scope', 'band', 'method', 'object', 'exptime'])
+        # calculate limitation of magnitude
+        result_table = None
+        for inst_row in clean_inst_mag_table:
+            for del_row in clean_del_mag_table:
+                if self.match_data(inst_row, del_row):
+                    sent = ""
+                    for key in self.keywords_name_list:
+                        sent = "{0}{1}: {2}, ".format(sent, key, inst_row[key])
+                    if VERBOSE>0: print sent
+                    amp = float(inst_row['amp'])
+                    e_amp = float(inst_row['e_amp'])
+                    const = float(inst_row['const'])
+                    e_const = float(inst_row['e_const'])
+                    delta_m = float(del_row['delta_mag'])
+                    e_delta_m = float(del_row['e_delta_mag'])
+                    answer = amp*np.log10(self.exptime) + const + delta_m
+                    if VERBOSE>0: print "for exptime = {0}, limitation magnitude = {1:.2f}".format(self.exptime, answer)
+                    data = np.array([amp, e_amp, const, e_const, delta_m, e_delta_m, inst_row['date'], inst_row['scope'], inst_row['band'], inst_row['method'], inst_row['object'], self.exptime])
+                    try:
+                        result_table.add_row(data)
+                    except:
+                        result_table = Table(rows = [data], names = table_title)
+
+        return result_table
+    # save the info you quest
+    def save(self, result_table):
+        if result_table == None:
+            print "No result"
+            return
+        result_table.write("mag_quest.fits", overwrite = True)
+        print "your result is in mag_quest.fits"
+        return
+
 #--------------------------------------------
 # main code
-VERBOSE = 0
-# measure times
-start_time = time.time()
-# get property from argv
-if len(argv) == 1:
-    print "Usage: lim_mag.py [date] [scope] [band] [method] [obj] [exptime]"
-    exit(0)
-
-date = "a"
-scope = "a"
-band = "a"
-letter_list = ["A", "B", "C", "V", "R", "N"]
-method = "a"
-obj = "a"
-obj_list = ["NGC1333", "KELT-17", "Groombridge1830", "WD1253+261", "SgrNova", "HH32", "KIC8462852", "PN", "61Cygni", "IC5146"]
-exptime = 600
-
-if len(argv) == 2:
-    exptime = float(argv[-1])
-else:
-    for i in xrange(len(argv)):
-        if i == len(argv) -1:
-            continue
-        # Is it a date?
-        try:
-            float(argv[i])
-        except :
-            pass
-        else:
-            date = argv[i]
-        # Is it a scope?
-        if argv[i] =="KU" or argv[i] == "TF":
-            scope = argv[i]
-        # Is it a band?
-        elif len(argv[i]) == 1:
-            for letter in letter_list:
-                if argv[i] == letter:
-                    band = letter
-                    continue
-        # Is it a method?
-        elif argv[i] == "mdn" or argv[i] == "mean":
-            method = argv[i]
-        # Is it a object?
-        else:
-            for name in obj_list:
-                if name == argv[i]:
-                    obj = name
-                    continue
-
-    exptime = float(argv[-1])
-property_list = [date, scope, band, method, obj]
-property_name_list = ["date", "scope", "band", "method", "object"]
-# read del_m tsv
-path_of_result = tat_datactrl.get_path("path_of_result")
-path_of_del_m = path_of_result + "/limitation_magnitude_and_noise/delta_mag.tsv"
-list_del_m = tat_datactrl.read_tsv_file(path_of_del_m)
-# read noise tsv
-path_of_noise = path_of_result + "/limitation_magnitude_and_noise/noise_in_mag.tsv"
-list_noise = tat_datactrl.read_tsv_file(path_of_noise)
-# get order of property in .tsv file
-ord_list_del_m = get_order(list_del_m, property_name_list)
-ord_list_noise = get_order(list_noise, property_name_list)
-# select suitable star
-del list_del_m[0]
-list_del_m = select_property(list_del_m, property_list, ord_list_del_m, property_name_list)
-if VERBOSE>0: print list_del_m
-del list_noise[0]
-list_noise = select_property(list_noise, property_list, ord_list_noise, property_name_list)
-if VERBOSE>0: print list_noise
-# calculate limitation of magnitude
-for noise in list_noise:
-    for del_m in list_del_m:
-        if match_data(noise, ord_list_noise, del_m, ord_list_del_m):
-            print "object: {5}, date: {0}, scope: {1}, band: {2}, method: {3}, catalog_band: {4}".format(noise[ord_list_noise[0]], noise[ord_list_noise[1]], noise[ord_list_noise[2]], noise[ord_list_noise[3]], del_m[-2], noise[0])
-            amp = float(noise[-4])
-            const = float(noise[-2])
-            delta_m = float(del_m[0])
-            if VERBOSE>0:print amp, const, delta_m
-            answer = amp*np.log10(exptime) - 2.5*np.log10(3) + const + delta_m
-            print "limitation magnitude = {0:.2f}".format(answer)
-# save
-# measuring time
-elapsed_time = time.time() - start_time
-print "Exiting Main Program, spending ", elapsed_time, "seconds."
+if __name__ == "__main__":
+    VERBOSE = 1
+    # measure times
+    start_time = time.time()
+    warnings.filterwarnings("ignore")
+    # get property from argv
+    properties = argv_controller(argv)
+    # read delta_mag.fits and noise_in_mag.fits
+    path_of_result = tat_datactrl.get_path("path_of_result")
+    path_of_del_m = path_of_result + "/limitation_magnitude_and_noise/delta_mag.fits"
+    path_of_inst_m = path_of_result + "/limitation_magnitude_and_noise/noise_in_mag.fits"
+    if VERBOSE>1:
+        print path_of_inst_m
+        print path_of_del_m
+    magnitude = fits_table_reader(path_of_del_m, path_of_inst_m)
+    magnitude.quest(properties.keywords, properties.exptime)
+    # measuring time
+    elapsed_time = time.time() - start_time
+    print "Exiting Main Program, spending ", elapsed_time, "seconds."
