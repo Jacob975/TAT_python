@@ -43,6 +43,8 @@ if __name__ == "__main__":
                 (5, 8.2, 'z')]
     t = Table(rows=data_rows, names=('a', 'b', 'c'), meta={'name': 'first table'}, dtype=('i4', 'f8', 'S1'))
     t['b'].unit = 's'
+    for row in t:
+        print row
     if VERBOSE>0:
         print t
         print t.info
