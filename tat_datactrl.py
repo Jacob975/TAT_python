@@ -16,6 +16,10 @@ update log
 
 20170815 version alpha 2
     1.  add class raw_star_catalog_editor
+
+20170908 version alpha 3
+    1.  add a func of tsv_reader, get_order, used to find the order of certain title.
+    2.  add some comment on class star_catalog_editor.
 '''
 
 import numpy as np
@@ -97,9 +101,19 @@ class tsv_editor:
             data.append(line_data)
         f.close()
         return data
-    def set_data(file_name):
+    # set file_name and data of itself.
+    def set_data(self, file_name):
         self.file_name = file_name
         self.data = self.read_tsv_file(file_name)
+    def get_order(self, tar_list, property_name_list):
+        # determine the order of all property.
+        ord_list = [ 0 for i in range(len(property_name_list))]
+        for i in xrange(len(tar_list[0])):
+            for j in xrange(len(property_name_list)):
+                if tar_list[0][i] == property_name_list[j]:
+                    ord_list[j] = i
+                    break
+        return ord_list
 
 # This code is for plot histgram of mag vesus number
 class raw_star_catalog_editor(tsv_editor):
@@ -282,11 +296,16 @@ class star_catalog_editor(tsv_editor):
                     temp_jd_array = np.append(temp_jd_array, jd_array[j])
                     temp_value_array = np.append(temp_value_array, float(value_array_collection[i][2+j]))
                     temp_error_array = np.append(temp_error_array, float(error_array_collection[i][2+j]))
+            # draw source point with errbar.
             plt.errorbar(temp_jd_array, temp_value_array, yerr = temp_error_array, fmt = '-o')
+            # draw the line of average
             avg, std = self.weighted_avg_and_std(temp_value_array, temp_error_array)
             plt.plot([min_jd - 1 , max_jd + 1], [avg, avg], "-")
+            # draw the boundary by 1 times error
             plt.plot([min_jd - 1, max_jd + 1, max_jd + 1, min_jd -1], [avg + std, avg + std, avg - std, avg -std], "--")
+            # draw the fitting info
             axes.text(min_jd, avg+2*std, "{2}: average = {0:.4f}+-{1:.4f}".format(avg, std, value_array_collection[i][0]))
+            # if there are more than one object been plot, set larger the range of y .
             if len(value_array_collection) == 1:
                 axes.set_ylim([np.mean(float_value_array_collection)-5*std, np.mean(float_value_array_collection)+5*std])
         if len(value_array_collection) > 1:
