@@ -123,44 +123,32 @@ class star_info:
         self.fitsname = name
         self.ecc = ecc
         if VERBOSE>0:print "--- {0} ---".format(name)
-        # check the wcs file existance, if no, the program will be end.
-        try:
-            hdulist = pyfits.open(name)
-            wcs = pywcs.WCS(hdulist[0].header)
-        except:
-            print "{0} have no wcs file".format(name)
-            return 
         # record info of stars in this image in a table
-        star_table, peak_table, result_table = self.data_process(name)
-        self.star_table = star_table
-        self.peak_table = peak_table
-        self.result_table = result_table
-        # save the result table into fits file
-        self.save()
-        # plot the result of peak list and star list.
-        if VERBOSE>1: self.plot()
+        star_table, star_list = self.match(name)
+        try:
+            result_table = self.data_process(name, star_table, star_list)
+            self.result_table = result_table
+        except:
+            self.savestar()
+        else:
+            # save the result table into fits file
+            self.save()
+            # plot the result of peak list and star list.
+            if VERBOSE>1: self.plot()
         return
-    def data_process(self, name):
+    def match(self, name):
         data = pyfits.getdata(name)
-        self.data = data
-        imh = pyfits.getheader(name)
-        exptime = imh['EXPTIME']
-        exptime = float(exptime)
-        paras, cov = curvefit.hist_gaussian_fitting(name, data, shift = -7)
-        self.mean = paras[0]
-        self.std = paras[1]
-        if VERBOSE>0:
-            print "mean= {0}, std= {1}".format(self.mean, self.std)
         # peak list is a list contain elements with position tuple.
         # we want to control the number of peaks within 500
-        sz = 24
-        tl = 15
+        sz = 29
+        tl = 5
         peak_list = []
         while len(peak_list) > 500 or len(peak_list) < 3:
             sz += 1
             peak_list = curvefit.get_peak_filter(data, tall_limit = tl,  size = sz)
         peak_title = curvefit.get_peak_title()
         peak_table = Table(rows = peak_list, names = peak_title)
+        self.peak_table = peak_table
         # star list is a list contain elements with star in this fits
         # we want to control the number of stars within 20.
         hwl = 3
@@ -171,6 +159,20 @@ class star_info:
             if VERBOSE>1: print "number of star: {0}".format(len(star_list))
         star_title = curvefit.get_star_title(detailed = True)
         star_table = Table(star_list, names = star_title)
+        self.star_table = star_table
+        return star_table, star_list
+
+    def data_process(self, name, star_table, star_list):
+        data = pyfits.getdata(name)
+        self.data = data
+        imh = pyfits.getheader(name)
+        exptime = imh['EXPTIME']
+        exptime = float(exptime)
+        paras, cov = curvefit.hist_gaussian_fitting(name, data, shift = -7)
+        self.mean = paras[0]
+        self.std = paras[1]
+        if VERBOSE>0:
+            print "mean= {0}, std= {1}".format(self.mean, self.std)
         result_list = []
         hdulist = pyfits.open(name)
         wcs = pywcs.WCS(hdulist[0].header)
@@ -200,7 +202,12 @@ class star_info:
         # set up unit of result table
         for i in xrange(len(result_unit)):
             result_table[result_title[i]].unit = result_unit[i]
-        return star_table, peak_table, result_table
+        return result_table
+    # This def will read self.star_table and save a region file.
+    def savestar(self):
+        star_list_name = "{0}_star.fits".format(self.fitsname[:-5])
+        self.star_table.write(star_list_name, overwrite = True)
+        return
     def plot(self):
         # draw three plot, one with point, another without
         f = plt.figure(self.fitsname + ' _ini')
