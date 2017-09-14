@@ -62,9 +62,12 @@ update log
     20170721 version alpha 13
     1.  add comment of get_peak
 
-    2017728 version alpha 14
+    20170728 version alpha 14
     1.  improve the efficiency of get_star
     2.  Update 2D gaussian fitting, now it could return error of each quantities.
+
+    20170914 version alpha 15 
+    1.  Hotfix, save file name will be lost by a bit in back in def subtract_list.
 '''
 import numpy as np
 import matplotlib.pyplot as plt
@@ -718,8 +721,10 @@ def subtract_list(list_name, dark_name):
         imA = pyfits.getdata(name)
         imAh = pyfits.getheader(name)
         imB = np.subtract(imA, dark)
-        pyfits.writeto(name[:-5]+"_subDARK.fits", imB, imAh)
-        print name[:-5]+"_subDARK.fits, OK"
+        name_list = name.split(".")
+        new_name = "{0}_subDARK.fits".format(name_list[0])
+        pyfits.writeto(new_name, imB, imAh)
+        print "{0}, OK".format(new_name)
     return
 
 # This is used to generate divFLAT fits
@@ -731,8 +736,10 @@ def division_list(list_name, flat_name):
         imA = pyfits.getdata(name)
         imAh = pyfits.getheader(name)
         imB = np.divide(imA, flat)
-        pyfits.writeto(name[0:-5]+"_divFLAT.fits",imB,imAh)
-    print name[0:-5]+"_divFLAT.fits, OK "
+        name_list = name.split(".")
+        new_name = "{0}_divFLAT.fits".format(name_list[0])
+        pyfits.writeto(new_name, imB, imAh)
+    print "{0}, OK ".format(new_name)
     return
 
 #---------------------------------------------------------------------
