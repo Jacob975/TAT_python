@@ -59,9 +59,9 @@ class hollower:
     # read data and graph 
     def __init__(self, name, width):
         self.name = name
-        self.w = width
+        self.w = int(width)
         data = pyfits.getdata(name)
-        hollow_data = self.hollow(data, width)
+        hollow_data = self.hollow(data, self.w)
         self.save(hollow_data)
         return
     # set nan in centro
@@ -82,9 +82,9 @@ class shrinker:
     # read data and graph 
     def __init__(self, name, width):
         self.name = name
-        self.w = width
+        self.w = int(width)
         data = pyfits.getdata(name)
-        shrink_data = self.shrink(data, width)
+        shrink_data = self.shrink(data, self.w)
         self.save(shrink_data)
         return
     # set nan in edge
