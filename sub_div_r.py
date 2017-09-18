@@ -81,7 +81,9 @@ header=temp_list[0]
 if dark_success == 1 and flat_success != 1:
     list_subDARK = curvefit.readfile("list_subDARK")
     curvefit.rotate(telescope, list_subDARK)
+    '''
     temp = "rm *subDARK.fits"
+    '''
     os.system(temp)
 if dark_success == 1 and flat_success == 1:
     list_divFLAT = curvefit.readfile("list_divFLAT")
