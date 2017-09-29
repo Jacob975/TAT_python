@@ -107,7 +107,7 @@ def get_img_property(image_name):
 
 #--------------------------------------------
 # main code
-VERBOSE = 1
+VERBOSE = 2
 # measure times
 start_time = time.time()
 # get property from argv

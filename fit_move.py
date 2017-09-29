@@ -195,11 +195,12 @@ if VERBOSE>1 :
         print "height = ", value[0], " position= (", value[1], value[2], ") size= (", value[3], value[4],")" 
 if VERBOSE>3:
     # draw three plot, one with point, another without
+    '''
     f = plt.figure('ref_'+ref_name)
     plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
     plt.colorbar()
     f.show()
-    
+    '''
     g = plt.figure('ref_'+ref_name+'_peaks')
     plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
     plt.colorbar()
@@ -256,11 +257,12 @@ for order in xrange(len(fits_list)):
     star_list = np.sort(star_list, order = 'ysigma')
     if VERBOSE>3:
         # draw three plot, one with point, another without
+        '''
         f = plt.figure(fits_list[order])
         plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
         plt.colorbar()
         f.show()
-
+        '''
         g = plt.figure(fits_list[order]+'_peaks')
         plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
         plt.colorbar()
@@ -305,13 +307,12 @@ for order in xrange(len(fits_list)):
         print "the result of match"
         print "mean of delta_x: ", mean_delta_x ," stdev = ", std_delta_x
         print "mean of delta_y: ", mean_delta_y ," stdev = ", std_delta_y
-   
-    create_matched_fits(fits_list[order], data, mean_delta_x, mean_delta_y)
+    #create_matched_fits(fits_list[order], data, mean_delta_x, mean_delta_y)
     if VERBOSE>0 : print fits_list[order], "match OK"
 
     elapsed_time = time.time() - start_time
     if VERBOSE>1 : print "Exiting Main Program, spending ", elapsed_time, "seconds."
-#raw_input()
+
 # measuring time
 elapsed_time = time.time() - start_time
 if VERBOSE>0 : print "Exiting Main Program, spending ", elapsed_time, "seconds."

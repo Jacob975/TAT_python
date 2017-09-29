@@ -1,9 +1,9 @@
 #!/usr/bin/python
 '''
 Program:
-This is a program to demo the style of my code. 
+This is a program to test the psf fitting in photutils. 
 Usage:
-1. create_an_artificial_image.py [list name]
+1. psf_test_iraf.py [image name]
 editor Jacob975
 20170809
 #################################
@@ -48,7 +48,7 @@ import matplotlib.pyplot as plt
 
 #--------------------------------------------
 # main code
-VERBOSE = 1
+VERBOSE = 2
 # measure times
 start_time = time.time()
 # do what you want.
@@ -123,13 +123,13 @@ result_tab.write("{0}_iraffind_tab".format(argv[-1][0:-5]), format = 'latex')
 
 #--------------------------------------------
 # Use get_star in curvefit.py to measure the count and position.
-
+'''
 # save as fits in current folder
 imh = pyfits.getheader(argv[-1])
 pyfits.writeto("{0}_iraffind_rest.fits".format(argv[-1][0:-5]), residual_image, imh)
 sub_image = image - residual_image
 pyfits.writeto("{0}_iraffind_sub.fits".format(argv[-1][0:-5]), sub_image, imh)
-
+'''
 #---------------------------------------------
 # measuring time
 elapsed_time = time.time() - start_time

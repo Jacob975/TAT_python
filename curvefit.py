@@ -384,8 +384,7 @@ def get_star_title(detailed = False):
         answer = np.array(['amplitude', 'xcenter', 'ycenter', 'xsigma', 'ysigma', 'rot', 'bkg'])
     return answer
 
-def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detailed = False):
-    VERBOSE= 0
+def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detailed = False, VERBOSE = 0):
     star_list = []
     # find data mean and data std
     paras_hist, cov_hist = hist_gaussian_fitting('default', data)
@@ -399,6 +398,9 @@ def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detai
         # take the rectangle around some star.
         imA = data[ coor[i][0]-half_width-margin:coor[i][0]+half_width+margin, coor[i][1]-half_width-margin:coor[i][1]+half_width+margin ]
         params, cov, success = FitGauss2D_curve_fit(imA)
+        if VERBOSE>1:
+            print "star_{2}: {0}, {1}".format(coor[i][0], coor[i][1], i)
+            print params, cov, success
         # check the position is valid or not
         if success == 0:
             continue
@@ -569,19 +571,21 @@ def get_rid_of_exotic(value_list):
         value_list = get_rid_of_exotic(value_list)
     return value_list
 
-def get_rid_of_exotic_vector(value_list, additional):
+def get_rid_of_exotic_vector(value_list, additional, threshold = 3):
+    temp_value_list = []
+    temp_additional = []
     std = np.std(value_list)
     mean = np.mean(value_list)
     # get the error of each value to the mean, than delete one with largest error.
-    temp_value_list = np.subtract(value_list, mean)
-    abs_value_list = np.absolute(temp_value_list)
+    sub_value_list = np.subtract(value_list, mean)
+    abs_value_list = np.absolute(sub_value_list)
     for i in xrange(len(abs_value_list)):
-        if abs_value_list[i] >= 3 * std:
-            value_list = np.delete(value_list, i)
-            additional = np.delete(additional, i)
-    if len(abs_value_list) != len(value_list):
-        value_list, additional = get_rid_of_exotic_vector(value_list, additional)
-    return value_list, additional
+        if abs_value_list[i] <= threshold * std:
+            temp_value_list.append(value_list[i]) 
+            temp_additional.append(list(additional[i]))
+    if len(abs_value_list) != len(temp_value_list):
+        temp_value_list, temp_additional = get_rid_of_exotic_vector(temp_value_list, temp_additional, threshold)
+    return temp_value_list, temp_additional
 
 #---------------------------------------------------------------------
 # This is a code to do error transmission calculation.
@@ -653,43 +657,35 @@ def div_error_transmission(value_array, error_array):
 #---------------------------------------------------------------------
 # This is a code to transfer between mag and count
 
-def mag2count(mag, error_mag = 0):
-    # prototype: count = 10^(mag / -2.5), return count
-    temp_1 = np.divide(mag, -2.5)
-    count = np.power(10, temp_1)
-    if error_mag != 0:
-        temp_2 = np.add(mag, error_mag)
-        temp_2 = np.divide(temp_2, -2.5)
-        error_count = np.power(10, temp_2) - np.power(10, temp_1)
-    # if needn't to deal with error, just return the value
-    elif error_mag == 0:
-        error_count = 0
-        return count
-    return count, error_count
+class unit_converter:
+    def mag2count(self, mag, error_mag = 0):
+        # prototype: count = 10^(mag / -2.5), return count
+        temp_1 = np.divide(mag, -2.5)
+        count = np.power(10, temp_1)
+        if error_mag != 0:
+            temp_2 = np.add(mag, error_mag)
+            temp_2 = np.divide(temp_2, -2.5)
+            error_count = np.power(10, temp_2) - np.power(10, temp_1)
+        # if needn't to deal with error, just return the value
+        elif error_mag == 0:
+            error_count = 0
+            return count
+        return count, error_count
 
-def count2mag(count, error_count = 0):
-    # prototype: mag = -2.5 * log10( count ), return mag
-    mag = -2.5*np.log10(count)
-    if error_count != 0:
-        temp = np.add(count, error_count)
-        error_mag = -2.5*np.log10(count) + 2.5*np.log10(temp)
-    # if needn't to deal with error, just return the value
-    elif error_count == 0:
-        error_mag = 0
-        return mag
-    return mag, error_mag
+    def count2mag(self, count, error_count = 0):
+        # prototype: mag = -2.5 * log10( count ), return mag
+        mag = -2.5*np.log10(count)
+        if error_count != 0:
+            temp = np.add(count, error_count)
+            error_mag = -2.5*np.log10(count) + 2.5*np.log10(temp)
+        # if needn't to deal with error, just return the value
+        elif error_count == 0:
+            error_mag = 0
+            return mag
+        return mag, error_mag
 
 #---------------------------------------------------------------------
 # basic fits processing
-
-# This is used to read a list of fits name
-def readfile(filename):
-    file = open(filename)
-    answer_1 = file.read()
-    answer=answer_1.split("\n")
-    while answer[-1] == "":
-        del answer[-1]
-    return answer
 
 # This is used to rotate img
 # The direction needed to modified.

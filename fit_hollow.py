@@ -110,7 +110,7 @@ if __name__ == "__main__":
     # get property from argv 
     argu = argv_controller(argv)
     for name in argu.fits_list():
-        hole = hollower(name, argu.width())
+        #hole = hollower(name, argu.width())
         pin = shrinker(name, argu.width())
     # measuring time
     elapsed_time = time.time() - start_time
