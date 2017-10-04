@@ -68,6 +68,9 @@ update log
 
     20170914 version alpha 15 
     1.  Hotfix, save file name will be lost by a bit in back in def subtract_list.
+
+    20171004 version alpha 16
+    1. add get_star_unit for finding the unit of def "get_star".
 '''
 import numpy as np
 import matplotlib.pyplot as plt
@@ -383,6 +386,13 @@ def get_star_title(detailed = False):
         answer = np.array(['amplitude', 'e_amplitude', 'xcenter', 'e_xcenter', 'ycenter', 'e_ycenter', 'xsigma', 'e_xsigma', 'ysigma', 'e_ysigma', 'rot', 'e_rot', 'bkg', 'e_bkg'])
     else :
         answer = np.array(['amplitude', 'xcenter', 'ycenter', 'xsigma', 'ysigma', 'rot', 'bkg'])
+    return answer
+
+def get_star_unit(detailed = False):
+    if detailed:
+        answer = np.array(['count', 'count', 'pixel', 'pixel', 'pixel','pixel','pixel','pixel','pixel','pixel','degree','degree','count','count'])
+    else:
+        answer = np.array(['count', 'pixel', 'pixel', 'pixel', 'pixel','degree','count'])
     return answer
 
 def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detailed = False, VERBOSE = 0):
