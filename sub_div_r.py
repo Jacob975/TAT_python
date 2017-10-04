@@ -37,6 +37,7 @@ import fnmatch
 import pyfits
 import numpy as np
 import curvefit
+from tat_datactrl import readfile
 from sys import exit
 
 
@@ -79,14 +80,14 @@ header=temp_list[0]
 # read subDARK list or divFLAT list
 # and rotate images with subDARK or divFLAT
 if dark_success == 1 and flat_success != 1:
-    list_subDARK = curvefit.readfile("list_subDARK")
+    list_subDARK = readfile("list_subDARK")
     curvefit.rotate(telescope, list_subDARK)
     '''
     temp = "rm *subDARK.fits"
     '''
     os.system(temp)
 if dark_success == 1 and flat_success == 1:
-    list_divFLAT = curvefit.readfile("list_divFLAT")
+    list_divFLAT = readfile("list_divFLAT")
     curvefit.rotate(telescope, list_divFLAT)
     temp = "rm *subDARK.fits"
     os.system(temp)

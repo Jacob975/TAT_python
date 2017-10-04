@@ -14,6 +14,9 @@ update log
 
 20170928 version alpha 2
     add specification of psf photometry
+
+20170929 version alpha 3
+    add specification of wcs controller
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
@@ -233,9 +236,14 @@ class phot_control:
 class wcs_controller(unit_converter):
     star_table = None
     wcs_table = None
-    def __init__(self, star_table):
+    imh = None
+    def __init__(self, star_table, fits_name):
+        self.imh = pyfits.getheader(fits_name)
+        self.star_table = star_table
+        wcs_table = self.pix2wcs(star_table, imh)
         return
-    def pix2wcs(self, star_table):
+    # convert star table into wcs table
+    def pix2wcs(self, star_table, imh):
         # initialized wcs
         try:
             hdulist = pyfits.open(name)
@@ -245,12 +253,13 @@ class wcs_controller(unit_converter):
             return None
         # convert pixel to wcs
 
-        # convert pixel to mag
+        # convert pixel to mag      <--- haven't divided by exptime
         count = np.array(star_table["amplitude"])
         e_count = np.array(star_table["e_amplitude"])
         mag, e_mag = self.count2mag(count, e_count)
         # setup wcs star table
         return wcs_star_table
+    # save result as a table
     def save(self):
         return
 #--------------------------------------------
