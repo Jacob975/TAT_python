@@ -17,13 +17,16 @@ update log
 
 20170929 version alpha 3
     add specification of wcs controller
+
+20171004 version alpha 4
+    1. wcs controller is done, haven't been tested.
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
 from astropy.stats import gaussian_sigma_to_fwhm
-from curvefit import hist_gaussian_fitting, get_peak_filter, get_star, get_star_title, get_rid_of_exotic_vector, unit_converter
+from curvefit import hist_gaussian_fitting, get_peak_filter, get_star, get_star_unit, get_star_title, get_rid_of_exotic_vector, unit_converter
 from astropy.table import Table
-from tat_datactrl import readfile
+from tat_datactrl import readfile, get_path
 import numpy as np
 import pyfits
 import pywcs
@@ -43,12 +46,20 @@ class argv_controller:
             fits_list=tat_datactrl.readfile(name)
         return fits_list
 
+# This class is for finding basic paras of image.
 class parameter:
     data = None
     bkg = 0.0
     std = 0.0
     sigma = 0.0
-    def __init__(self, data):
+    scope = ""
+    date = ""
+    obj = ""
+    filtr = ""
+    method = ""
+    property_name_array = np.array(["date", "scope", "band", "method", "object"])
+    def __init__(self, data, fits_name):
+        self.fits_name = fits_name
         self.data = data
         self.sigma = self.get_sigma()
         paras, cov = hist_gaussian_fitting('default', data)
@@ -78,6 +89,26 @@ class parameter:
         y_sigma = [column[pos_ysigma] for column in proper_star_list]
         proper_y_sigma, proper_star_list = get_rid_of_exotic_vector(y_sigma, proper_star_list, 3)
         return proper_star_list
+    # get property of images from path
+	def observator_property(self, image_name):
+    	# get info from name
+        image_name_list = image_name.split("_")
+    	try:
+        	self.scope = image_name_list[0]
+        	self.date = image_name_list[1]
+        	self.obj = image_name_list[2]
+        	self.filtr = "{0}_{1}".format(image_name_list[3], image_name_list[4])
+       # if name is not formated, get info from path	
+       except:
+        	print "Inproper name, get property changing ot dir"
+        	path = os.getcwd()
+        	list_path = path.split("/")
+        	self.scope = list_path[-5]
+        	self.date = list_path[-3]
+        	self.obj = list_path[-2]
+        	self.filtr = list_path[-1]
+    	self.method = image_name_list[-2]
+    	return
 
 # This class is for find the coordinate of stars and save region file by aperture photometry.
 class aperphot(parameter):
@@ -108,8 +139,12 @@ class aperphot(parameter):
         if VERBOSE>1:
             print "number of star = {0}".format(len(star_list))
             print "number of proper star = {0}".format(len(proper_star_list))
+        # set the unit and title of params in table
         star_title = get_star_title(detailed = True)
+        star_unit = get_star_unit(detailed = True)
         star_table = Table(rows = proper_star_list, names = star_title)
+        for i in xrange(len(star_unit)):
+            star_table[star_title[i]].unit = star_unit[i]
         self.star_table = star_table
         return star_table
 
@@ -144,6 +179,7 @@ class phot_control:
     data = None
     dao_table = None
     star_table = None
+    paras = None
     fits_name = "untitle.fits"
     star_table_name = "untitle_table.fits"
     result_region_name = "untitle_region"
@@ -160,8 +196,40 @@ class phot_control:
         self.dao_region_name = "{0}_dao_region".format(self.fits_name[0:-5])
         # test aperphot is better or psfphot?
         self.paras = parameter(self.data)
+        self.paras.observator_property(fits_name)
         self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
+        # get info of del mag
+        path_of_result = get_path("path_of_result")
+        path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise")
+        del_mag_table = Table.read(path_of_del_mag)
+        # add more property info table
+        self.match_del_mag_table = self.observertory_property(del_mag_table, paras)
+        wcs_ctrl = wcs_controller(self.star_table, self.match_del_mag_table, fits_name)
+        self.wcs_table = wcs_ctrl.wcs_table
         return
+    # get del mag
+    def observertory_property(del_mag_table, paras, VERBOSE = 0):
+        # create a empty list with length of property list
+        property_name_array = paras.property_name_array
+        property_list = [paras.date, paras.scope, paras.band, paras.method, paras.obj]
+        temp_list = [ None for i in range(len(property_name_array)) ]
+        # append original list to back
+        # It wiil seem as
+        # temp_list = [   [], [], [], ... ,[tar_list]  ]
+        temp_list.append(del_mag_table)
+        for i in xrange(len(property_name_array)):
+            if VERBOSE>0:print "current property = ",property_list[i]
+            for tar in temp_list[i-1]:
+                if tar[property_name_array[i]] == property_list[i]:
+                    if temp_list[i] == None:
+                        temp_list[i] = Table(tar)
+                    else:
+                        temp_list[i].add_row(tar)
+        if len(temp_list[len(property_list)-1]) == 0:
+            if VERBOSE>0:print "No matched data."
+            return None
+        match_del_mag_table = temp_list[len(property_list)-1]
+        return match_del_mag_table
     # this def is for cut origin image into several piece. 
     # In order to get much more accurate psf model and fitting result.
     def puzzing(self, data):
@@ -195,19 +263,6 @@ class phot_control:
         star_table = aperfitting.star_table
         dao_table = aperfitting.dao_table
         return star_table, dao_table
-    def wcs_convert(self, star_table):
-        # initialized wcs
-        try:
-            hdulist = pyfits.open(name)
-            wcs = pywcs.WCS(hdulist[0].header)
-        except:
-            print "{0} have no wcs file".format(name)
-            return None
-        # convert pixel to wcs
-        # convert pixel to mag
-
-        # setup wcs star table
-        return wcs_star_table
     # save result of photometry.
     def save(self):
         star_table = self.star_table
@@ -236,29 +291,104 @@ class phot_control:
 class wcs_controller(unit_converter):
     star_table = None
     wcs_table = None
-    imh = None
-    def __init__(self, star_table, fits_name):
-        self.imh = pyfits.getheader(fits_name)
+    match_del_mag_table = None
+    fits_name = ""
+    def __init__(self, star_table, match_del_mag_table, fits_name):
+        self.fits_name = fits_name
         self.star_table = star_table
-        wcs_table = self.pix2wcs(star_table, imh)
+        self.match_del_mag_table = match_del_mag_table
+        # get wcs coords
+        self.wcs_table = self.pix2wcs(star_table, fits_name)
+        # get instrument mag
+        self.wcs_table = self.pix2mag(self.wcs_table, fits_name):
+        # get real mag
+        self.wcs_table = self.realmag(self.wcs_table, match_del_mag_table)
         return
     # convert star table into wcs table
-    def pix2wcs(self, star_table, imh):
+    def pix2wcs(self, star_table, fits_name):
         # initialized wcs
         try:
-            hdulist = pyfits.open(name)
+            hdulist = pyfits.open(fits_name)
             wcs = pywcs.WCS(hdulist[0].header)
         except:
             print "{0} have no wcs file".format(name)
             return None
         # convert pixel to wcs
-
-        # convert pixel to mag      <--- haven't divided by exptime
-        count = np.array(star_table["amplitude"])
-        e_count = np.array(star_table["e_amplitude"])
-        mag, e_mag = self.count2mag(count, e_count)
-        # setup wcs star table
-        return wcs_star_table
+        # initialized info
+        column_name = ["RAJ2000", "e_RAJ2000", "DECJ2000", "e_DECJ2000"]
+        collection = { 'RA':None, 'DEC':None, 'e_RA':None, 'e_DEC':None}
+        column_unit = ['hhmmss', 'hhmmss', 'ddmmss', 'ddmmss']
+        wcs_table = star_table
+        # grap data from table
+        xcenter = np.array(star_table["ycenter"], dtype = float)
+        e_xcenter = np.array(star_table["e_ycenter"], dtype = float)
+        ycenter = np.array(star_table["xcenter"], dtype = float)
+        e_ycenter = np.array(star_table["e_xcenter"], dtype = float)
+        # arrange data
+        coors = np.dstack(xcenter, ycenter)
+        eRA_coors = np.dstack(xcenter + e_xcenter, ycenter)
+        eDEC_coors = np.dstack(xcenter, ycenter + e_ycenter)
+        # convert pixel into wcs
+        sky = wcs.wcs_pix2sky(coors, 1)	
+        collection['RA'] = np.array([column[1] for column in sky])									# result 1
+        collection['DEC'] = np.array([column[0] for column in sky])									# result 2
+        eRA_sky = wcs.wcs_pix2sky(eRA_coors, 1)
+        eDEC_coors = wcs.wcs_pix2sky(eDEC_coors, 1)
+        collection['e_RA'] = np.array([column[1] for column in eRA_sky]) - collection['RA']			# result 3
+        collection['e_DEC'] = np.array([column[0] for column in eDEC_sky]) - collection['DEC']		# result 4
+        i = 0
+        for key, value in collection.iteritems():
+            new_col = Column(value, name=column_name[i], unit = column_unit[i])
+            wcs_table.add_column(new_col, index = i)
+            i += 1	
+        return wcs_table
+    # convert pixel to instrument mag      <--- haven't divided by exptime
+    def pix2mag(self, star_table, fits_name):
+        # initailized info
+        column_name = ["mag", "e_mag"]
+        collection = { 'mag':None, 'e_mag':None} 
+        column_unit = ['mag_per_sec', 'mag_per_sec'}
+        # grab data from argument
+        mag_table = star_table
+        imh = pyfits.getheader(fits_name)
+        exptime = imh["EXPTIME"]
+        # convert count into mag
+        count_per_t = np.array(star_table["amplitude"], dtype = float)/exptime
+        e_count_per_t = np.array(star_table["e_amplitude"], dtype = float)/exptime
+        mag, e_mag = self.count2mag(count_per_t, e_count_per_t)	
+        collection['mag'] = mag
+        collection['e_mag'] = e_mag
+        # save result into table
+        if np.isnan(mag) or np.isnan(e_mag):
+            return None
+        i = 0
+        for key, value in collection.iteritems():
+            new_col = Column(value, name=column_name[i], unit=column_unit[i])
+            mag_table.add_column(new_col)
+            i += 1
+        return mag_table
+    # get real magnitude
+    def realmag(self, star_table, match_del_mag_table):
+        # initailized info 
+        local_name = ['U', 'B', 'V', 'R', 'I', 'N']
+        mag_unit = 'mag_per_sec'
+        # grab data from argument
+        mag_array = np.array(star_table['mag'], dtype = float)
+        e_mag_array = np.array(star_table['e_mag'], dtype = float)
+        band_list = match_del_mag_table['band_of_ref']
+        del_mag_array = np.array(match_del_mag_table['delta_mag'], dtype = float)
+        e_del_mag_array = np.array(match_del_mag_table['e_delta_mag'], dtype = float)
+        mag_table = star_table
+        for i in xrange(len(band_list)):
+            new_mag_name = "{0}_mag".format(band_list[i])
+            e_new_mag_name = "e_{0}_mag".format(band_list[i])
+            new_mag_array = mag_array - del_mag_array[i]
+            e_new_mag_array = np.sqrt(np.power((e_mag_array[i]), 2) + np.power(e_del_mag_array, 2))
+            new_col = Column(new_mag_array, name = new_mag_name, unit = mag_unit)
+            e_new_col = Column(e_new_mag_array, name = e_new_mag_name, unit = mag_unit)
+            mag_table.add_column(new_col)
+            mag_table.add_column(e_new_col)
+        return mag_table
     # save result as a table
     def save(self):
         return
