@@ -23,6 +23,9 @@ update log
 
 20170830 version alpha 1
     The code run properly
+
+20171004 version alpha 2
+    Fix a bug of constructing table by columns instead of rows
 '''
 from sys import argv
 import numpy as np
@@ -56,7 +59,9 @@ class argv_controller:
 
 def arr2table(arr, start_point):
     # start_point mean where is the start of data
-    ans = Table(arr[start_point:], names = np.array(arr[0]))
+    if VERBOSE>2: print arr[0]
+    print arr[start_point:]
+    ans = Table(rows = arr[start_point:], names = np.array(arr[0]))
     if start_point == 2:
         for i in xrange(len(arr[0])):
             ans[arr[0][i]].unit = arr[1][i]
@@ -72,8 +77,9 @@ if __name__ == "__main__":
     argument = argv_controller(argv)
     # grab data from tsv
     arr = np.array(tat_datactrl.read_tsv_file(argument.filename()))
-    for element in arr:
-        print len(element), element
+    if VERBOSE>2:
+        for element in arr:
+            print len(element), element
     # convert into table
     t = arr2table(arr, argument.startpoint())
     # save result
