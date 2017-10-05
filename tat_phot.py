@@ -31,6 +31,7 @@ import numpy as np
 import pyfits
 import pywcs
 import time
+import warnings
 
 # This is used to control argus.
 class argv_controller:
@@ -52,13 +53,14 @@ class parameter:
     bkg = 0.0
     std = 0.0
     sigma = 0.0
-    scope = ""
     date = ""
+    scope = ""
+    band = ""
+    method = ""
     obj = ""
     filtr = ""
-    method = ""
     property_name_array = np.array(["date", "scope", "band", "method", "object"])
-    def __init__(self, data, fits_name):
+    def __init__(self, data):
         self.fits_name = fits_name
         self.data = data
         self.sigma = self.get_sigma()
@@ -70,10 +72,12 @@ class parameter:
     def get_sigma(self):
         data = self.data
         # peak list is a list contain elements with position tuple.
-        sz = 30, tl = 5
+        sz = 30
+        tl = 5
         peak_list = get_peak_filter(data, tall_limit = tl,  size = sz)
         # star list is a list contain elements with star in this fits
-        hwl = 4, ecc = 1
+        hwl = 4
+        ecc = 1
         star_list = get_star(data, peak_list, half_width_lmt = hwl, eccentricity = ecc)
         proper_star_list = self.proper_sigma(star_list, 3, 4)
         x_sigma = np.array([column[3] for column in proper_star_list])
@@ -90,23 +94,26 @@ class parameter:
         proper_y_sigma, proper_star_list = get_rid_of_exotic_vector(y_sigma, proper_star_list, 3)
         return proper_star_list
     # get property of images from path
-	def observator_property(self, image_name):
+    def observator_property(self, image_name):
     	# get info from name
         image_name_list = image_name.split("_")
     	try:
-        	self.scope = image_name_list[0]
-        	self.date = image_name_list[1]
-        	self.obj = image_name_list[2]
-        	self.filtr = "{0}_{1}".format(image_name_list[3], image_name_list[4])
-       # if name is not formated, get info from path	
-       except:
-        	print "Inproper name, get property changing ot dir"
-        	path = os.getcwd()
-        	list_path = path.split("/")
-        	self.scope = list_path[-5]
-        	self.date = list_path[-3]
-        	self.obj = list_path[-2]
-        	self.filtr = list_path[-1]
+            self.scope = image_name_list[0]
+            self.date = image_name_list[1]
+            self.obj = image_name_list[2]
+            self.band = image_name_list[3]
+            self.filtr = "{0}_{1}".format(image_name_list[3], image_name_list[4])
+        # if name is not formated, get info from path	
+        except:
+            print "Inproper name, get property changing ot dir"
+            path = os.getcwd()
+            list_path = path.split("/")
+            self.scope = list_path[-5]
+            self.date = list_path[-3]
+            self.obj = list_path[-2]
+            self.filtr = list_path[-1]
+            temp_list = self.filtr.split("_")
+            self.band = temp_list[0]
     	self.method = image_name_list[-2]
     	return
 
@@ -185,8 +192,8 @@ class phot_control:
     result_region_name = "untitle_region"
     dao_table_name = "untitle_dao_table.fits"
     dao_region_name = "untitle_dao_region"
-    VERBOSE = 0
     def __init__(self, fits_name):
+        if VERBOSE>0: print "---      start process      ---" 
         # name setting
         self.fits_name = fits_name
         self.data = pyfits.getdata(fits_name)
@@ -200,15 +207,16 @@ class phot_control:
         self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
         # get info of del mag
         path_of_result = get_path("path_of_result")
-        path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise")
+        path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise/delta_mag.fits")
         del_mag_table = Table.read(path_of_del_mag)
         # add more property info table
-        self.match_del_mag_table = self.observertory_property(del_mag_table, paras)
+        self.match_del_mag_table = self.observertory_property(del_mag_table, self.paras)
         wcs_ctrl = wcs_controller(self.star_table, self.match_del_mag_table, fits_name)
         self.wcs_table = wcs_ctrl.wcs_table
         return
     # get del mag
-    def observertory_property(del_mag_table, paras, VERBOSE = 0):
+    def observertory_property(self, del_mag_table, paras):
+        if VERBOSE>0: print "------   find match del mag   ------"
         # create a empty list with length of property list
         property_name_array = paras.property_name_array
         property_list = [paras.date, paras.scope, paras.band, paras.method, paras.obj]
@@ -229,6 +237,7 @@ class phot_control:
             if VERBOSE>0:print "No matched data."
             return None
         match_del_mag_table = temp_list[len(property_list)-1]
+        if VERBOSE>0: print match_del_mag_table 
         return match_del_mag_table
     # this def is for cut origin image into several piece. 
     # In order to get much more accurate psf model and fitting result.
@@ -259,16 +268,18 @@ class phot_control:
                     star_table = astropy.table.join(star_table, temp_star_table)
         return star_table
     def aperphot(self, paras, data):
+        if VERBOSE>0: print "---      aperphot star      ---"
         aperfitting = aperphot(paras, data)
         star_table = aperfitting.star_table
         dao_table = aperfitting.dao_table
         return star_table, dao_table
     # save result of photometry.
     def save(self):
+        if VERBOSE>0: print "---      save table      ---"
         star_table = self.star_table
         dao_table = self.dao_table
         # save table
-        star_table.write(self.star_table_name, overwrite = True)
+        self.wcs_table.write(self.star_table_name, overwrite = True)
         # save star region
         region_file = open(self.result_region_name, "a")
         x_list = star_table["ycenter"]
@@ -294,18 +305,20 @@ class wcs_controller(unit_converter):
     match_del_mag_table = None
     fits_name = ""
     def __init__(self, star_table, match_del_mag_table, fits_name):
+        if VERBOSE>0: print "---      start to process wcs      ---"
         self.fits_name = fits_name
         self.star_table = star_table
         self.match_del_mag_table = match_del_mag_table
         # get wcs coords
         self.wcs_table = self.pix2wcs(star_table, fits_name)
         # get instrument mag
-        self.wcs_table = self.pix2mag(self.wcs_table, fits_name):
+        self.wcs_table = self.pix2mag(self.wcs_table, fits_name)
         # get real mag
         self.wcs_table = self.realmag(self.wcs_table, match_del_mag_table)
         return
     # convert star table into wcs table
     def pix2wcs(self, star_table, fits_name):
+        if VERBOSE>0: print "------   convert pixel to wcs   ------"
         # initialized wcs
         try:
             hdulist = pyfits.open(fits_name)
@@ -325,9 +338,9 @@ class wcs_controller(unit_converter):
         ycenter = np.array(star_table["xcenter"], dtype = float)
         e_ycenter = np.array(star_table["e_xcenter"], dtype = float)
         # arrange data
-        coors = np.dstack(xcenter, ycenter)
-        eRA_coors = np.dstack(xcenter + e_xcenter, ycenter)
-        eDEC_coors = np.dstack(xcenter, ycenter + e_ycenter)
+        coors = np.dstack((xcenter, ycenter))
+        eRA_coors = np.dstack((xcenter + e_xcenter, ycenter))
+        eDEC_coors = np.dstack((xcenter, ycenter + e_ycenter))
         # convert pixel into wcs
         sky = wcs.wcs_pix2sky(coors, 1)	
         collection['RA'] = np.array([column[1] for column in sky])									# result 1
@@ -344,10 +357,11 @@ class wcs_controller(unit_converter):
         return wcs_table
     # convert pixel to instrument mag      <--- haven't divided by exptime
     def pix2mag(self, star_table, fits_name):
+        if VERBOSE>0: print "------   convert count to mag   ------"
         # initailized info
         column_name = ["mag", "e_mag"]
         collection = { 'mag':None, 'e_mag':None} 
-        column_unit = ['mag_per_sec', 'mag_per_sec'}
+        column_unit = ['mag_per_sec', 'mag_per_sec']
         # grab data from argument
         mag_table = star_table
         imh = pyfits.getheader(fits_name)
@@ -369,6 +383,7 @@ class wcs_controller(unit_converter):
         return mag_table
     # get real magnitude
     def realmag(self, star_table, match_del_mag_table):
+        if VERBOSE>0: print "------   convert inst mag to real mag   ------"
         # initailized info 
         local_name = ['U', 'B', 'V', 'R', 'I', 'N']
         mag_unit = 'mag_per_sec'
@@ -389,13 +404,12 @@ class wcs_controller(unit_converter):
             mag_table.add_column(new_col)
             mag_table.add_column(e_new_col)
         return mag_table
-    # save result as a table
-    def save(self):
-        return
+
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
     VERBOSE = 1
+    warnings.filterwarnings("ignore")
     # measure times
     start_time = time.time()
     # get property from argv
