@@ -1,9 +1,15 @@
 #!/usr/bin/python
 '''
 Program:
-This is a program to code to apertrue photometry and psf photometry. 
+This is a program to code to apertrue photometry and psf photometry.
+Currently, because psf phot haven't been done, option of psf photometry isn't available.
+
 Usage:
-1. TAT_phot.py [image]
+1. tat_phot.py [image]
+
+example:
+    tat_phot.py image.fits      # star catalog and region of this image will be generated.
+
 editor Jacob975
 20170927
 #################################
@@ -20,12 +26,15 @@ update log
 
 20171004 version alpha 4
     1. wcs controller is done, haven't been tested.
+
+20171012 version alpha 5
+    1. wcs controller is tested.
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
 from astropy.stats import gaussian_sigma_to_fwhm
 from curvefit import hist_gaussian_fitting, get_peak_filter, get_star, get_star_unit, get_star_title, get_rid_of_exotic_vector, unit_converter
-from astropy.table import Table
+from astropy.table import Table, Column
 from tat_datactrl import readfile, get_path
 import numpy as np
 import pyfits
@@ -163,29 +172,39 @@ class psfphot(parameter):
     star_table = None
     VERBOSE = 0
     def __init__(self, data):
+        self.data = data
+        self.psf_model = make_model(data)
+        self.star_table = self.fit(data)
         return
     def make_model(self):
         # collect normalized bright star
-
+        # if the position is not in the center of pixel, do convolution.
         # take median of all 
         # to 2-D gaussian fitting on psf_model
         psf_model = None
         return psf_model
-    def fit(self, data, peak_list):
-        # if the position is not in the center of pixel, do convolution.
-        # subtract the star by psf_model in some amp.
-        # calculate the noise of residual, find the amp of psf_model such that the noise of residual is minimum.
+    def fit(self, data):
+        # deconvolution the data by inpulse response.
+        # then return source image and star table
         star_table = None
         return star_table
     def convolution(self, psf_model, rect_func):
         # do convolution of psf_model and rect_func
         return con_psf_model
 
-# This class is for control processing psf
+# This class is for control processing photometry
+# There are two options, psfphot and aperphot.
+
+# 1. aperphot mean aperture photometry, but not classical, 
+# program will fitting 2D gaussian distribution on each peak to test whether it is a star?
+
+# 2. psfphot mean psf photometry,
+# This part haven't been done.
 class phot_control:
     data = None
     dao_table = None
     star_table = None
+    mag_table = None
     paras = None
     fits_name = "untitle.fits"
     star_table_name = "untitle_table.fits"
@@ -204,7 +223,9 @@ class phot_control:
         # test aperphot is better or psfphot?
         self.paras = parameter(self.data)
         self.paras.observator_property(fits_name)
-        self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
+        #self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
+        
+        self.star_table, self.dao_table = self.psfphot()
         # get info of del mag
         path_of_result = get_path("path_of_result")
         path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise/delta_mag.fits")
@@ -212,7 +233,7 @@ class phot_control:
         # add more property info table
         self.match_del_mag_table = self.observertory_property(del_mag_table, self.paras)
         wcs_ctrl = wcs_controller(self.star_table, self.match_del_mag_table, fits_name)
-        self.wcs_table = wcs_ctrl.wcs_table
+        self.mag_table = wcs_ctrl.mag_table
         return
     # get del mag
     def observertory_property(self, del_mag_table, paras):
@@ -256,6 +277,7 @@ class phot_control:
         return puzz_data
     # do psf fitting, powered by psfphot.
     def psfphot(self, data):
+        if VERBOSE>0: print "---      psfphot star      ---"
         star_table = None
         puzz_data = self.puzzing(data)
         for i in xrange(puzz_data):
@@ -279,7 +301,7 @@ class phot_control:
         star_table = self.star_table
         dao_table = self.dao_table
         # save table
-        self.wcs_table.write(self.star_table_name, overwrite = True)
+        self.mag_table.write(self.star_table_name, overwrite = True)
         # save star region
         region_file = open(self.result_region_name, "a")
         x_list = star_table["ycenter"]
@@ -302,6 +324,8 @@ class phot_control:
 class wcs_controller(unit_converter):
     star_table = None
     wcs_table = None
+    inst_table = None
+    mag_table = None
     match_del_mag_table = None
     fits_name = ""
     def __init__(self, star_table, match_del_mag_table, fits_name):
@@ -312,9 +336,9 @@ class wcs_controller(unit_converter):
         # get wcs coords
         self.wcs_table = self.pix2wcs(star_table, fits_name)
         # get instrument mag
-        self.wcs_table = self.pix2mag(self.wcs_table, fits_name)
+        self.inst_table = self.pix2mag(self.wcs_table, fits_name)
         # get real mag
-        self.wcs_table = self.realmag(self.wcs_table, match_del_mag_table)
+        self.mag_table = self.realmag(self.inst_table, match_del_mag_table)
         return
     # convert star table into wcs table
     def pix2wcs(self, star_table, fits_name):
@@ -339,15 +363,23 @@ class wcs_controller(unit_converter):
         e_ycenter = np.array(star_table["e_xcenter"], dtype = float)
         # arrange data
         coors = np.dstack((xcenter, ycenter))
-        eRA_coors = np.dstack((xcenter + e_xcenter, ycenter))
+        '''
+        print coors
+        print type(coors)
+        print coors[0]
+        print type(coors[0])
+        print coors[0][0]
+        print type(coors[0][0])
+        '''
+        eRA_coors = np.dstack((xcenter + e_xcenter, ycenter)) 
         eDEC_coors = np.dstack((xcenter, ycenter + e_ycenter))
         # convert pixel into wcs
-        sky = wcs.wcs_pix2sky(coors, 1)	
-        collection['RA'] = np.array([column[1] for column in sky])									# result 1
-        collection['DEC'] = np.array([column[0] for column in sky])									# result 2
-        eRA_sky = wcs.wcs_pix2sky(eRA_coors, 1)
-        eDEC_coors = wcs.wcs_pix2sky(eDEC_coors, 1)
-        collection['e_RA'] = np.array([column[1] for column in eRA_sky]) - collection['RA']			# result 3
+        sky = wcs.wcs_pix2sky(coors[0], 1)	
+        collection['RA'] = np.array([column[1] for column in sky])  					# result 1
+        collection['DEC'] = np.array([column[0] for column in sky])		    			# result 2
+        eRA_sky = wcs.wcs_pix2sky(eRA_coors[0], 1)
+        eDEC_sky = wcs.wcs_pix2sky(eDEC_coors[0], 1)
+        collection['e_RA'] = np.array([column[1] for column in eRA_sky]) - collection['RA']		# result 3
         collection['e_DEC'] = np.array([column[0] for column in eDEC_sky]) - collection['DEC']		# result 4
         i = 0
         for key, value in collection.iteritems():
@@ -373,12 +405,12 @@ class wcs_controller(unit_converter):
         collection['mag'] = mag
         collection['e_mag'] = e_mag
         # save result into table
-        if np.isnan(mag) or np.isnan(e_mag):
+        if all([x == np.nan for x in mag]) or all([x == np.nan for x in e_mag]):
             return None
         i = 0
         for key, value in collection.iteritems():
             new_col = Column(value, name=column_name[i], unit=column_unit[i])
-            mag_table.add_column(new_col)
+            mag_table.add_column(new_col, index = len(mag_table[0]))
             i += 1
         return mag_table
     # get real magnitude
@@ -390,19 +422,20 @@ class wcs_controller(unit_converter):
         # grab data from argument
         mag_array = np.array(star_table['mag'], dtype = float)
         e_mag_array = np.array(star_table['e_mag'], dtype = float)
-        band_list = match_del_mag_table['band_of_ref']
+        band_list = match_del_mag_table['band']
         del_mag_array = np.array(match_del_mag_table['delta_mag'], dtype = float)
         e_del_mag_array = np.array(match_del_mag_table['e_delta_mag'], dtype = float)
         mag_table = star_table
         for i in xrange(len(band_list)):
+            print "This is {0} round, band is {1}".format(i+1, band_list[i])
             new_mag_name = "{0}_mag".format(band_list[i])
             e_new_mag_name = "e_{0}_mag".format(band_list[i])
             new_mag_array = mag_array - del_mag_array[i]
-            e_new_mag_array = np.sqrt(np.power((e_mag_array[i]), 2) + np.power(e_del_mag_array, 2))
+            e_new_mag_array = np.sqrt(np.power((e_mag_array), 2) + np.power(e_del_mag_array, 2)) # <--- It is wrong now.
             new_col = Column(new_mag_array, name = new_mag_name, unit = mag_unit)
+            mag_table.add_column(new_col, index = len(mag_table[0]))
             e_new_col = Column(e_new_mag_array, name = e_new_mag_name, unit = mag_unit)
-            mag_table.add_column(new_col)
-            mag_table.add_column(e_new_col)
+            mag_table.add_column(e_new_col, index = len(mag_table[0]))
         return mag_table
 
 #--------------------------------------------

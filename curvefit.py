@@ -686,11 +686,11 @@ class unit_converter:
     def count2mag(self, count, error_count = 0):
         # prototype: mag = -2.5 * log10( count ), return mag
         mag = -2.5*np.log10(count)
-        if error_count != 0:
+        if error_count[0] != 0:
             temp = np.add(count, error_count)
             error_mag = -2.5*np.log10(count) + 2.5*np.log10(temp)
         # if needn't to deal with error, just return the value
-        elif error_count == 0:
+        elif error_count[0] == 0:
             error_mag = 0
             return mag
         return mag, error_mag
