@@ -29,6 +29,9 @@ update log
 
 20171012 version alpha 5
     1. wcs controller is tested.
+
+20171014 version alpha 6
+    1. outline of psf phot done. 
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
@@ -70,7 +73,6 @@ class parameter:
     filtr = ""
     property_name_array = np.array(["date", "scope", "band", "method", "object"])
     def __init__(self, data):
-        self.fits_name = fits_name
         self.data = data
         self.sigma = self.get_sigma()
         paras, cov = hist_gaussian_fitting('default', data)
@@ -165,32 +167,77 @@ class aperphot(parameter):
         return star_table
 
 # This is a class for save star table and star region file by psf photometry.
-class psfphot(parameter):
+class psfphot(aperphot):
     data = None
+    psfed_data = None
     psf_model = None
     dao_table = None
     star_table = None
     VERBOSE = 0
-    def __init__(self, data):
+    def __init__(self, paras, data):
         self.data = data
-        self.psf_model = make_model(data)
-        self.star_table = self.fit(data)
+        self.paras = paras
+        # find peak by dao finder
+        daofind = DAOStarFinder(threshold = 3.0*paras.std, fwhm=paras.sigma*gaussian_sigma_to_fwhm, roundhi=5.0, roundlo=-5.0, sharplo=0.0, sharphi=2.0, sky = paras.bkg)
+        dao_table = daofind.find_stars(paras.data)
+        self.dao_table = dao_table
+        # find stars by dao table
+        self.star_table = self.fit()
+        # select top 10 bright stars from star table
+        self.selected_star_table = self.table_selector(self.star_table, "amplitude")
+        # setup psf model
+        self.psf_model = self.make_model(data, self.selected_star_table)
+        self.psfed_data = self.deconvolution(self.psf_model, self.data)
+        self.psfed_data = np.absolute(self.psfed_data)
         return
-    def make_model(self):
-        # collect normalized bright star
-        # if the position is not in the center of pixel, do convolution.
-        # take median of all 
-        # to 2-D gaussian fitting on psf_model
+    def table_selector(self, star_table, keyword):
+        # sort by amplitude
+        bright_sorted_star_table = star_table.sort(keyword)
+        # select bright star from a star table
+        selected_star_table = star_table[-10:]
+        print selected_star_table
+        return selected_star_table
+    def make_model(self, data, selected_star_table):
+        if VERBOSE>0: print "------   building psf model   ------"
         psf_model = None
+        star_region_list = np.array([None for i in range(len(selected_star_table))])
+        print star_region_list
+        # collect normalized bright star
+        for i in xrange(len(selected_star_table)):
+            # collect an area
+            xc = int(selected_star_table[i]['xcenter'])
+            yc = int(selected_star_table[i]['ycenter'])
+            print "coor = {0}, {1}".format(xc, yc)
+            hw = int(5*self.paras.std)
+            star_region = data[xc-hw:xc+hw, yc-hw:yc+hw]
+            star_region = star_region - selected_star_table[i]['bkg']
+            # get basic property
+            mean = np.mean(star_region)
+            # redirect the position of star
+            # normalized
+            normalized_star_region = np.divide(star_region, mean)
+            star_region_list[i] = normalized_star_region
+        # stack all of models
+        psf_model = np.mean(star_region_list, axis = 0)
+        # normalized
+        psf_model = np.divide(psf_model, np.sum(psf_model))
+        pyfits.writeto("psf_model", psf_model)
         return psf_model
-    def fit(self, data):
-        # deconvolution the data by inpulse response.
-        # then return source image and star table
-        star_table = None
-        return star_table
-    def convolution(self, psf_model, rect_func):
-        # do convolution of psf_model and rect_func
-        return con_psf_model
+    def convolution(self, inpulse_response, input_signal):
+        # do convolution of inpulse_response and input_signal
+        F_inpulse_response = np.fft.fft2(inpulse_response, s=[len(input_signal), len(input_signal)])
+        F_input_signal = np.fft.fft2(input_signal)
+        F_output_signal = np.multiply(F_inpulse_response * F_input_signal)
+        output_signal = np.fft.ifft2(F_output_signal)
+        return output_signal
+    def deconvolution(self, inpulse_response, output_signal):
+        # do deconvolution of output signal by inpulse_response
+        F_inpulse_response = np.fft.fft2(inpulse_response, s=[len(output_signal), len(output_signal)])
+        output_signal[np.isnan(output_signal)] = self.paras.bkg
+        F_output_signal = np.fft.fft2(output_signal)
+        F_input_signal = np.divide(F_output_signal, F_inpulse_response)
+        input_signal = np.fft.ifft2(F_input_signal)
+        return input_signal
 
 # This class is for control processing photometry
 # There are two options, psfphot and aperphot.
@@ -202,6 +249,7 @@ class psfphot(parameter):
 # This part haven't been done.
 class phot_control:
     data = None
+    psfed_data = None
     dao_table = None
     star_table = None
     mag_table = None
@@ -223,9 +271,13 @@ class phot_control:
         # test aperphot is better or psfphot?
         self.paras = parameter(self.data)
         self.paras.observator_property(fits_name)
+
         #self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
-        
-        self.star_table, self.dao_table = self.psfphot()
+        self.psfed_data = self.psfphot(self.paras, self.data)
+        self.header = pyfits.getheader(fits_name)
+        result_name = "{0}_p.fits".format(self.fits_name[0:-5])
+        pyfits.writeto(result_name, self.psfed_data, self.header)
+        '''
         # get info of del mag
         path_of_result = get_path("path_of_result")
         path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise/delta_mag.fits")
@@ -234,6 +286,7 @@ class phot_control:
         self.match_del_mag_table = self.observertory_property(del_mag_table, self.paras)
         wcs_ctrl = wcs_controller(self.star_table, self.match_del_mag_table, fits_name)
         self.mag_table = wcs_ctrl.mag_table
+        '''
         return
     # get del mag
     def observertory_property(self, del_mag_table, paras):
@@ -276,9 +329,12 @@ class phot_control:
                 puzz_data[i][j] = data[self.x_cut[i]:self.x_cut[i+1], self.y_cut[j]:self.y_cut[j+1]]
         return puzz_data
     # do psf fitting, powered by psfphot.
-    def psfphot(self, data):
+    def psfphot(self, paras, data):
         if VERBOSE>0: print "---      psfphot star      ---"
+        psffitting = psfphot(paras, data)
         star_table = None
+        dao_table = None
+        '''
         puzz_data = self.puzzing(data)
         for i in xrange(puzz_data):
             for j in xrange(puzz_data[i]):
@@ -288,7 +344,9 @@ class phot_control:
                     star_table = temp_star_table
                 else:
                     star_table = astropy.table.join(star_table, temp_star_table)
-        return star_table
+        '''
+        psfed_data = psffitting.psfed_data
+        return psfed_data
     def aperphot(self, paras, data):
         if VERBOSE>0: print "---      aperphot star      ---"
         aperfitting = aperphot(paras, data)
@@ -448,7 +506,7 @@ if __name__ == "__main__":
     # get property from argv
     fits_name=argv[-1]
     phot = phot_control(fits_name)
-    phot.save()
+    #phot.save()
     # measuring time
     elapsed_time = time.time() - start_time
     print "Exiting Main Program, spending ", elapsed_time, "seconds."
