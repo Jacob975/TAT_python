@@ -32,11 +32,14 @@ update log
 
 20171014 version alpha 6
     1. outline of psf phot done. 
+
+20171015 version alpha 7
+    1. add psf theo model.
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
 from astropy.stats import gaussian_sigma_to_fwhm
-from curvefit import hist_gaussian_fitting, get_peak_filter, get_star, get_star_unit, get_star_title, get_rid_of_exotic_vector, unit_converter
+from curvefit import hist_gaussian_fitting, get_peak_filter, get_star, get_star_unit, get_star_title, get_rid_of_exotic_vector, unit_converter, FitGaussian_curve_fit, FitGauss2D_curve_fit
 from astropy.table import Table, Column
 from tat_datactrl import readfile, get_path
 import numpy as np
@@ -170,7 +173,10 @@ class aperphot(parameter):
 class psfphot(aperphot):
     data = None
     psfed_data = None
+    psfed_r_data = None
+    psfed_i_data = None
     psf_model = None
+    psf_theo_model = None
     dao_table = None
     star_table = None
     VERBOSE = 0
@@ -187,8 +193,15 @@ class psfphot(aperphot):
         self.selected_star_table = self.table_selector(self.star_table, "amplitude")
         # setup psf model
         self.psf_model = self.make_model(data, self.selected_star_table)
-        self.psfed_data = self.deconvolution(self.psf_model, self.data)
+        self.psf_theo_model = self.make_theo_model(self.psf_model)
+        self.psfed_data = self.deconvolution(self.psf_theo_model, self.data)
         self.psfed_data = np.absolute(self.psfed_data)
+        '''
+        self.psfed_r_data = np.real(self.psfed_data)
+        pyfits.writeto("realpart.fits", self.psfed_r_data, clobber = True)
+        self.psfed_i_data = np.imag(self.psfed_data)
+        pyfits.writeto("imagpart.fits", self.psfed_i_data, clobber = True)
+        '''
         return
     def table_selector(self, star_table, keyword):
         # sort by amplitude
@@ -201,7 +214,6 @@ class psfphot(aperphot):
         if VERBOSE>0: print "------   building psf model   ------"
         psf_model = None
         star_region_list = np.array([None for i in range(len(selected_star_table))])
-        print star_region_list
         # collect normalized bright star
         for i in xrange(len(selected_star_table)):
             # collect an area
@@ -212,17 +224,29 @@ class psfphot(aperphot):
             star_region = data[xc-hw:xc+hw, yc-hw:yc+hw]
             star_region = star_region - selected_star_table[i]['bkg']
             # get basic property
-            mean = np.mean(star_region)
+            psum = np.sum(star_region)
             # redirect the position of star
             # normalized
-            normalized_star_region = np.divide(star_region, mean)
+            normalized_star_region = np.divide(star_region, psum)
             star_region_list[i] = normalized_star_region
         # stack all of models
         psf_model = np.mean(star_region_list, axis = 0)
         # normalized
         psf_model = np.divide(psf_model, np.sum(psf_model))
-        pyfits.writeto("psf_model", psf_model)
+        pyfits.writeto("psf_model", psf_model, clobber = True)
         return psf_model
+    def make_theo_model(self, psf_model):
+        # do 2D guassian fitting on psf_model
+        params, cov, success = FitGauss2D_curve_fit(psf_model)
+        # reform theory model
+        # regenerate model by parameters.
+        psf_theo_model = np.fromfunction(lambda i, j:FitGaussian_curve_fit((i, j), params[0], params[1], params[2], params[3], params[4], params[5], params[6])
+                , psf_model.shape, dtype = float)
+        psf_theo_model = psf_theo_model.reshape(psf_model.shape)
+        print len(psf_theo_model)
+        # save psf theo model
+        pyfits.writeto("psf_theo_model", psf_theo_model, clobber = True)
+        return psf_theo_model
     def convolution(self, inpulse_response, input_signal):
         # do convolution of inpulse_response and input_signal
         F_inpulse_response = np.fft.fft2(inpulse_response, s=[len(input_signal), len(input_signal)])
@@ -276,7 +300,7 @@ class phot_control:
         self.psfed_data = self.psfphot(self.paras, self.data)
         self.header = pyfits.getheader(fits_name)
         result_name = "{0}_p.fits".format(self.fits_name[0:-5])
-        pyfits.writeto(result_name, self.psfed_data, self.header)
+        pyfits.writeto(result_name, self.psfed_data, self.header, clobber = True)
         '''
         # get info of del mag
         path_of_result = get_path("path_of_result")
@@ -421,14 +445,6 @@ class wcs_controller(unit_converter):
         e_ycenter = np.array(star_table["e_xcenter"], dtype = float)
         # arrange data
         coors = np.dstack((xcenter, ycenter))
-        '''
-        print coors
-        print type(coors)
-        print coors[0]
-        print type(coors[0])
-        print coors[0][0]
-        print type(coors[0][0])
-        '''
         eRA_coors = np.dstack((xcenter + e_xcenter, ycenter)) 
         eDEC_coors = np.dstack((xcenter, ycenter + e_ycenter))
         # convert pixel into wcs
