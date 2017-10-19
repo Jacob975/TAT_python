@@ -52,7 +52,7 @@ PN={'RA':'21:29:58.42','DEC':'51:03:59.8','name':'PN'}
 Cygni61={'RA':'21:06:53.9','DEC':'38:44:57.9','name':'61Cygni'}
 NGC6888={'RA':'20:12:7', 'DEC':'38:21:18', 'name':'NGC6888'}
 
-object_list=[IC5146, NGC1333, WD1253, SgrNova, HH32, KIC8462852, KELT_17,Groombridge1830, PN, Cygni61]
+object_list=[IC5146, NGC1333, WD1253, SgrNova, HH32, KIC8462852, KELT_17,Groombridge1830, PN, Cygni61, NGC6888]
 band_list = ["A", "B", "C", "N", "R", "V" ]
 object_count=[[[ 0 for z in range(2) ] for x in xrange(len(band_list))] for y in range(len(object_list))]
 
