@@ -50,6 +50,7 @@ Groombridge1830={'RA':'11:52:58.8','DEC':'37:43:07.2','name':'Groombridge1830'}
 KIC8462852={'RA':'20:06:15', 'DEC':'44:27:24', 'name': 'KIC8462852'}
 PN={'RA':'21:29:58.42','DEC':'51:03:59.8','name':'PN'}
 Cygni61={'RA':'21:06:53.9','DEC':'38:44:57.9','name':'61Cygni'}
+NGC6888={'RA':'20:12:7', 'DEC':'38:21:18', 'name':'NGC6888'}
 
 object_list=[IC5146, NGC1333, WD1253, SgrNova, HH32, KIC8462852, KELT_17,Groombridge1830, PN, Cygni61]
 band_list = ["A", "B", "C", "N", "R", "V" ]
