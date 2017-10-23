@@ -35,6 +35,13 @@ update log
 
 20171015 version alpha 7
     1. add psf theo model.
+
+20171019 version alpha 8 
+    1. Deconvolve and convolve in scipy.signal only support 1D array, not 2D and more.
+
+20171023 version alpha 9
+    1. wiener deconvolve have been done
+    2. The model is bad so I got a blur processed image.
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
@@ -47,6 +54,7 @@ import pyfits
 import pywcs
 import time
 import warnings
+import scipy
 
 # This is used to control argus.
 class argv_controller:
@@ -194,7 +202,7 @@ class psfphot(aperphot):
         # setup psf model
         self.psf_model = self.make_model(data, self.selected_star_table)
         self.psf_theo_model = self.make_theo_model(self.psf_model)
-        self.psfed_data = self.deconvolution(self.psf_theo_model, self.data)
+        self.psfed_data = self.wiener_deconvolution(self.psf_model, self.data)
         self.psfed_data = np.absolute(self.psfed_data)
         '''
         self.psfed_r_data = np.real(self.psfed_data)
@@ -207,7 +215,7 @@ class psfphot(aperphot):
         # sort by amplitude
         bright_sorted_star_table = star_table.sort(keyword)
         # select bright star from a star table
-        selected_star_table = star_table[-10:]
+        selected_star_table = star_table[-20:-10]
         print selected_star_table
         return selected_star_table
     def make_model(self, data, selected_star_table):
@@ -233,8 +241,28 @@ class psfphot(aperphot):
         psf_model = np.mean(star_region_list, axis = 0)
         # normalized
         psf_model = np.divide(psf_model, np.sum(psf_model))
-        pyfits.writeto("psf_model", psf_model, clobber = True)
-        return psf_model
+        # expand to 1024 * 1024
+        plate = self.add_skirt(psf_model, len(self.data))
+        pyfits.writeto("psf_plate", plate, clobber = True)
+        return plate
+    # This is a def to used to add skirt on 2d array
+    def add_skirt(self, data, width):
+        answer = np.array([[0.0 for i in range(width)] for j in range(width)])
+        for i in xrange(width):
+            for j in xrange(width):
+                # whether the position have value and data? 
+                x_within = i+len(data)/2 >= width or i < len(data)/2
+                y_within = j+len(data)/2 >= width or j < len(data)/2
+                # whether the position is within the width?
+                x_valid = i >= 0 and i < width
+                y_valid = j >= 0 and j < width
+                if x_within and y_within :
+                    answer[i, j] =  data[(i+len(data)/2)%width, (j+len(data)/2)%width] 
+                    continue
+                elif x_valid and y_valid :
+                    answer[i,j] = 0.0
+                    continue
+        return answer
     def make_theo_model(self, psf_model):
         # do 2D guassian fitting on psf_model
         params, cov, success = FitGauss2D_curve_fit(psf_model)
@@ -243,23 +271,46 @@ class psfphot(aperphot):
         psf_theo_model = np.fromfunction(lambda i, j:FitGaussian_curve_fit((i, j), params[0], params[1], params[2], params[3], params[4], params[5], params[6])
                 , psf_model.shape, dtype = float)
         psf_theo_model = psf_theo_model.reshape(psf_model.shape)
-        print len(psf_theo_model)
         # save psf theo model
         pyfits.writeto("psf_theo_model", psf_theo_model, clobber = True)
         return psf_theo_model
     def convolution(self, inpulse_response, input_signal):
         # do convolution of inpulse_response and input_signal
-        F_inpulse_response = np.fft.fft2(inpulse_response, s=[len(input_signal), len(input_signal)])
+        F_inpulse_response = np.fft.fft2(inpulse_response)
         F_input_signal = np.fft.fft2(input_signal)
         F_output_signal = np.multiply(F_inpulse_response * F_input_signal)
         output_signal = np.fft.ifft2(F_output_signal)
         return output_signal
     def deconvolution(self, inpulse_response, output_signal):
         # do deconvolution of output signal by inpulse_response
-        F_inpulse_response = np.fft.fft2(inpulse_response, s=[len(output_signal), len(output_signal)])
+        #F_inpulse_response = np.fft.fft2(inpulse_response, s=[len(output_signal), len(output_signal)])
+        F_inpulse_response = np.fft.fft2(inpulse_response) 
+        #inpulse_response2 = np.absolute(np.fft.ifft2(F_inpulse_response))
+        #F_n_inpulse_response = np.absolute(F_inpulse_response)
+        #pyfits.writeto("psf_f_model", F_n_inpulse_response, clobber = True)
+        #pyfits.writeto("psf_model2", inpulse_response2, clobber = True)
         output_signal[np.isnan(output_signal)] = self.paras.bkg
         F_output_signal = np.fft.fft2(output_signal)
         F_input_signal = np.divide(F_output_signal, F_inpulse_response)
+        input_signal = np.fft.ifft2(F_input_signal)
+        return input_signal
+
+    def wiener_deconvolution(self, inpulse_response, output_signal):
+        output_signal[np.isnan(output_signal)] = self.paras.bkg
+        # Wiener deconvolution is an application of the Wiener filter to the noise problems inherent in deconvolution.
+        # find SNR ratio
+        snr = scipy.stats.signaltonoise(output_signal, axis = None)
+        F_snr = scipy.stats.signaltonoise(output_signal, axis = None)
+        # find inpulse response in freq domain
+        F_inpulse_response = np.fft.fft2(inpulse_response)
+        square_F_inpulse_response = np.multiply(F_inpulse_response, np.conj(F_inpulse_response))
+        F_output_signal = np.fft.fft2(output_signal)
+        # find G
+        # assume G, where X^{hat} = G * Y
+        G_inpulse_response = np.multiply(np.divide(1, F_inpulse_response), 
+                np.divide(square_F_inpulse_response, square_F_inpulse_response + np.divide(1, F_snr)))
+        F_input_signal = np.multiply(G_inpulse_response, F_output_signal)
+        #F_input_signal = np.divide(G_inpulse_response, F_output_signal)
         input_signal = np.fft.ifft2(F_input_signal)
         return input_signal
 
@@ -295,8 +346,9 @@ class phot_control:
         # test aperphot is better or psfphot?
         self.paras = parameter(self.data)
         self.paras.observator_property(fits_name)
-
-        #self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
+        '''
+        self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
+        '''
         self.psfed_data = self.psfphot(self.paras, self.data)
         self.header = pyfits.getheader(fits_name)
         result_name = "{0}_p.fits".format(self.fits_name[0:-5])
