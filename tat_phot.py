@@ -108,9 +108,18 @@ class parameter:
         return sigma
     # find coordinate and flux of a star by aperture photometry.
     def proper_sigma(self, star_list, pos_xsigma, pos_ysigma):
+        # take out all inproper value
+        # for example inf and nan
+        nosigular_star_list = []
+        for column in star_list:
+            if np.inf in column:
+                continue
+            elif np.nan in column:
+                continue
+            nosigular_star_list.append(column)
         # in x direction
-        x_sigma = [column[pos_xsigma] for column in star_list]
-        proper_x_sigma, proper_star_list = get_rid_of_exotic_vector(x_sigma, star_list, 3)
+        x_sigma = [column[pos_xsigma] for column in nosigular_star_list]
+        proper_x_sigma, proper_star_list = get_rid_of_exotic_vector(x_sigma, nosigular_star_list, 3)
         # in y direction
         y_sigma = [column[pos_ysigma] for column in proper_star_list]
         proper_y_sigma, proper_star_list = get_rid_of_exotic_vector(y_sigma, proper_star_list, 3)
@@ -163,7 +172,7 @@ class aperphot(parameter):
         hwl = 3
         ecc = 1
         star_list = get_star(data, peak_list, half_width_lmt = hwl, eccentricity = ecc, detailed = True, VERBOSE = 1)
-        # exclude some star will weird sigma
+        # exclude some star will weird sigma 
         proper_star_list = self.proper_sigma(star_list, 6, 8)
         if VERBOSE>1:
             print "number of star = {0}".format(len(star_list))
@@ -201,21 +210,25 @@ class psfphot(aperphot):
         self.selected_star_table = self.table_selector(self.star_table, "amplitude")
         # setup psf model
         self.psf_model = self.make_model(data, self.selected_star_table)
-        self.psf_theo_model = self.make_theo_model(self.psf_model)
         self.psfed_data = self.wiener_deconvolution(self.psf_model, self.data)
-        self.psfed_data = np.absolute(self.psfed_data)
         '''
         self.psfed_r_data = np.real(self.psfed_data)
         pyfits.writeto("realpart.fits", self.psfed_r_data, clobber = True)
         self.psfed_i_data = np.imag(self.psfed_data)
         pyfits.writeto("imagpart.fits", self.psfed_i_data, clobber = True)
         '''
+        self.psfed_data = np.real(self.psfed_data)
+        self.psfed_data = np.roll(self.psfed_data, len(self.psf_model)/2, axis = 0)
+        self.psfed_data = np.roll(self.psfed_data, len(self.psf_model)/2, axis = 1)
+        params, cov = hist_gaussian_fitting('default', self.psfed_data)
+        psfed_bkg = params[0]
+        self.psfed_data = np.multiply(self.psfed_data, np.divide(self.paras.bkg, psfed_bkg))
         return
     def table_selector(self, star_table, keyword):
         # sort by amplitude
         bright_sorted_star_table = star_table.sort(keyword)
         # select bright star from a star table
-        selected_star_table = star_table[-20:-10]
+        selected_star_table = star_table[-30:-10]
         print selected_star_table
         return selected_star_table
     def make_model(self, data, selected_star_table):
@@ -241,28 +254,12 @@ class psfphot(aperphot):
         psf_model = np.mean(star_region_list, axis = 0)
         # normalized
         psf_model = np.divide(psf_model, np.sum(psf_model))
-        # expand to 1024 * 1024
-        plate = self.add_skirt(psf_model, len(self.data))
-        pyfits.writeto("psf_plate", plate, clobber = True)
-        return plate
-    # This is a def to used to add skirt on 2d array
-    def add_skirt(self, data, width):
-        answer = np.array([[0.0 for i in range(width)] for j in range(width)])
-        for i in xrange(width):
-            for j in xrange(width):
-                # whether the position have value and data? 
-                x_within = i+len(data)/2 >= width or i < len(data)/2
-                y_within = j+len(data)/2 >= width or j < len(data)/2
-                # whether the position is within the width?
-                x_valid = i >= 0 and i < width
-                y_valid = j >= 0 and j < width
-                if x_within and y_within :
-                    answer[i, j] =  data[(i+len(data)/2)%width, (j+len(data)/2)%width] 
-                    continue
-                elif x_valid and y_valid :
-                    answer[i,j] = 0.0
-                    continue
-        return answer
+        '''
+        psf_model = np.roll(psf_model, len(psf_model)/2, axis = 0)
+        psf_model = np.roll(psf_model, len(psf_model)/2, axis = 1)
+        '''
+        pyfits.writeto("psf_model.fits", psf_model, clobber = True)
+        return psf_model
     def make_theo_model(self, psf_model):
         # do 2D guassian fitting on psf_model
         params, cov, success = FitGauss2D_curve_fit(psf_model)
@@ -302,7 +299,7 @@ class psfphot(aperphot):
         snr = scipy.stats.signaltonoise(output_signal, axis = None)
         F_snr = scipy.stats.signaltonoise(output_signal, axis = None)
         # find inpulse response in freq domain
-        F_inpulse_response = np.fft.fft2(inpulse_response)
+        F_inpulse_response = np.fft.fft2(inpulse_response, s = [len(output_signal), len(output_signal)])
         square_F_inpulse_response = np.multiply(F_inpulse_response, np.conj(F_inpulse_response))
         F_output_signal = np.fft.fft2(output_signal)
         # find G
@@ -349,10 +346,15 @@ class phot_control:
         '''
         self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
         '''
-        self.psfed_data = self.psfphot(self.paras, self.data)
         self.header = pyfits.getheader(fits_name)
-        result_name = "{0}_p.fits".format(self.fits_name[0:-5])
-        pyfits.writeto(result_name, self.psfed_data, self.header, clobber = True)
+        # do wiener deconvolution recursively
+        for i in xrange(10):
+            if i == 0:
+                self.psfed_data = self.psfphot(self.paras, self.data)
+            else:
+                self.psfed_data = self.psfphot(self.paras, self.psfed_data)
+            result_name = "{0}_psf{1}.fits".format(self.fits_name[0:-5], i+1)
+            pyfits.writeto(result_name, self.psfed_data, self.header, clobber = True)
         '''
         # get info of del mag
         path_of_result = get_path("path_of_result")
@@ -567,14 +569,16 @@ class wcs_controller(unit_converter):
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
-    VERBOSE = 1
+    VERBOSE = 2
     warnings.filterwarnings("ignore")
     # measure times
     start_time = time.time()
     # get property from argv
     fits_name=argv[-1]
     phot = phot_control(fits_name)
-    #phot.save()
+    '''
+    phot.save()
+    '''
     # measuring time
     elapsed_time = time.time() - start_time
     print "Exiting Main Program, spending ", elapsed_time, "seconds."
