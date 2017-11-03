@@ -42,6 +42,11 @@ update log
 20171023 version alpha 9
     1. wiener deconvolve have been done
     2. The model is bad so I got a blur processed image.
+
+20171103 version alpha 10
+    1. test mode of deconvolution is on
+    2. RL algorithm is done.
+    3. Now we face a problem of ripple on restored image.
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
@@ -49,11 +54,13 @@ from astropy.stats import gaussian_sigma_to_fwhm
 from curvefit import hist_gaussian_fitting, get_peak_filter, get_star, get_star_unit, get_star_title, get_rid_of_exotic_vector, unit_converter, FitGaussian_curve_fit, FitGauss2D_curve_fit
 from astropy.table import Table, Column
 from tat_datactrl import readfile, get_path
+from skimage import restoration 
 import numpy as np
 import pyfits
 import pywcs
 import time
 import warnings
+from scipy.signal import convolve2d
 import scipy
 
 # This is used to control argus.
@@ -197,7 +204,7 @@ class psfphot(aperphot):
     dao_table = None
     star_table = None
     VERBOSE = 0
-    def __init__(self, paras, data):
+    def __init__(self, paras, data, it = 30):
         self.data = data
         self.paras = paras
         # find peak by dao finder
@@ -210,7 +217,25 @@ class psfphot(aperphot):
         self.selected_star_table = self.table_selector(self.star_table, "amplitude")
         # setup psf model
         self.psf_model = self.make_model(data, self.selected_star_table)
-        self.psfed_data = self.wiener_deconvolution(self.psf_model, self.data)
+        self.psf_theo_model = self.make_theo_model(self.psf_model)
+        # for test richardson_lucy deconvolution
+        
+        psf = np.ones((5, 5)) / 25
+        camera = convolve2d(self.data, psf, 'same')
+        pyfits.writeto("blurred_image.fits", camera, clobber = True)
+        self.psfed_data = self.RL_deconvolution(psf, self.data, it)
+        self.psfed_data = np.real(self.psfed_data)
+        pyfits.writeto("restored_image.fits", self.psfed_data, clobber = True)
+        
+        # for skimage wiener deconvolution
+        '''
+        self.psfed_data = self.skimage_wiener_deconvolution(self.psf_model, self.data, self.psf_theo_model)
+        '''
+        # for wiener deconvolution
+        '''
+        self.psfed_data = self.wiener_deconvolution(self.psf_theo_model, self.data)
+        '''
+        # for save real part and image part for test.
         '''
         self.psfed_r_data = np.real(self.psfed_data)
         pyfits.writeto("realpart.fits", self.psfed_r_data, clobber = True)
@@ -218,8 +243,7 @@ class psfphot(aperphot):
         pyfits.writeto("imagpart.fits", self.psfed_i_data, clobber = True)
         '''
         self.psfed_data = np.real(self.psfed_data)
-        self.psfed_data = np.roll(self.psfed_data, len(self.psf_model)/2, axis = 0)
-        self.psfed_data = np.roll(self.psfed_data, len(self.psf_model)/2, axis = 1)
+        # set the bkg the same as origin data.
         params, cov = hist_gaussian_fitting('default', self.psfed_data)
         psfed_bkg = params[0]
         self.psfed_data = np.multiply(self.psfed_data, np.divide(self.paras.bkg, psfed_bkg))
@@ -228,19 +252,20 @@ class psfphot(aperphot):
         # sort by amplitude
         bright_sorted_star_table = star_table.sort(keyword)
         # select bright star from a star table
-        selected_star_table = star_table[-30:-10]
+        selected_star_table = star_table[-50:-20]
         print selected_star_table
         return selected_star_table
     def make_model(self, data, selected_star_table):
         if VERBOSE>0: print "------   building psf model   ------"
         psf_model = None
         star_region_list = np.array([None for i in range(len(selected_star_table))])
+        weight_list = np.array([None for i in range(len(selected_star_table))])
         # collect normalized bright star
         for i in xrange(len(selected_star_table)):
             # collect an area
             xc = int(selected_star_table[i]['xcenter'])
             yc = int(selected_star_table[i]['ycenter'])
-            print "coor = {0}, {1}".format(xc, yc)
+            if VERBOSE>2:print "coor = {0}, {1}".format(xc, yc)
             hw = int(5*self.paras.std)
             star_region = data[xc-hw:xc+hw, yc-hw:yc+hw]
             star_region = star_region - selected_star_table[i]['bkg']
@@ -249,9 +274,13 @@ class psfphot(aperphot):
             # redirect the position of star
             # normalized
             normalized_star_region = np.divide(star_region, psum)
+            '''
+            pyfits.writeto("star_{0}.fits".format(i+1), normalized_star_region, clobber = True)
+            '''
+            weight_list[i] = np.sqrt(psum)
             star_region_list[i] = normalized_star_region
         # stack all of models
-        psf_model = np.mean(star_region_list, axis = 0)
+        psf_model = np.average(star_region_list, weights = weight_list, axis = 0)
         # normalized
         psf_model = np.divide(psf_model, np.sum(psf_model))
         '''
@@ -268,47 +297,47 @@ class psfphot(aperphot):
         psf_theo_model = np.fromfunction(lambda i, j:FitGaussian_curve_fit((i, j), params[0], params[1], params[2], params[3], params[4], params[5], params[6])
                 , psf_model.shape, dtype = float)
         psf_theo_model = psf_theo_model.reshape(psf_model.shape)
+        # normalized to summantion  = 1
+        psf_theo_model = np.divide(psf_theo_model, np.sum(psf_theo_model))
         # save psf theo model
-        pyfits.writeto("psf_theo_model", psf_theo_model, clobber = True)
+        pyfits.writeto("psf_theo_model.fits", psf_theo_model, clobber = True)
         return psf_theo_model
-    def convolution(self, inpulse_response, input_signal):
-        # do convolution of inpulse_response and input_signal
-        F_inpulse_response = np.fft.fft2(inpulse_response)
-        F_input_signal = np.fft.fft2(input_signal)
-        F_output_signal = np.multiply(F_inpulse_response * F_input_signal)
-        output_signal = np.fft.ifft2(F_output_signal)
-        return output_signal
-    def deconvolution(self, inpulse_response, output_signal):
-        # do deconvolution of output signal by inpulse_response
-        #F_inpulse_response = np.fft.fft2(inpulse_response, s=[len(output_signal), len(output_signal)])
-        F_inpulse_response = np.fft.fft2(inpulse_response) 
-        #inpulse_response2 = np.absolute(np.fft.ifft2(F_inpulse_response))
-        #F_n_inpulse_response = np.absolute(F_inpulse_response)
-        #pyfits.writeto("psf_f_model", F_n_inpulse_response, clobber = True)
-        #pyfits.writeto("psf_model2", inpulse_response2, clobber = True)
-        output_signal[np.isnan(output_signal)] = self.paras.bkg
-        F_output_signal = np.fft.fft2(output_signal)
-        F_input_signal = np.divide(F_output_signal, F_inpulse_response)
-        input_signal = np.fft.ifft2(F_input_signal)
-        return input_signal
-
-    def wiener_deconvolution(self, inpulse_response, output_signal):
+    def wiener_deconvolution(self, impulse_response, output_signal):
+        if VERBOSE>0: print "------ wiener deconvolution ------"
         output_signal[np.isnan(output_signal)] = self.paras.bkg
         # Wiener deconvolution is an application of the Wiener filter to the noise problems inherent in deconvolution.
         # find SNR ratio
         snr = scipy.stats.signaltonoise(output_signal, axis = None)
         F_snr = scipy.stats.signaltonoise(output_signal, axis = None)
-        # find inpulse response in freq domain
-        F_inpulse_response = np.fft.fft2(inpulse_response, s = [len(output_signal), len(output_signal)])
-        square_F_inpulse_response = np.multiply(F_inpulse_response, np.conj(F_inpulse_response))
+        # find impulse response in freq domain
+        F_impulse_response = np.fft.fft2(impulse_response, s = [len(output_signal), len(output_signal)])
+        square_F_impulse_response = np.multiply(F_impulse_response, np.conj(F_impulse_response))
         F_output_signal = np.fft.fft2(output_signal)
         # find G
         # assume G, where X^{hat} = G * Y
-        G_inpulse_response = np.multiply(np.divide(1, F_inpulse_response), 
-                np.divide(square_F_inpulse_response, square_F_inpulse_response + np.divide(1, F_snr)))
-        F_input_signal = np.multiply(G_inpulse_response, F_output_signal)
-        #F_input_signal = np.divide(G_inpulse_response, F_output_signal)
+        G_impulse_response = np.multiply(np.divide(1, F_impulse_response), 
+                np.divide(square_F_impulse_response, square_F_impulse_response + np.divide(1, F_snr)))
+        F_input_signal = np.multiply(G_impulse_response, F_output_signal)
+        #F_input_signal = np.divide(G_impulse_response, F_output_signal)
         input_signal = np.fft.ifft2(F_input_signal)
+        # move back to right position
+        input_signal = np.roll(input_signal, len(impulse_response)/2, axis = 0)
+        input_signal = np.roll(input_signal, len(impulse_response)/2, axis = 1)
+        return input_signal
+
+    def RL_deconvolution(self, impulse_response, output_signal, it = 30):
+        # Richardson_Lucy is a wide-used algorithm to solve blur image.
+        # the goal is find latent image from a noisy and blurred image
+        output_signal[np.isnan(output_signal)] = self.paras.bkg
+        input_signal = output_signal
+        for i in range(it):
+            input_conv_impulse = convolve2d(input_signal, impulse_response, 'same')
+            normalized_output_signal = np.divide(output_signal, input_conv_impulse)
+            trans_impulse_response = impulse_response[::-1,::-1]
+            coef = convolve2d(normalized_output_signal, trans_impulse_response, 'same')
+            input_signal = np.multiply(coef, input_signal)
+            name = "RLA_{0}.fits".format(i)
+            pyfits.writeto(name, input_signal, clobber = True)
         return input_signal
 
 # This class is for control processing photometry
@@ -348,11 +377,19 @@ class phot_control:
         '''
         self.header = pyfits.getheader(fits_name)
         # do wiener deconvolution recursively
-        for i in xrange(10):
+        for i in xrange(1):
             if i == 0:
-                self.psfed_data = self.psfphot(self.paras, self.data)
+                self.psfed_data = self.psfphot(self.paras, self.data, it = 30)
             else:
+                pass
+                # for RL deconvolve
+                '''
+                self.psfed_data = self.psfphot(self.paras, self.data, it = i+1)
+                '''
+                # for wiener deconvolve
+                '''
                 self.psfed_data = self.psfphot(self.paras, self.psfed_data)
+                '''
             result_name = "{0}_psf{1}.fits".format(self.fits_name[0:-5], i+1)
             pyfits.writeto(result_name, self.psfed_data, self.header, clobber = True)
         '''
@@ -407,9 +444,9 @@ class phot_control:
                 puzz_data[i][j] = data[self.x_cut[i]:self.x_cut[i+1], self.y_cut[j]:self.y_cut[j+1]]
         return puzz_data
     # do psf fitting, powered by psfphot.
-    def psfphot(self, paras, data):
+    def psfphot(self, paras, data, it):
         if VERBOSE>0: print "---      psfphot star      ---"
-        psffitting = psfphot(paras, data)
+        psffitting = psfphot(paras, data, it)
         star_table = None
         dao_table = None
         '''
