@@ -19,6 +19,9 @@ editor Jacob975
 update log
 20170904 version alpha 1
     It runs properly
+
+20171103 version alpha 2
+	It is a demo for scott.
 '''
 from sys import argv
 import numpy as np
