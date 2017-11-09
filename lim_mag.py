@@ -72,6 +72,9 @@ update log
 20170906 version alpha 4 
     1.  On classified, input and output remind the same.
     2.  Now the programm will save the result of your quest
+
+20171109 version alpha 5
+    1. Hotfix: a bug of wrong keywords, band and band_local
 '''
 from sys import argv
 import numpy as np
@@ -152,7 +155,9 @@ class fits_table_reader:
         self.keywords = keywords
         self.exptime = exptime
         # wipeout the data having no business with keywords
+        if VERBOSE>1: print "start clean del_mag_table"
         clean_del_mag_table = self.wipeout(self.del_mag_table)
+        if VERBOSE>1: print "start clean del_mag_table"
         clean_inst_mag_table = self.wipeout(self.inst_mag_table)
         # match data in two table
         if VERBOSE>0:
@@ -175,40 +180,51 @@ class fits_table_reader:
             ref_table = temp_table_list[i-1]
             if self.keywords.values()[i] == "a":
                 temp_table_list[i] = ref_table
-            if self.keywords.keys()[i] == "band":
+            elif self.keywords.keys()[i] == "band":
                 for row in ref_table:
                     if row[self.keywords.keys()[i]][0] == self.keywords.values()[i]:
                         try:
                             temp_table_list[i].add_row(row)
                         except:
                             temp_table = ref_table.info(out = None)
-                            if VERBOSE>1:print temp_table['name']
+                            #if VERBOSE>1:print temp_table['name']
                             temp_table_list[i] = Table(rows = row, names = np.array(temp_table['name']))
             else:
                 for row in ref_table:
                     if row[self.keywords.keys()[i]] == self.keywords.values()[i]:
+                        # append to exist table.
                         try:
                             temp_table_list[i].add_row(row)
+                        # if no exist, create a new one.
                         except:
                             temp_table = ref_table.info(out = None)
-                            if VERBOSE>1:print temp_table['name']
+                            #if VERBOSE>1:print temp_table['name']
                             temp_table_list[i] = Table(rows = row, names = np.array(temp_table['name']))
+            if VERBOSE>2:print temp_table_list[i]
         return temp_table_list[len(self.keywords_name_list)-1]
     # Determine this two data are the same at these orders.
     def match_data(self, inst_row, del_row):
         for name in self.keywords_name_list:
+            if name == "band":
+                if inst_row[name] == del_row["band_local"]:
+                    continue
+                else:
+                    return False
             if inst_row[name] != del_row[name]:
                 return False
         return True
     # match data in two table
     def match(self, clean_del_mag_table, clean_inst_mag_table):
+        if VERBOSE>2:
+            print clean_del_mag_table 
+            print clean_inst_mag_table
         table_title = np.array(['amp', 'e_amp', 'const', 'e_const', 'delta_mag', 'e_delta_mag', 'date', 'scope', 'band', 'method', 'object', 'exptime'])
         # calculate limitation of magnitude
         result_table = None
         for inst_row in clean_inst_mag_table:
             for del_row in clean_del_mag_table:
                 if self.match_data(inst_row, del_row):
-                    sent = ""
+                    sent = "" 
                     for key in self.keywords_name_list:
                         sent = "{0}{1}: {2}, ".format(sent, key, inst_row[key])
                     if VERBOSE>0: print sent

@@ -59,9 +59,9 @@ class argv_controller:
 
 def arr2table(arr, start_point):
     # start_point mean where is the start of data
-    if VERBOSE>2: print arr[0]
-    print arr[start_point:]
-    ans = Table(rows = arr[start_point:], names = np.array(arr[0]))
+    if VERBOSE>2:print arr[start_point:]
+    temp = arr[start_point:]
+    ans = Table(rows = temp, names = np.array(arr[0]))
     if start_point == 2:
         for i in xrange(len(arr[0])):
             ans[arr[0][i]].unit = arr[1][i]
