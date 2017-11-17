@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2
+#!/usr/local/bin/python
 '''
 Program:
 This is a program to plot the shift of each image compare to the first one 
@@ -90,8 +90,8 @@ class shift_calculator():
         # set text
         axes = plt.gca()
         axes.text(-19, -17, "total observing time: {0}:{1}:{2}\nthe observation time of each color : {3}:{4}:{5}".format(self.term[0], self.term[1], self.term[2], self.section_term[0], self.section_term[1], self.section_term[2]))
-        axes.text(self.shift_array[0,0], self.shift_array[0,1]+2, "The init position = ({0:.2f}, {1:.2f})".format(self.shift_array[0,0], self.shift_array[0,1]))
-        axes.text(self.shift_array[-1,0], self.shift_array[-1,1]+2, "The final position = ({0:.2f}, {1:.2f})".format(self.shift_array[-1,0], self.shift_array[-1,1]))
+        axes.text(self.shift_array[0,1], self.shift_array[0,0]+2, "The init position = ({0:.2f}, {1:.2f})".format(self.shift_array[0,1], self.shift_array[0,0]))
+        axes.text(self.shift_array[-1,1], self.shift_array[-1,0]+2, "The final position = ({0:.2f}, {1:.2f})".format(self.shift_array[-1,1], self.shift_array[-1,0]))
         plt.xlabel("north positive (pixel)(DEC) ---->>>")
         plt.ylabel("west positive (pixel)(-RA) ----->>>")
         plt.title("Shift")
@@ -101,11 +101,11 @@ class shift_calculator():
             init = i*10
             end = (i+1)*10
             try:
-                x_plot = self.shift_array[init:end,0]
-                y_plot = self.shift_array[init:edn,1]
+                x_plot = self.shift_array[init:end,1]
+                y_plot = self.shift_array[init:edn,0]
             except:
-                x_plot = self.shift_array[init:,0]
-                y_plot = self.shift_array[init:,1]
+                x_plot = self.shift_array[init:,1]
+                y_plot = self.shift_array[init:,0]
             # set border of plot
             plt.plot(x_plot, y_plot, 'x')
         axes.set_xlim([-20, 20])
