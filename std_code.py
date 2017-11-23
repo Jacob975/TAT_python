@@ -23,6 +23,9 @@ update log
     20170719 version alpha 3
     1.  delete usless part, finding stdev.
     2.  add a func of reading .tsv file.
+
+    20171123 version alpha 4
+    1.  add a func to print a file
 '''
 from sys import argv
 from math import pow
@@ -60,7 +63,8 @@ if __name__ == "__main__":
     # get property from argv
     list_name=argv[-1]
     fits_list=readfile(list_name)
-
+    for name in fits_list:
+        print name
     # do what you want.
 
     # measuring time
