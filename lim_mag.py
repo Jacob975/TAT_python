@@ -91,7 +91,7 @@ class argv_controller:
     keywords_name_list = ["date", "scope", "band", "method", "object"]
     band_list = ["A", "B", "C", "V", "R", "N"]
     obj_list = ["NGC1333", "KELT-17", "Groombridge1830", "WD1253+261", "SgrNova", "HH32", "KIC8462852", "PN", "61Cygni", "IC5146"]
-    def __init__(self, argument):
+    def __init__(self, argument, VERBOSE=0):
         if len(argument) == 1:
             print "Usage: lim_mag.py [date] [scope] [band] [method] [object] [exptime]"
             return 
@@ -142,7 +142,7 @@ class fits_table_reader:
     keywords_name_list = ["date", "scope", "band", "method", "object"]
     keywords = None
     exptime = 0
-    def __init__(self, del_mag_table_name, inst_mag_table_name):
+    def __init__(self, del_mag_table_name, inst_mag_table_name, VERBOSE = 0):
         self.del_mag_table = Table.read(del_mag_table_name)
         self.inst_mag_table = Table.read(inst_mag_table_name)
         if VERBOSE>1:
@@ -151,13 +151,13 @@ class fits_table_reader:
         return
     # quest for match in keywords
     # keywords is a dict.
-    def quest(self, keywords, exptime):
+    def quest_interact(self, keywords, exptime):
         self.keywords = keywords
         self.exptime = exptime
         # wipeout the data having no business with keywords
         if VERBOSE>1: print "start clean del_mag_table"
         clean_del_mag_table = self.wipeout(self.del_mag_table)
-        if VERBOSE>1: print "start clean del_mag_table"
+        if VERBOSE>1: print "start clean inst_mag_table"
         clean_inst_mag_table = self.wipeout(self.inst_mag_table)
         # match data in two table
         if VERBOSE>0:
@@ -166,8 +166,15 @@ class fits_table_reader:
         # save the info you quest
         self.save(result_table)
         return
+    # A auest for del_m for code
+    def quest_del_mag(self, keywords, exptime, VERBOSE = 0):
+        self.keywords = keywords
+        self.exptime = exptime
+        # wipeout the data having no business with keywords
+        clean_del_mag_table = self.wipeout(self.del_mag_table, VERBOSE)
+        return clean_del_mag_table['delta_mag'][0]
     # wipeout the data having no business with keywords
-    def wipeout(self, table):
+    def wipeout(self, table, VERBOSE = 0):
         # create a empty list with length of property list
         temp_table_list = [ None for i in range(len(self.keywords_name_list)) ]
         # append original list to back
@@ -255,12 +262,12 @@ class fits_table_reader:
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
-    VERBOSE = 1
+    VERBOSE = 3
     # measure times
     start_time = time.time()
     warnings.filterwarnings("ignore")
     # get property from argv
-    properties = argv_controller(argv)
+    properties = argv_controller(argv, VERBOSE)
     # read delta_mag.fits and noise_in_mag.fits
     path_of_result = tat_datactrl.get_path("path_of_result")
     path_of_del_m = path_of_result + "/limitation_magnitude_and_noise/delta_mag.fits"
@@ -268,8 +275,8 @@ if __name__ == "__main__":
     if VERBOSE>1:
         print path_of_inst_m
         print path_of_del_m
-    magnitude = fits_table_reader(path_of_del_m, path_of_inst_m)
-    magnitude.quest(properties.keywords, properties.exptime)
+    magnitude = fits_table_reader(path_of_del_m, path_of_inst_m, VERBOSE)
+    magnitude.quest_interact(properties.keywords, properties.exptime, VERBOSE)
     # measuring time
     elapsed_time = time.time() - start_time
     print "Exiting Main Program, spending ", elapsed_time, "seconds."
