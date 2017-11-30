@@ -131,189 +131,193 @@ def get_img_property(VERBOSE = 0):
     filter_name = list_path[-1]
     return scope_name, date_name, obj_name, filter_name
 
-# measure times
-start_time = time.time()
-# get all names of fits
-list_name=argv[-1]
-fits_list=tat_datactrl.readfile(list_name)
-#----------------------------------------------------------------------
+#--------------------------------------------
 # main code
-# get the data of referance img.
-# include mean, std, the position of stars.
-scope_name, date_name, obj_name, filter_name = get_img_property()
-path_of_result = tat_datactrl.get_path("path_of_result")
-ref_name ="{2}/reference/{1}_{0}.fits".format(date_name[:-4], obj_name, path_of_result)
-if VERBOSE>1 :
-        print " "
-        print "--- ", ref_name, " ---"
-try:
-    ref_data = pyfits.getdata(ref_name+"pass")
-except:
-    ref_name = fits_list[0]
-    del fits_list[0]
-    if VERBOSE>1:
-        print "No reference, use the first image as reference."
-        print " "
-        print "--- ", ref_name, " ---"
-    ref_data = pyfits.getdata(ref_name)
-ref_paras, ref_cov = curvefit.hist_gaussian_fitting("default", ref_data)
-ref_data_mean = ref_paras[0]
-ref_data_std = ref_paras[1]
-if VERBOSE>1:
-    print "mean: ", ref_data_mean, "std: ", ref_data_std
-# test hwo many peak in this figure.
-# If too much, raise up the limitation of size
-sz = 29
-tl = 15
-ref_peak_list = []
-while len(ref_peak_list) >500 or len(ref_peak_list) < 3:
-    sz +=1
-    ref_peak_list = curvefit.get_peak_filter(ref_data, tall_limit = tl, size = sz)
-if VERBOSE>3:
-    print "peak list: "
-    for peak in ref_peak_list:
-        print peak[1], peak[0]
+if __name__ == "__main__":
+    VERBOSE = 0
 
-# test how many stars in this figure.
-# If too much, raise up the limitation of half_width with default = 4
-hwl = 3
-ecc = 1
-ref_star_list = []
-while len(ref_star_list) > 20 or len(ref_star_list) < 3:
-    hwl += 1
-    ref_star_list = curvefit.get_star(ref_data, ref_peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
-    if VERBOSE>1:print "hwl = {0}, len of ref_star_list = {1}".format(hwl, len(ref_star_list))
-if VERBOSE>3:
-    print "star list: "
-    for star in ref_star_list:
-        print star[2], star[1]
-ref_star_list = np.sort(ref_star_list, order = 'xsigma')
-ref_star_list = np.sort(ref_star_list, order = 'ysigma')
-if VERBOSE>1 : 
-    print "The number of star is ", len(ref_star_list)
-    for value in ref_star_list:
-        print "height = ", value[0], " position= (", value[1], value[2], ") size= (", value[3], value[4],")" 
-if VERBOSE>3:
-    # draw three plot, one with point, another without
-    '''
-    f = plt.figure('ref_'+ref_name)
-    plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
-    plt.colorbar()
-    f.show()
-    '''
-    g = plt.figure('ref_'+ref_name+'_peaks')
-    plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
-    plt.colorbar()
-    for pos in ref_peak_list:
-        plt.plot( pos[1], pos[0] , 'ro')
-    g.show()
-
-    h = plt.figure('ref_'+ref_name+'_stars')
-    plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
-    plt.colorbar()
-    for pos in ref_star_list:
-        plt.plot( pos[2], pos[1] , 'ro')
-    h.show()
-    #raw_input()
-
-# matching images
-for order in xrange(len(fits_list)):
+    # measure times
+    start_time = time.time()
+    # get all names of fits
+    list_name=argv[-1]
+    fits_list=tat_datactrl.readfile(list_name)
+    #----------------------------------------------------------------------
+    #main code
+    # get the data of referance img.
+    # include mean, std, the position of stars.
+    scope_name, date_name, obj_name, filter_name = get_img_property()
+    path_of_result = tat_datactrl.get_path("path_of_result")
+    ref_name ="{2}/reference/{1}_{0}.fits".format(date_name[:-4], obj_name, path_of_result)
     if VERBOSE>1 :
-        print " "
-        print "--- {0} ---".format(fits_list[order])
-    data = pyfits.getdata(fits_list[order])
-    paras, cov = curvefit.hist_gaussian_fitting("default", data)
-    data_mean = paras[0]
-    data_std = paras[1]
+            print " "
+            print "--- ", ref_name, " ---"
+    try:
+        ref_data = pyfits.getdata(ref_name+"pass")
+    except:
+        ref_name = fits_list[0]
+        del fits_list[0]
+        if VERBOSE>1:
+            print "No reference, use the first image as reference."
+            print " "
+            print "--- ", ref_name, " ---"
+        ref_data = pyfits.getdata(ref_name)
+    ref_paras, ref_cov = curvefit.hist_gaussian_fitting("default", ref_data)
+    ref_data_mean = ref_paras[0]
+    ref_data_std = ref_paras[1]
     if VERBOSE>1:
-        print "mean: ", data_mean, "std: ", data_std
-    # rest sz and hwl, because ref img is clear, easy to find stars, but belows is not.
-    peak_list = []
-    star_list = []
-    if order == 0:
-        sz = 29
-        tl = 15
-        while len(peak_list) >500 or len(peak_list) < 3:
-            sz +=1
-            peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz)
-        hwl = 3
-        while len(star_list) > 20 or len(star_list) < 3:
-            hwl += 1
-            star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
-            if VERBOSE>1:print "hwl = {0}, len of star_list = {1}".format(hwl, len(star_list))
-    else:
-        peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz) 
-        star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc )
-    # print to check
+        print "mean: ", ref_data_mean, "std: ", ref_data_std
+    # test hwo many peak in this figure.
+    # If too much, raise up the limitation of size
+    sz = 29
+    tl = 15
+    ref_peak_list = []
+    while len(ref_peak_list) >500 or len(ref_peak_list) < 3:
+        sz +=1
+        ref_peak_list = curvefit.get_peak_filter(ref_data, tall_limit = tl, size = sz)
     if VERBOSE>3:
         print "peak list: "
-        for peak in peak_list:
+        for peak in ref_peak_list:
             print peak[1], peak[0]
+
+    # test how many stars in this figure.
+    # If too much, raise up the limitation of half_width with default = 4
+    hwl = 3
+    ecc = 1
+    ref_star_list = []
+    while len(ref_star_list) > 20 or len(ref_star_list) < 3:
+        hwl += 1
+        ref_star_list = curvefit.get_star(ref_data, ref_peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
+        if VERBOSE>1:print "hwl = {0}, len of ref_star_list = {1}".format(hwl, len(ref_star_list))
     if VERBOSE>3:
         print "star list: "
-        for star in star_list:
+        for star in ref_star_list:
             print star[2], star[1]
-    star_list = np.sort(star_list, order = 'xsigma')
-    star_list = np.sort(star_list, order = 'ysigma')
+    ref_star_list = np.sort(ref_star_list, order = 'xsigma')
+    ref_star_list = np.sort(ref_star_list, order = 'ysigma')
+    if VERBOSE>1 : 
+        print "The number of star is ", len(ref_star_list)
+        for value in ref_star_list:
+            print "height = ", value[0], " position= (", value[1], value[2], ") size= (", value[3], value[4],")" 
     if VERBOSE>3:
         # draw three plot, one with point, another without
         '''
-        f = plt.figure(fits_list[order])
-        plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+        f = plt.figure('ref_'+ref_name)
+        plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
         plt.colorbar()
         f.show()
         '''
-        g = plt.figure(fits_list[order]+'_peaks')
-        plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+        g = plt.figure('ref_'+ref_name+'_peaks')
+        plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
         plt.colorbar()
-        for pos in peak_list:
+        for pos in ref_peak_list:
             plt.plot( pos[1], pos[0] , 'ro')
         g.show()
 
-        h = plt.figure(fits_list[order]+'_stars')
-        plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+        h = plt.figure('ref_'+ref_name+'_stars')
+        plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
         plt.colorbar()
-        for pos in star_list:
+        for pos in ref_star_list:
             plt.plot( pos[2], pos[1] , 'ro')
         h.show()
         #raw_input()
-    
-    if VERBOSE>1:
-        # print height and position of found stars.
-        print fits_list[order]
-        print "The number of star is ", len(star_list)
-        for value in star_list:
-            print "height = ", value[0], " position= (", value[1], value[2], ") size= (", value[3], value[4],")"
-    
-    if len(star_list) < 3:
-        print fits_list[order], "Number of stars is less than 3, match fail."
-        continue
-    # match function call    
-    match_star_list, delta_x_list, delta_y_list, succeed = get_match(ref_star_list, star_list )    
-    if not succeed:
-        continue 
-    # if std of delta is larger than 1, delete the exotic one value until std of delta less than 1.
-    delta_x_list = curvefit.get_rid_of_exotic_severe(delta_x_list)
-    mean_delta_x = np.mean(delta_x_list)
-    std_delta_x = np.std(delta_x_list)
-    # if std of delta is larger than 1, delete the exotic one value until std of delta less than 1.
-    delta_y_list = curvefit.get_rid_of_exotic_severe(delta_y_list)
-    mean_delta_y = np.mean(delta_y_list)
-    std_delta_y = np.std(delta_y_list)
-    if len(delta_x_list) < 3 or len(delta_y_list) < 3:
-        print fits_list[order], "Number of stars is less than 3, match fail."
-        continue
-    if VERBOSE>1 :
-        print "the result of match"
-        print "mean of delta_x: ", mean_delta_x ," stdev = ", std_delta_x
-        print "mean of delta_y: ", mean_delta_y ," stdev = ", std_delta_y
-    #create_matched_fits(fits_list[order], data, mean_delta_x, mean_delta_y)
-    if VERBOSE>0 : print fits_list[order], "match OK"
 
+    # matching images
+    for order in xrange(len(fits_list)):
+        if VERBOSE>1 :
+            print " "
+            print "--- {0} ---".format(fits_list[order])
+        data = pyfits.getdata(fits_list[order])
+        paras, cov = curvefit.hist_gaussian_fitting("default", data)
+        data_mean = paras[0]
+        data_std = paras[1]
+        if VERBOSE>1:
+            print "mean: ", data_mean, "std: ", data_std
+        # rest sz and hwl, because ref img is clear, easy to find stars, but belows is not.
+        peak_list = []
+        star_list = []
+        if order == 0:
+            sz = 29
+            tl = 15
+            while len(peak_list) >500 or len(peak_list) < 3:
+                sz +=1
+                peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz)
+            hwl = 3
+            while len(star_list) > 20 or len(star_list) < 3:
+                hwl += 1
+                star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
+                if VERBOSE>1:print "hwl = {0}, len of star_list = {1}".format(hwl, len(star_list))
+        else:
+            peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz) 
+            star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc )
+        # print to check the number of stars in local image compare to ref image.
+        if VERBOSE>3:
+            print "peak list: "
+            for peak in peak_list:
+                print peak[1], peak[0]
+        if VERBOSE>3:
+            print "star list: "
+            for star in star_list:
+                print star[2], star[1]
+        star_list = np.sort(star_list, order = 'xsigma')
+        star_list = np.sort(star_list, order = 'ysigma')
+        if VERBOSE>3:
+            # draw three plot, one with point, another without
+        
+            f = plt.figure(fits_list[order])
+            plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+            plt.colorbar()
+            f.show()
+        
+            g = plt.figure(fits_list[order]+'_peaks')
+            plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+            plt.colorbar()
+            for pos in peak_list:
+                plt.plot( pos[1], pos[0] , 'ro')
+            g.show()
+
+            h = plt.figure(fits_list[order]+'_stars')
+            plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+            plt.colorbar()
+            for pos in star_list:
+                plt.plot( pos[2], pos[1] , 'ro')
+            h.show()
+            #raw_input()
+    
+        if VERBOSE>1:
+            # print height and position of found stars.
+            print fits_list[order]
+            print "The number of star is ", len(star_list)
+            for value in star_list:
+                print "height = ", value[0], " position= (", value[1], value[2], ") size= (", value[3], value[4],")"
+    
+        if len(star_list) < 3:
+            print fits_list[order], "Number of stars is less than 3, match fail."
+            continue
+        # match function call    
+        match_star_list, delta_x_list, delta_y_list, succeed = get_match(ref_star_list, star_list )    
+        if not succeed:
+            continue 
+        # if std of delta is larger than 1, delete the exotic one value until std of delta less than 1.
+        delta_x_list = curvefit.get_rid_of_exotic_severe(delta_x_list)
+        mean_delta_x = np.mean(delta_x_list)
+        std_delta_x = np.std(delta_x_list)
+        # if std of delta is larger than 1, delete the exotic one value until std of delta less than 1.
+        delta_y_list = curvefit.get_rid_of_exotic_severe(delta_y_list)
+        mean_delta_y = np.mean(delta_y_list)
+        std_delta_y = np.std(delta_y_list)
+        if len(delta_x_list) < 3 or len(delta_y_list) < 3:
+            print fits_list[order], "Number of stars is less than 3, match fail."
+            continue
+        if VERBOSE>1 :
+            print "the result of match"
+            print "mean of delta_x: ", mean_delta_x ," stdev = ", std_delta_x
+            print "mean of delta_y: ", mean_delta_y ," stdev = ", std_delta_y
+        #create_matched_fits(fits_list[order], data, mean_delta_x, mean_delta_y)
+        if VERBOSE>0 : print fits_list[order], "match OK"
+
+        elapsed_time = time.time() - start_time
+        if VERBOSE>1 : print "Exiting Main Program, spending ", elapsed_time, "seconds."
+    
+    # measuring time
     elapsed_time = time.time() - start_time
-    if VERBOSE>1 : print "Exiting Main Program, spending ", elapsed_time, "seconds."
-
-# measuring time
-elapsed_time = time.time() - start_time
-if VERBOSE>0 : print "Exiting Main Program, spending ", elapsed_time, "seconds."
-
+    if VERBOSE>0 : print "Exiting Main Program, spending ", elapsed_time, "seconds."
