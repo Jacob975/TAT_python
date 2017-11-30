@@ -1,34 +1,43 @@
-# TAT configuration settings
-# letters behind hashtag will be ignored.
+#!/usr/bin/python
+'''
+Program:
+This is a table of environment variable of TAT python.
+Usage:
+
+    import TAT_env.py       // in your TAT python program
+
+editor Jacob975
+20171114
+#################################
+update log
+
+20171114 version alpha 1:
+    1. The first sight of table of environment table
+
+20171130 version alpha 2:
+    2. the path of source on zeus is moved from /brick to /mazu.
+'''
+
+# Comment of what kinds of variables are saved here.
 
 #--------------- Setting python path ----------------
 # python path is where you install python
 # tat python can run under both python and python2
 # please check the path by $which python python2
-# and then choose one of them and write down between "path_of_python" and "end"
-path_of_python
-/usr/bin/python
-end
+path_of_python = "/usr/bin/python"
 
 #--------------- Setting source path ----------------
 # source path means where will you put your row image.
 # recommand: /home/username
-# please write down the source path between "path_of_source" and "end"
-path_of_source
-/mazu/users/Jacob975
-end
+path_of_source = "/mazu/users/Jacob975"
+
 #--------------- Setting code path ------------------
 # code path means where do you install these code about tat.
 # recommand: /home/username/bin/tat_python
-# please write down the code path between "path_of_code" and "end"
-path_of_code
-/home/Jacob975/bin/tat_python
-end
+path_of_code = "/home/Jacob975/bin/tat_python"
+
 #--------------- Setting result path ----------------
 # result path means once you produce some data by tat_python.
 # result path will be where to save.
 # recommand: /home/tat_result
-# please write down the result path between "path_of_result" and "end"
-path_of_result
-/home/Jacob975/demo
-end
+path_of_result = "/home/Jacob975/demo"

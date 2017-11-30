@@ -15,11 +15,15 @@ update log
 
 20170830 version alpha 2
     1. combine the linux version and macOS version
+
+20171114 version alpha 3:
+    1. Using py to save environment constant instead of a dat file.
 '''
 import time
 import glob
 import os
 import fnmatch
+import TAT_env
 from sys import platform, exit
 
 def readfile(filename):
@@ -32,26 +36,6 @@ def readfile(filename):
         data.append(line[:-1])
     f.close
     return data
-
-def get_path(option, VERBOSE = 1):
-    setting_file = readfile("tat_config")
-    answer = []
-    start_index = setting_file.index(option)
-    #print setting_file
-    for i in xrange(len(setting_file)):
-        if i == 0:
-            continue
-        elif setting_file[start_index + i] == 'end':
-            break
-        answer.append(setting_file[start_index + i])
-    if VERBOSE>2:print "length of answer = {0}".format(len(answer))
-    if len(answer) == 0:
-        if VERBOSE>0:print "no match answer"
-        return
-    if len(answer) == 1:
-        return answer[0]
-    else:
-	return answer
 
 # This method is used to set the path in the first line of programm
 def set_path_linux(py_path, path = ""):
@@ -77,11 +61,12 @@ def set_path_mac(py_path, path = ""):
 VERBOSE = 1
 # measure times
 start_time = time.time()
-py_path = get_path("path_of_python")
+# get the path of python from TAT_env.py
+py_path = TAT_env.path_of_python
 py_path = "#!{0}".format(py_path)
 if VERBOSE>0:print "path of python or python2 writen in tat_config: {0}".format(py_path)
-# get path of code from tat_config
-code_path = get_path("path_of_code")
+# get path of TAT code from TAT_env
+code_path = TAT_env.path_of_code
 # set path of python into all tat_python program file
 if platform == "linux" or platform == "linux2":
     set_path_linux(py_path, code_path)
@@ -113,11 +98,9 @@ else:
 # back to path of code
 print code_path
 os.chdir(code_path)
-# get path of result and source
-path_of_source = get_path("path_of_source")
-path_of_source = path_of_source
-path_of_result = get_path("path_of_result")
-path_of_result = path_of_result
+# get path of result and source from TAT_env
+path_of_source = TAT_env.path_of_source
+path_of_result = TAT_env.path_of_result
 # construct necessary folder
 if VERBOSE>0:print "construct necessary folders..."
 # source folder

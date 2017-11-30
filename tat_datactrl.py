@@ -26,7 +26,6 @@ import numpy as np
 import pyfits
 import jdcal
 import matplotlib.pyplot as plt
-import jdcal
 import math
 #---------------------------------------------------------
 # Function in this section is for reading txt like data.
@@ -307,7 +306,7 @@ class star_catalog_editor(tsv_editor):
             axes.text(min_jd, avg+2*std, "{2}: average = {0:.4f}+-{1:.4f}".format(avg, std, value_array_collection[i][0]))
             # if there are more than one object been plot, set larger the range of y .
             if len(value_array_collection) == 1:
-                axes.set_ylim([np.mean(float_value_array_collection)-5*std, np.mean(float_value_array_collection)+5*std])
+                axes.set_ylim([np.mean(float_value_array_collection)-1, np.mean(float_value_array_collection)+1])
         if len(value_array_collection) > 1:
             axes.set_ylim([np.mean(float_value_array_collection)-2, np.mean(float_value_array_collection)+2])
         result_plot.show()
