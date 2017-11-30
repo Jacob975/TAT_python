@@ -1,7 +1,7 @@
 #!/usr/bin/python
 '''
 Program:
-This is a program to demo the style of my code. 
+This is a program to find the delta_mag.py 
 Usage:
 1. get_mag.py [eccentricity] [band] [fits name]
 
@@ -82,6 +82,7 @@ import os
 import math
 import tat_datactrl
 import glob
+import TAT_env
 from astropy.table import Table
 
 # This is a code to add several stars, and then find out the equivelent magnitude.
@@ -203,7 +204,7 @@ class main_process:
         # get property of images from current path
         scope_name, date_name, obj_name, filter_name, method = get_img_property(self.fits_name)
         ref_name = "{0}_{1}_{2}.tsv".format(scope_name, obj_name, self.band)
-        path_of_result = tat_datactrl.get_path("path_of_result")
+        path_of_result = TAT_env.path_of_result
         path_of_ref = "{0}/ref_catalog".format(path_of_result)      # the ref catalog pool
         # check the existance of ref
         ref_name_list = glob.glob("{0}/*.tsv".format(path_of_ref))
