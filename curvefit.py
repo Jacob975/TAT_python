@@ -101,12 +101,11 @@ def gaussian_fitting(entries):
     paras, cov = optimize.curve_fit(gaussian, x_plot, entries)
     return paras, cov
 
-def hist_gaussian_fitting(name, data, half_width = 20, shift = 0):
+def hist_gaussian_fitting(name, data, half_width = 20, shift = 0, VERBOSE = 0):
     # 0 : no print,
     # 1 : print answer, 
     # 2 : do graph, 
     # 3 : print debug info
-    VERBOSE = 0
     # get rid of nan
     flatten_data = data[~np.isnan(data)]
     flatten_data = flatten_data[flatten_data < 100000.0]
