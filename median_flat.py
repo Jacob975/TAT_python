@@ -19,8 +19,18 @@ import fnmatch
 import pyfits
 import numpy as np
 import curvefit
+import glob
 from pylab import *
 from sys import argv
+
+def stack_mean_method(fits_list):
+    data_list = []
+    for name in fits_list:
+        data = pyfits.getdata(name)
+        data_list.append(data)
+    data_list = np.array(data_list)
+    sum_fits = np.mean(data_list, axis = 0)
+    return sum_fits
 
 header=str(argv[1])
 # get path of current direction
@@ -39,18 +49,11 @@ for name in templist:
     if fnmatch.fnmatch(name, "Median_dark_*"):
         curvefit.subtract_list("list", name)
 # make a median flat of all subDARKed flat, which haven't been normalized.
-command_line="median_fits "+header+"*_subDARK"
-os.system(command_line)
-
+flat_list = glob.glob("{0}*_subDARK*".format(header))
+m_flat = stack_mean_method(flat_list)
 median_flat_name="Median_flat_"+date+"_"+filters+".fits"
-temp="mv Median_"+header+"*.fits "+median_flat_name
-os.system(temp)
-
-# normalized it
-median_flat=pyfits.getdata(median_flat_name)
-median_flat_head=pyfits.getheader(median_flat_name)
-avg = np.mean(median_flat)
-median_flat = np.divide(median_flat, avg)
-pyfits.writeto(median_flat_name[0:-5]+'_n.fits', median_flat, median_flat_head)
+# normalize the flat
+avg = np.mean(m_flat)
+median_flat = np.divide(m_flat, avg)
+pyfits.writeto(median_flat_name[0:-5]+'_n.fits', median_flat, clobber = True)
 print median_flat_name+' OK'
-

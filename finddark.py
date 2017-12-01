@@ -21,11 +21,18 @@ update log
 20170808 version alpha 4
     1.  Before we get path of calibrate from path of images
         Now we get path of calibrate from tat_config which is a setting file.
+
+20171201 version alpha 5
+    1.  using TAT_env as a new constant pool
+    2.  the stack part is using code what is not writed by me, so I replace it with mine.
 '''
 
 import os
+import glob
+import pyfits
+import numpy as np
 import fnmatch
-import tat_datactrl
+import TAT_env
 
 def match_date(date, date_list):
     # comfirm the type of date and datelist is int.
@@ -49,6 +56,15 @@ def match_date(date, date_list):
     min_value=str(date_list[min_index])
     answer=[min_index, min_value]
     return answer
+
+def stack_mdn_method(fits_list):
+    data_list = []
+    for name in fits_list:
+        data = pyfits.getdata(name)
+        data_list.append(data)
+    data_list = np.array(data_list)
+    sum_fits = np.median(data_list, axis = 0)
+    return sum_fits
 
 def get_dark_to(telescope, exptime, date, path_of_median_dark):
     # find out how many object in this folder
@@ -83,7 +99,7 @@ def main_process():
     list_path=path.split("/")
     del list_path [0]
     # get info from path
-    path_of_source = tat_datactrl.get_path("path_of_source")
+    path_of_source = TAT_env.path_of_source
     temp_path = path.split(path_of_source)
     temp_path_2 = temp_path[1].split("/")
     date=temp_path_2[3]
@@ -110,28 +126,19 @@ def main_process():
     number=get_dark_to(telescope, exptime, result_date[1], path_of_median_dark)
     os.chdir("..")
     # check whether the number of dark is enough, if no, find other darks.
-    if number>=10:
-        os.chdir(path_of_median_dark)
-        temp="median_fits dark"
-        os.system(temp)
-        Median_dark="Median_dark_"+date+"_"+exptime+".fits"
-        print "The dark name is :"+Median_dark
-        temp="mv Median_dark.fits "+Median_dark
-        os.system(temp)
-        temp="cp -R "+Median_dark+" "+path
-        os.system(temp) 
-    else:
+    if number<10:
         del obj_list[result_date[0]]
         sub_process(path, telescope, obj_list, date, path_of_median_dark, exptime)
+    else:
         os.chdir(path_of_median_dark)
-        temp="median_fits dark"
+        dark_list = glob.glob('dark*.fit')
+        m_dark = stack_mdn_method(dark_list)
+        Median_dark_name="Median_dark_"+date+"_"+exptime+".fits"
+        print "The dark name is :"+Median_dark_name
+        pyfits.writeto(Median_dark_name, m_dark, clobber= True)
+        temp="cp -R "+Median_dark_name+" "+path
         os.system(temp)
-        Median_dark="Median_dark_"+date+"_"+exptime+".fits"
-        print "The dark name is :"+Median_dark
-        temp="mv Median_dark.fits "+Median_dark
-        os.system(temp)
-        temp="cp -R "+Median_dark+" "+path
-        os.system(temp)
+    return
 
 def sub_process(path, telescope, obj_list, date, path_of_median_dark, exptime):
     # find another proper date to find dark.
@@ -141,20 +148,18 @@ def sub_process(path, telescope, obj_list, date, path_of_median_dark, exptime):
     number=get_dark_to(telescope, exptime, result_date[1], path_of_median_dark)
     os.chdir("..")
     # check if the number of dark is enough, if no, find other darks.
-    if number>=10:
-        os.chdir(path_of_median_dark)
-        temp="median_fits dark"
-        os.system(temp)
-        Median_dark="Median_dark_"+date+"_"+exptime+".fits"
-        print "The dark name is :"+Median_dark
-        temp="mv Median_dark.fits "+Median_dark
-        os.system(temp)
-        temp="cp -R "+Median_dark+" "+path
-        os.system(temp)
-        return 0
-    elif len(obj_list)>1:
+    if number<10 and len(obj_list)>1:
         del obj_list[result_date[0]]
         sub_process(path, telescope, obj_list, date, path_of_median_dark, exptime)
-
+    else:
+        os.chdir(path_of_median_dark)
+        dark_list = glob.glob('dark*.fit')
+        m_dark = stack_mdn_method(dark_list)
+        Median_dark_name = "Median_dark_"+date+"_"+exptime+".fits"
+        print "The dark name is :"+Median_dark_name
+        pyfits.writeto(Median_dark_name, m_dark, clobber= True)
+        temp="cp -R "+Median_dark_name+" "+path
+        os.system(temp)
+    return
 
 main_process()

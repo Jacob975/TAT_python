@@ -30,30 +30,21 @@ alpha 5:    20170207:
     1.  improve the efficiency.
     2.  Rename variables to current version
     3.  The program will write down log now.
+
+20171201 version alpha 7
+    1. some constant is moved to TAT_env.py in order to reuse these definition.
 '''
 import os
 import pyfits
 import glob
+import TAT_env
 
 VERBOSE = 1
 # read a list of images
 image_list = glob.glob('*.fit')
 
-# create a list of object
-IC5146={'RA':'21:53:24','DEC':'47:16:00','name':'IC5146'}
-NGC1333={'RA':'03:29:10','DEC':'31:21:57','name':'NGC1333A'}
-WD1253={'RA':'12:55:38','DEC':'25:53:31','name':'WD1253+261'}
-SgrNova={'RA':'18:36:57','DEC':'-28:55:42','name':'SgrNova'}
-HH32={'RA':'19:20:30','DEC':'11:02:01','name':'HH32'}
-KELT_17={'RA':'08:22:27','DEC':'13:44:07','name':'KELT-17'}
-Groombridge1830={'RA':'11:52:58.8','DEC':'37:43:07.2','name':'Groombridge1830'}
-KIC8462852={'RA':'20:06:15', 'DEC':'44:27:24', 'name': 'KIC8462852'}
-PN={'RA':'21:29:58.42','DEC':'51:03:59.8','name':'PN'}
-Cygni61={'RA':'21:06:53.9','DEC':'38:44:57.9','name':'61Cygni'}
-NGC6888={'RA':'20:12:7', 'DEC':'38:21:18', 'name':'NGC6888'}
-
-object_list=[IC5146, NGC1333, WD1253, SgrNova, HH32, KIC8462852, KELT_17,Groombridge1830, PN, Cygni61, NGC6888]
-band_list = ["A", "B", "C", "N", "R", "V" ]
+object_list = TAT_env.object_list
+band_list = TAT_env.band_list
 object_count=[[[ 0 for z in range(2) ] for x in xrange(len(band_list))] for y in range(len(object_list))]
 
 # count filters and objects

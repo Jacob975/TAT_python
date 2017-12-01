@@ -27,6 +27,7 @@ update log
 import os
 import fnmatch
 import tat_datactrl
+import pyfits
 
 def readfile(filename):
     file = open(filename)
