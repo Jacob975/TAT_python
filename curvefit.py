@@ -71,6 +71,9 @@ update log
 
     20171004 version alpha 16
     1. add get_star_unit for finding the unit of def "get_star".
+
+    20171205 version alpha 17
+    1. Hotfix: correct the algorithm of def get_rid_of_exotic
 '''
 import numpy as np
 import matplotlib.pyplot as plt
@@ -577,8 +580,8 @@ def get_rid_of_exotic(value_list):
     for i in xrange(len(abs_value_list)):
         if abs_value_list[i] >= 3 * std:
             value_list = np.delete(value_list, i)
-    if len(abs_value_list) != len(value_list):
-        value_list = get_rid_of_exotic(value_list)
+            value_list = get_rid_of_exotic(value_list)
+            return value_list
     return value_list
 
 def get_rid_of_exotic_vector(value_list, additional, threshold = 3):
