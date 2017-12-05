@@ -47,21 +47,28 @@ update log
     1. test mode of deconvolution is on
     2. RL algorithm is done.
     3. Now we face a problem of ripple on restored image.
+
+20171205 version alpha 11
+    1. new aper phot is already done, the previous one will be rename as gaussian_wavelet_phot.
+    2. new proper parameters for DAOStarFinder
+    3. psf fitting pause.
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
 from astropy.stats import gaussian_sigma_to_fwhm
 from curvefit import hist_gaussian_fitting, get_peak_filter, get_star, get_star_unit, get_star_title, get_rid_of_exotic_vector, unit_converter, FitGaussian_curve_fit, FitGauss2D_curve_fit
 from astropy.table import Table, Column
-from tat_datactrl import readfile, get_path
+from tat_datactrl import readfile
 from skimage import restoration 
 import numpy as np
+import TAT_env
 import pyfits
 import pywcs
 import time
 import warnings
 from scipy.signal import convolve2d
 import scipy
+import aper_test
 
 # This is used to control argus.
 class argv_controller:
@@ -163,9 +170,10 @@ class aperphot(parameter):
     def __init__(self, paras, data):
         self.data = data
         # find peak by dao finder
-        daofind = DAOStarFinder(threshold = 3.0*paras.std, fwhm=paras.sigma*gaussian_sigma_to_fwhm, roundhi=5.0, roundlo=-5.0, sharplo=0.0, sharphi=2.0, sky = paras.bkg)
+        daofind = DAOStarFinder(threshold = 3.0*paras.std + paras.bkg , fwhm=paras.sigma*gaussian_sigma_to_fwhm, roundhi=1.0, roundlo=-1.0, sharplo=0.5, sharphi=2.0, sky = paras.bkg)
         dao_table = daofind.find_stars(paras.data)
-        if VERBOSE>2: print dao_table
+        if VERBOSE>2:
+            print dao_table
         self.dao_table = dao_table
         # do aperture photometry
         self.star_table = self.fit()
@@ -193,6 +201,67 @@ class aperphot(parameter):
         self.star_table = star_table
         return star_table
 
+# This class is for find the coordinate of stars and save region file by aperture photometry.
+class aperphot_test(parameter):
+    data = None
+    dao_table = None
+    star_table = None
+    def __init__(self, paras, data):
+        self.data = data
+        # find peak by dao finder
+        daofind = DAOStarFinder(threshold = 3.0*paras.std + paras.bkg, fwhm=paras.sigma*gaussian_sigma_to_fwhm, roundhi=1.0, roundlo=-1.0, sharplo=0.5, sharphi=2.0, sky = paras.bkg)
+        dao_table = daofind.find_stars(paras.data)
+        if VERBOSE>2: print dao_table
+        self.dao_table = dao_table
+        # do aperture photometry
+        self.star_table = self.phot()
+        return
+
+    def phot(self, rd = 12, ibd = 16, obd = 18, shape = "circle"):
+        dao_table = self.dao_table
+        data = self.data
+        x_list = [int(i) for i in dao_table["ycentroid"]]
+        #print x_list
+        y_list = [int(i) for i in dao_table["xcentroid"]]
+        #print y_list
+        peak_list = zip(x_list, y_list)
+        star_list = []
+        #print peak_list
+        for p in peak_list:
+            x = p[0]
+            y = p[1]
+            # ---------------------------------
+            # make sure the data is usable.
+            try:
+                star_data = data[x-obd:x+obd , y-obd:y+obd]
+            except:
+                continue
+            if x-obd<0 or x+obd >= len(data):
+                #print "x-obd = {0}".format(x-obd)
+                #print "x+obd = {0}".format(x+obd)
+                continue
+            if y-obd<0 or y+obd >= len(data):
+                continue
+            #----------------------------------
+            # rd means the radius of region of star
+            # ibd means the minimun of radius of bkg
+            # obd means the maximun of radius of bkg
+            # shape mean the shape used to fitting
+            student = aper_test.aper_phot(star_data, rd, ibd, obd, shape, name = peak_list.index(p), VERBOSE = VERBOSE)
+            if student.flux < 0:
+                continue
+            star_row = np.array([x, y, student.flux, student.bkg, student.e_flux ])
+            star_list.append(star_row)
+        if VERBOSE>0: raw_input("pause, please press enter to go on.")
+        # set the unit and title of params in table
+        star_title = np.array(['xcenter', 'ycenter', 'flux', 'bkg', 'e_bkg'])
+        star_unit = np.array(['pixel', 'pixel', 'count', 'count', 'count'])
+        star_table = Table(rows = star_list, names = star_title)
+        for i in xrange(len(star_unit)):
+            star_table[star_title[i]].unit = star_unit[i]
+        self.star_table = star_table
+        return star_table
+
 # This is a class for save star table and star region file by psf photometry.
 class psfphot(aperphot):
     data = None
@@ -208,7 +277,7 @@ class psfphot(aperphot):
         self.data = data
         self.paras = paras
         # find peak by dao finder
-        daofind = DAOStarFinder(threshold = 3.0*paras.std, fwhm=paras.sigma*gaussian_sigma_to_fwhm, roundhi=5.0, roundlo=-5.0, sharplo=0.0, sharphi=2.0, sky = paras.bkg)
+        daofind = DAOStarFinder(threshold = 3.0*paras.std + paras.bkg, fwhm=paras.sigma*gaussian_sigma_to_fwhm, roundhi=1.0, roundlo=-1.0, sharplo=0.5, sharphi=2.0, sky = paras.bkg)
         dao_table = daofind.find_stars(paras.data)
         self.dao_table = dao_table
         # find stars by dao table
@@ -219,14 +288,16 @@ class psfphot(aperphot):
         self.psf_model = self.make_model(data, self.selected_star_table)
         self.psf_theo_model = self.make_theo_model(self.psf_model)
         # for test richardson_lucy deconvolution
-        
+        '''
         psf = np.ones((5, 5)) / 25
         camera = convolve2d(self.data, psf, 'same')
         pyfits.writeto("blurred_image.fits", camera, clobber = True)
-        self.psfed_data = self.RL_deconvolution(psf, self.data, it)
+        '''
+        self.psfed_data = self.RL_deconvolution(self.psf_theo_model, self.data, it)
         self.psfed_data = np.real(self.psfed_data)
+        '''
         pyfits.writeto("restored_image.fits", self.psfed_data, clobber = True)
-        
+        '''
         # for skimage wiener deconvolution
         '''
         self.psfed_data = self.skimage_wiener_deconvolution(self.psf_model, self.data, self.psf_theo_model)
@@ -252,7 +323,7 @@ class psfphot(aperphot):
         # sort by amplitude
         bright_sorted_star_table = star_table.sort(keyword)
         # select bright star from a star table
-        selected_star_table = star_table[-50:-20]
+        selected_star_table = star_table[-50:-31]
         print selected_star_table
         return selected_star_table
     def make_model(self, data, selected_star_table):
@@ -268,17 +339,27 @@ class psfphot(aperphot):
             if VERBOSE>2:print "coor = {0}, {1}".format(xc, yc)
             hw = int(5*self.paras.std)
             star_region = data[xc-hw:xc+hw, yc-hw:yc+hw]
+            # wipe out nan
+            nan_list = star_region[np.isnan(star_region)]
+            if len(nan_list)>0:
+                continue
             star_region = star_region - selected_star_table[i]['bkg']
             # get basic property
             psum = np.sum(star_region)
+            weight = np.sqrt(psum)
+            # find the weight, If weight is nan, skip.
+            if weight == None:
+                continue
+            else :
+                weight_list[i] = np.sqrt(psum)
             # redirect the position of star
             # normalized
             normalized_star_region = np.divide(star_region, psum)
             '''
             pyfits.writeto("star_{0}.fits".format(i+1), normalized_star_region, clobber = True)
             '''
-            weight_list[i] = np.sqrt(psum)
             star_region_list[i] = normalized_star_region
+        print weight_list
         # stack all of models
         psf_model = np.average(star_region_list, weights = weight_list, axis = 0)
         # normalized
@@ -372,8 +453,9 @@ class phot_control:
         # test aperphot is better or psfphot?
         self.paras = parameter(self.data)
         self.paras.observator_property(fits_name)
-        '''
+        
         self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
+        self.mag_table = self.star_table
         '''
         self.header = pyfits.getheader(fits_name)
         # do wiener deconvolution recursively
@@ -383,24 +465,27 @@ class phot_control:
             else:
                 pass
                 # for RL deconvolve
-                '''
+                
                 self.psfed_data = self.psfphot(self.paras, self.data, it = i+1)
-                '''
+                
                 # for wiener deconvolve
-                '''
+                
                 self.psfed_data = self.psfphot(self.paras, self.psfed_data)
-                '''
+                
             result_name = "{0}_psf{1}.fits".format(self.fits_name[0:-5], i+1)
             pyfits.writeto(result_name, self.psfed_data, self.header, clobber = True)
         '''
+        
+        # I comment this part below because I am using aper test, there is no e_amp to used.
         # get info of del mag
-        path_of_result = get_path("path_of_result")
+        '''
+        path_of_result = TAT_env.path_of_result
         path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise/delta_mag.fits")
         del_mag_table = Table.read(path_of_del_mag)
         # add more property info table
         self.match_del_mag_table = self.observertory_property(del_mag_table, self.paras)
         wcs_ctrl = wcs_controller(self.star_table, self.match_del_mag_table, fits_name)
-        self.mag_table = wcs_ctrl.mag_table
+        self.mag_table = wcs_ctrl.result_table
         '''
         return
     # get del mag
@@ -464,7 +549,7 @@ class phot_control:
         return psfed_data
     def aperphot(self, paras, data):
         if VERBOSE>0: print "---      aperphot star      ---"
-        aperfitting = aperphot(paras, data)
+        aperfitting = aperphot_test(paras, data)
         star_table = aperfitting.star_table
         dao_table = aperfitting.dao_table
         return star_table, dao_table
@@ -499,6 +584,8 @@ class wcs_controller(unit_converter):
     wcs_table = None
     inst_table = None
     mag_table = None
+    # usually, mag_table is result_table
+    result_table = None
     match_del_mag_table = None
     fits_name = ""
     def __init__(self, star_table, match_del_mag_table, fits_name):
@@ -606,16 +693,14 @@ class wcs_controller(unit_converter):
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
-    VERBOSE = 2
+    VERBOSE = 0
     warnings.filterwarnings("ignore")
     # measure times
     start_time = time.time()
     # get property from argv
     fits_name=argv[-1]
     phot = phot_control(fits_name)
-    '''
     phot.save()
-    '''
     # measuring time
     elapsed_time = time.time() - start_time
     print "Exiting Main Program, spending ", elapsed_time, "seconds."
