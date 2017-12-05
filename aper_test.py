@@ -11,6 +11,10 @@ update log
 
 20171130 version alpha 1
     1. the code works, but all parameters need to be modified inside editor.
+
+20171206 version alpha 2
+    1. add a new parameters, name, used to control the name of plot.
+    2. I using get_rid_of_exotic to wipe out bright star affect on bkg region.
 '''
 from sys import argv
 import numpy as np
@@ -18,6 +22,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, Circle
 import pyfits
 import time
+import curvefit
 
 class argv_controller:
     def __init__(self):
@@ -36,13 +41,15 @@ class aper_phot:
     outer_bkg_radius = None
     shape = None
     shape_options = ["circle", "rect"]
+    name = 0
     VERBOSE = 0
     # the main sequense of aperture photometry process
-    def __init__(self, data, region_radius = 8, inner_bkg_radius = 10, outer_bkg_radius = 12, shape = "rect", VERBOSE = 0):
+    def __init__(self, data, region_radius = 12, inner_bkg_radius = 16, outer_bkg_radius = 18, shape = "rect", name = 0, VERBOSE = 0):
         self.data = data
         self.region_radius = region_radius
         self.inner_bkg_radius = inner_bkg_radius
         self.outer_bkg_radius = outer_bkg_radius
+        self.name = name
         self.VERBOSE = VERBOSE
         if shape == "rect":
             self.flux, self.e_flux, self.bkg = self.get_flux_rect(data)
@@ -75,8 +82,11 @@ class aper_phot:
         # the the point out of range of background as np.nan
         gross[gmp-ibd:gmp+ibd, gmp-ibd:gmp+ibd] = np.nan
         in_region = np.invert(np.isnan(gross))
-        bkg = np.mean(gross[in_region])
-        e_flux = np.std(gross[in_region])
+        # find bkg and e_bkg
+        bkg_array = gross[in_region]
+        bkg_array = curvefit.get_rid_of_exotic(bkg_array)
+        bkg = np.mean(bkg_array)
+        e_flux = np.std(bkg_array)
         gross_flux = gross_flux - bkg
         flux = np.sum(gross_flux)
         if self.VERBOSE>2:print "total flux = {0:.2f}, bkg = {1:.2f}+-{2:.2f}".format(flux, bkg, e_flux)
@@ -94,7 +104,7 @@ class aper_phot:
         #--------------------
         # start to plot
         #--------------------
-        result_plt = plt.figure("aper phot")
+        result_plt = plt.figure("aper phot {0}".format(self.name))
         plt.imshow(self.data, vmin = self.bkg - 3*self.e_flux, vmax = self.bkg + 3*self.e_flux)
         plt.colorbar()
         axe = plt.gca()
@@ -108,8 +118,7 @@ class aper_phot:
         axe.add_patch(ibr)
         axe.add_patch(rr)
         result_plt.show()
-        raw_input()
-        result_plt.savefig("rect_aper.png")
+        result_plt.savefig("rect_aper_{0}.png".format(self.name))
         return
     # the part of getting flux of stellar matters in region with circle aperture.
     def get_flux_circle(self, data):
@@ -131,8 +140,10 @@ class aper_phot:
         gross_o_mask = np.power(x, 2) + np.power(y, 2) <= np.power(obd, 2)
         gross_i_mask = np.power(x, 2) + np.power(y, 2) <= np.power(ibd, 2)
         gross_hollow_mask = gross_o_mask - gross_i_mask
-        bkg = np.mean(data[gross_hollow_mask])
-        e_flux = np.std(data[gross_hollow_mask])
+        bkg_array = data[gross_hollow_mask]
+        bkg_array = curvefit.get_rid_of_exotic(bkg_array)
+        bkg = np.mean(bkg_array)
+        e_flux = np.std(bkg_array)
         flux_matrix = np.array(data - bkg)
         flux = np.sum(flux_matrix[gross_flux_mask])
         if self.VERBOSE>2:print "total flux = {0:.2f}, bkg = {1:.2f}+-{2:.2f}".format(flux, bkg, e_flux)
@@ -150,7 +161,7 @@ class aper_phot:
         #--------------------
         # start to plot
         #--------------------
-        result_plt = plt.figure("aper phot")
+        result_plt = plt.figure("aper phot {0}".format(self.name))
         plt.imshow(self.data, vmin = self.bkg - 3*self.e_flux, vmax = self.bkg + 3*self.e_flux)
         plt.colorbar()
         axe = plt.gca()
@@ -164,8 +175,7 @@ class aper_phot:
         axe.add_patch(ibc)
         axe.add_patch(rc)
         result_plt.show()
-        raw_input()
-        result_plt.savefig("circ_aper.png")
+        result_plt.savefig("circ_aper_{0}.png".format(self.name))
         return
 #--------------------------------------------
 # main code
@@ -175,7 +185,7 @@ if __name__ == "__main__":
     start_time = time.time()
     # get property from argv
     fits_name=argv[-1]
-    imA = 10000 * pyfits.getdata(fits_name)
+    imA = pyfits.getdata(fits_name)
     student = aper_phot(imA,shape = "circle", VERBOSE = 3)
     # measuring time
     elapsed_time = time.time() - start_time
