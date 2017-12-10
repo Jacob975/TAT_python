@@ -575,8 +575,8 @@ def get_rid_of_exotic(value_list):
     std = np.std(value_list)
     mean = np.mean(value_list)
     # get the error of each value to the mean, than delete one with largest error.
-    temp_value_list = np.subtract(value_list, mean)
-    abs_value_list = np.absolute(temp_value_list)
+    sub_value_list = np.subtract(value_list, mean)
+    abs_value_list = np.absolute(sub_value_list)
     for i in xrange(len(abs_value_list)):
         if abs_value_list[i] >= 3 * std:
             value_list = np.delete(value_list, i)
