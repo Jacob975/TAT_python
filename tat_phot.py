@@ -4,6 +4,11 @@ Program:
 This is a program to code to apertrue photometry and psf photometry.
 Currently, because psf phot haven't been done, option of psf photometry isn't available.
 
+we have three kinds of phot now
+1. aperture phot
+2. gaussian wavelet phot
+3. self point spread func phot
+
 Usage:
 1. tat_phot.py [image]
 
@@ -52,6 +57,11 @@ update log
     1. new aper phot is already done, the previous one will be rename as gaussian_wavelet_phot.
     2. new proper parameters for DAOStarFinder
     3. psf fitting pause.
+
+20171214 version alpha 12
+    1. rename type of phot
+    2. old aperphot -> gaussianphot
+    3. test aperphot -> aperphot, real aperphot, also put wcs convertor into aperphot.
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
@@ -163,7 +173,7 @@ class parameter:
     	return
 
 # This class is for find the coordinate of stars and save region file by aperture photometry.
-class aperphot(parameter):
+class gaussianphot(parameter):
     data = None
     dao_table = None
     star_table = None
@@ -202,7 +212,7 @@ class aperphot(parameter):
         return star_table
 
 # This class is for find the coordinate of stars and save region file by aperture photometry.
-class aperphot_test(parameter):
+class aperphot(parameter):
     data = None
     dao_table = None
     star_table = None
@@ -263,7 +273,7 @@ class aperphot_test(parameter):
         return star_table
 
 # This is a class for save star table and star region file by psf photometry.
-class psfphot(aperphot):
+class psfphot(gaussianphot):
     data = None
     psfed_data = None
     psfed_r_data = None
@@ -422,9 +432,9 @@ class psfphot(aperphot):
         return input_signal
 
 # This class is for control processing photometry
-# There are two options, psfphot and aperphot.
+# There are three options, psfphot, gaussianphot and aperphot.
 
-# 1. aperphot mean aperture photometry, but not classical, 
+# 1. aperphot means aperture photometry 
 # program will fitting 2D gaussian distribution on each peak to test whether it is a star?
 
 # 2. psfphot mean psf photometry,
@@ -454,6 +464,10 @@ class phot_control:
         self.paras = parameter(self.data)
         self.paras.observator_property(fits_name)
         
+        # three option:
+        # 1. aperphot
+        # 2. gaussianphot
+        # 3. psfphot
         self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
         self.mag_table = self.star_table
         '''
@@ -478,15 +492,14 @@ class phot_control:
         
         # I comment this part below because I am using aper test, there is no e_amp to used.
         # get info of del mag
-        '''
+        
         path_of_result = TAT_env.path_of_result
         path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise/delta_mag.fits")
         del_mag_table = Table.read(path_of_del_mag)
         # add more property info table
         self.match_del_mag_table = self.observertory_property(del_mag_table, self.paras)
         wcs_ctrl = wcs_controller(self.star_table, self.match_del_mag_table, fits_name)
-        self.mag_table = wcs_ctrl.result_table
-        '''
+        self.mag_table = wcs_ctrl.mag_table
         return
     # get del mag
     def observertory_property(self, del_mag_table, paras):
@@ -549,9 +562,15 @@ class phot_control:
         return psfed_data
     def aperphot(self, paras, data):
         if VERBOSE>0: print "---      aperphot star      ---"
-        aperfitting = aperphot_test(paras, data)
+        aperfitting = aperphot(paras, data)
         star_table = aperfitting.star_table
         dao_table = aperfitting.dao_table
+        return star_table, dao_table
+    def gaussianphot(self, paras, data):
+        if VERBOSE>0: print "---      gaussianphot star      ---"
+        gaussianfitting = gaussianphot(paras, data)
+        star_table = gaussianfitting.star_table
+        dao_table = gaussianfitting.dao_table
         return star_table, dao_table
     # save result of photometry.
     def save(self):
@@ -595,10 +614,13 @@ class wcs_controller(unit_converter):
         self.match_del_mag_table = match_del_mag_table
         # get wcs coords
         self.wcs_table = self.pix2wcs(star_table, fits_name)
+        print self.wcs_table
         # get instrument mag
         self.inst_table = self.pix2mag(self.wcs_table, fits_name)
+        print self.inst_table
         # get real mag
         self.mag_table = self.realmag(self.inst_table, match_del_mag_table)
+        print self.mag_table
         return
     # convert star table into wcs table
     def pix2wcs(self, star_table, fits_name):
@@ -612,34 +634,52 @@ class wcs_controller(unit_converter):
             return None
         # convert pixel to wcs
         # initialized info
-        column_name = ["RAJ2000", "e_RAJ2000", "DECJ2000", "e_DECJ2000"]
-        collection = { 'RA':None, 'DEC':None, 'e_RA':None, 'e_DEC':None}
-        column_unit = ['hhmmss', 'hhmmss', 'ddmmss', 'ddmmss']
+        column_name = ["RAJ2000", "DECJ2000"]
+        collection =  {'RA':None, 'DEC':None}
+        column_unit = ['hhmmss', 'ddmmss']
         wcs_table = star_table
         # grap data from table
         xcenter = np.array(star_table["ycenter"], dtype = float)
-        e_xcenter = np.array(star_table["e_ycenter"], dtype = float)
         ycenter = np.array(star_table["xcenter"], dtype = float)
-        e_ycenter = np.array(star_table["e_xcenter"], dtype = float)
         # arrange data
         coors = np.dstack((xcenter, ycenter))
-        eRA_coors = np.dstack((xcenter + e_xcenter, ycenter)) 
-        eDEC_coors = np.dstack((xcenter, ycenter + e_ycenter))
         # convert pixel into wcs
-        sky = wcs.wcs_pix2sky(coors[0], 1)	
-        collection['RA'] = np.array([column[1] for column in sky])  					# result 1
-        collection['DEC'] = np.array([column[0] for column in sky])		    			# result 2
-        eRA_sky = wcs.wcs_pix2sky(eRA_coors[0], 1)
-        eDEC_sky = wcs.wcs_pix2sky(eDEC_coors[0], 1)
-        collection['e_RA'] = np.array([column[1] for column in eRA_sky]) - collection['RA']		# result 3
-        collection['e_DEC'] = np.array([column[0] for column in eDEC_sky]) - collection['DEC']		# result 4
+        sky = wcs.wcs_pix2sky(coors[0], 1)
+        collection['RA'] = np.array([column[1] for column in sky])                                      # result 1
+        collection['DEC'] = np.array([column[0] for column in sky])                                     # result 2
+        # consider error part
+        try:
+            # grab data from table, and test whether they exist or not.
+            e_xcenter = np.array(star_table["e_ycenter"], dtype = float)
+            e_ycenter = np.array(star_table["e_xcenter"], dtype = float)
+        except:
+            pass
+        else:
+            # if error of position is saved, find out the error of wcs.
+            # initialized info of error
+            column_err_name = ["e_RAJ2000", "e_DECJ2000"]
+            collection_err = { 'e_RA':None, 'e_DEC':None}
+            column_err_unit = ['hhmmss', 'ddmmss']
+            eRA_coors = np.dstack((xcenter + e_xcenter, ycenter))
+            eDEC_coors = np.dstack((xcenter, ycenter + e_ycenter))
+            eRA_sky = wcs.wcs_pix2sky(eRA_coors[0], 1)
+            eDEC_sky = wcs.wcs_pix2sky(eDEC_coors[0], 1)
+            collection_err['e_RA'] = np.array([column[1] for column in eRA_sky]) - collection['RA']             # result 3
+            collection_err['e_DEC'] = np.array([column[0] for column in eDEC_sky]) - collection['DEC']          # result 4
+            # save the error of wcs
+            i = 0
+            for key, value in collection_err.iteritems():
+                new_col = Column(value, name=column_err_name[i], unit = column_err_unit[i])
+                wcs_table.add_column(new_col, index = i)
+                i += 1
+        # save the value of wcs
+        # the reason of write the scipt here is that I want to keep the value in front of error.
         i = 0
         for key, value in collection.iteritems():
             new_col = Column(value, name=column_name[i], unit = column_unit[i])
             wcs_table.add_column(new_col, index = i)
-            i += 1	
+            i += 1
         return wcs_table
-    # convert pixel to instrument mag      <--- haven't divided by exptime
     def pix2mag(self, star_table, fits_name):
         if VERBOSE>0: print "------   convert count to mag   ------"
         # initailized info
@@ -651,8 +691,11 @@ class wcs_controller(unit_converter):
         imh = pyfits.getheader(fits_name)
         exptime = imh["EXPTIME"]
         # convert count into mag
-        count_per_t = np.array(star_table["amplitude"], dtype = float)/exptime
-        e_count_per_t = np.array(star_table["e_amplitude"], dtype = float)/exptime
+        try:
+            count_per_t = np.array(star_table["amplitude"], dtype = float)/exptime
+            e_count_per_t = np.array(star_table["e_amplitude"], dtype = float)/exptime
+        except:
+            return star_table
         mag, e_mag = self.count2mag(count_per_t, e_count_per_t)	
         collection['mag'] = mag
         collection['e_mag'] = e_mag
@@ -672,8 +715,11 @@ class wcs_controller(unit_converter):
         local_name = ['U', 'B', 'V', 'R', 'I', 'N']
         mag_unit = 'mag_per_sec'
         # grab data from argument
-        mag_array = np.array(star_table['mag'], dtype = float)
-        e_mag_array = np.array(star_table['e_mag'], dtype = float)
+        try:
+            mag_array = np.array(star_table['mag'], dtype = float)
+            e_mag_array = np.array(star_table['e_mag'], dtype = float)
+        except:
+            return star_table
         band_list = match_del_mag_table['band']
         del_mag_array = np.array(match_del_mag_table['delta_mag'], dtype = float)
         e_del_mag_array = np.array(match_del_mag_table['e_delta_mag'], dtype = float)
