@@ -59,3 +59,6 @@ object_list.append({'RA':'20:12:7', 'DEC':'38:21:18', 'name':'NGC6888'})
 
 #--------------- band list-------------------------
 band_list = ["A", "B", "C", "N", "R", "V" ]
+#--------------- FOV------------------------------
+# 1 pixel is equal to 2.19 arcsec on TAT image.
+pix1 = 2.2
