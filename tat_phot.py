@@ -106,6 +106,7 @@ class parameter:
     method = ""
     obj = ""
     filtr = ""
+    exptime = 0.0
     property_name_array = np.array(["date", "scope", "band", "method", "object"])
     def __init__(self, data):
         self.data = data
@@ -150,7 +151,11 @@ class parameter:
         return proper_star_list
     # get property of images from path
     def observator_property(self, image_name):
-    	# get info from name
+    	# get exptime from header
+        imAh = pyfits.getheader(image_name)
+        exptime = float(imAh["EXPTIME"])
+        self.exptime = float(imAh["EXPTIME"])
+        # get info from name
         image_name_list = image_name.split("_")
     	try:
             self.scope = image_name_list[0]
@@ -451,7 +456,11 @@ class phot_control:
     result_region_name = "untitle_region"
     dao_table_name = "untitle_dao_table.fits"
     dao_region_name = "untitle_dao_region"
-    def __init__(self, fits_name):
+    # opt_list is used to save the possible choice of photometry 
+    opt_list = ["aperphot", "gaussianphot", "psfphot"]
+    # opt is the photometry you choosed.
+    opt = "aperphot"
+    def __init__(self, fits_name, opt):
         if VERBOSE>0: print "---      start process      ---" 
         # name setting
         self.fits_name = fits_name
@@ -463,43 +472,42 @@ class phot_control:
         # test aperphot is better or psfphot?
         self.paras = parameter(self.data)
         self.paras.observator_property(fits_name)
-        
         # three option:
         # 1. aperphot
         # 2. gaussianphot
         # 3. psfphot
-        self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
-        self.mag_table = self.star_table
-        '''
-        self.header = pyfits.getheader(fits_name)
-        # do wiener deconvolution recursively
-        for i in xrange(1):
-            if i == 0:
-                self.psfed_data = self.psfphot(self.paras, self.data, it = 30)
-            else:
-                pass
-                # for RL deconvolve
+        if opt == "aperphot":
+            self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
+            self.mag_table = self.star_table
+        if opt == "gaussianphot":
+            self.star_table, self.dao_table = self.guassianphot(self.paras, self.data)
+            self.mag_table = self.star_table
+        if opt == "psfphot":
+            self.header = pyfits.getheader(fits_name)
+            # do wiener deconvolution recursively
+            for i in xrange(1):
+                if i == 0:
+                    self.psfed_data = self.psfphot(self.paras, self.data, it = 30)
+                else:
+                    pass
+                    # for RL deconvolve
+                    self.psfed_data = self.psfphot(self.paras, self.data, it = i+1)
+                    # for wiener deconvolve
+                    self.psfed_data = self.psfphot(self.paras, self.psfed_data)
                 
-                self.psfed_data = self.psfphot(self.paras, self.data, it = i+1)
-                
-                # for wiener deconvolve
-                
-                self.psfed_data = self.psfphot(self.paras, self.psfed_data)
-                
-            result_name = "{0}_psf{1}.fits".format(self.fits_name[0:-5], i+1)
-            pyfits.writeto(result_name, self.psfed_data, self.header, clobber = True)
-        '''
+                result_name = "{0}_psf{1}.fits".format(self.fits_name[0:-5], i+1)
+                pyfits.writeto(result_name, self.psfed_data, self.header, clobber = True)
         
-        # I comment this part below because I am using aper test, there is no e_amp to used.
-        # get info of del mag
-        
-        path_of_result = TAT_env.path_of_result
-        path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise/delta_mag.fits")
-        del_mag_table = Table.read(path_of_del_mag)
-        # add more property info table
-        self.match_del_mag_table = self.observertory_property(del_mag_table, self.paras)
-        wcs_ctrl = wcs_controller(self.star_table, self.match_del_mag_table, fits_name)
-        self.mag_table = wcs_ctrl.mag_table
+        if opt != "psfphot":
+            # I comment this part below because I am using aper test, there is no e_amp to used.
+            # get info of del mag
+            path_of_result = TAT_env.path_of_result
+            path_of_del_mag = "{0}/{1}".format(path_of_result, "limitation_magnitude_and_noise/delta_mag.fits")
+            del_mag_table = Table.read(path_of_del_mag)
+            # add more property info table
+            self.match_del_mag_table = self.observertory_property(del_mag_table, self.paras)
+            wcs_ctrl = wcs_controller(self.star_table, self.match_del_mag_table, fits_name)
+            self.mag_table = wcs_ctrl.mag_table
         return
     # get del mag
     def observertory_property(self, del_mag_table, paras):
@@ -529,17 +537,6 @@ class phot_control:
     # this def is for cut origin image into several piece. 
     # In order to get much more accurate psf model and fitting result.
     def puzzing(self, data):
-        # some constant of puzzle
-        img_x_size = len(data)
-        img_y_size = len(data[0])
-        piece_num = 5
-        # parameters we used, include 2D list of puzz data, the position of cut in x and y axis.
-        puzz_data = [[None for j in range(piece_num)] for i in range(piece_num)]
-        self.x_cut = [img_x_size * i /4 for i in range(piece_num)]
-        self.y_cut = [img_y_size * i /4 for i in range(piece_num)]
-        for i in xrange(img_x_size-1):
-            for j in xrange(img_y_size-1):
-                puzz_data[i][j] = data[self.x_cut[i]:self.x_cut[i+1], self.y_cut[j]:self.y_cut[j+1]]
         return puzz_data
     # do psf fitting, powered by psfphot.
     def psfphot(self, paras, data, it):
@@ -547,17 +544,6 @@ class phot_control:
         psffitting = psfphot(paras, data, it)
         star_table = None
         dao_table = None
-        '''
-        puzz_data = self.puzzing(data)
-        for i in xrange(puzz_data):
-            for j in xrange(puzz_data[i]):
-                psffitting = psfphot(puzz_data[i][j])
-                star_table = psffitting.star_table
-                if star_table == None:
-                    star_table = temp_star_table
-                else:
-                    star_table = astropy.table.join(star_table, temp_star_table)
-        '''
         psfed_data = psffitting.psfed_data
         return psfed_data
     def aperphot(self, paras, data):
@@ -579,6 +565,16 @@ class phot_control:
         dao_table = self.dao_table
         # save table
         self.mag_table.write(self.star_table_name, overwrite = True)
+        # save header to that table
+        hdulist = fits.open(self.star_table_name, mode = 'update')
+        prihdr = hdulist[0].header
+        prihdr['DATE'] = self.paras.date
+        prihdr['BAND'] = self.paras.band
+        prihdr['SCOPE'] = self.paras.scope
+        prihdr['METHOD'] = self.paras.method
+        prihdr['EXPTIME'] = self.paras.exptime
+        hdulist.flush()
+        hdulist.close()
         # save star region
         region_file = open(self.result_region_name, "a")
         x_list = star_table["ycenter"]
@@ -588,6 +584,16 @@ class phot_control:
         region_file.close()
         # save dao table
         dao_table.write(self.dao_table_name, overwrite = True)
+        # save header to that table
+        hdulist = fits.open(self,dao_table_name, mode = 'update')
+        prihdr = hdulist[0].header
+        prihdr['DATE'] = self.paras.date
+        prihdr['BAND'] = self.paras.band
+        prihdr['SCOPE'] = self.paras.scope
+        prihdr['METHOD'] = self.paras.method
+        prihdr['EXPTIME'] = self.paras.exptime
+        hdulist.flush()
+        hdulist.close()
         # save dao region
         region_file = open(self.dao_region_name, "a")
         x_list = dao_table["xcentroid"]
@@ -745,7 +751,7 @@ if __name__ == "__main__":
     start_time = time.time()
     # get property from argv
     fits_name=argv[-1]
-    phot = phot_control(fits_name)
+    phot = phot_control(fits_name, "aperphot")
     phot.save()
     # measuring time
     elapsed_time = time.time() - start_time
