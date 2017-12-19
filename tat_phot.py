@@ -182,12 +182,14 @@ class gaussianphot(parameter):
     data = None
     dao_table = None
     star_table = None
-    def __init__(self, paras, data):
+    VERBOSE = 2
+    def __init__(self, paras, data, VERBOSE = 2):
         self.data = data
+        self.VERBOSE = VERBOSE
         # find peak by dao finder
         daofind = DAOStarFinder(threshold = 3.0*paras.std + paras.bkg , fwhm=paras.sigma*gaussian_sigma_to_fwhm, roundhi=1.0, roundlo=-1.0, sharplo=0.5, sharphi=2.0, sky = paras.bkg)
         dao_table = daofind.find_stars(paras.data)
-        if VERBOSE>2:
+        if self.VERBOSE>2:
             print dao_table
         self.dao_table = dao_table
         # do aperture photometry
@@ -204,7 +206,7 @@ class gaussianphot(parameter):
         star_list = get_star(data, peak_list, half_width_lmt = hwl, eccentricity = ecc, detailed = True, VERBOSE = 1)
         # exclude some star will weird sigma 
         proper_star_list = self.proper_sigma(star_list, 6, 8)
-        if VERBOSE>1:
+        if self.VERBOSE>1:
             print "number of star = {0}".format(len(star_list))
             print "number of proper star = {0}".format(len(proper_star_list))
         # set the unit and title of params in table
@@ -221,12 +223,14 @@ class aperphot(parameter):
     data = None
     dao_table = None
     star_table = None
-    def __init__(self, paras, data):
+    VERBOSE = 2
+    def __init__(self, paras, data, VERBOSE =2):
         self.data = data
+        self.VERBOSE = 2
         # find peak by dao finder
         daofind = DAOStarFinder(threshold = 3.0*paras.std + paras.bkg, fwhm=paras.sigma*gaussian_sigma_to_fwhm, roundhi=1.0, roundlo=-1.0, sharplo=0.5, sharphi=2.0, sky = paras.bkg)
         dao_table = daofind.find_stars(paras.data)
-        if VERBOSE>2: print dao_table
+        if self.VERBOSE>2: print dao_table
         self.dao_table = dao_table
         # do aperture photometry
         self.star_table = self.phot()
@@ -262,12 +266,18 @@ class aperphot(parameter):
             # ibd means the minimun of radius of bkg
             # obd means the maximun of radius of bkg
             # shape mean the shape used to fitting
-            student = aper_test.aper_phot(star_data, rd, ibd, obd, shape, name = peak_list.index(p), VERBOSE = VERBOSE)
+            student = aper_test.aper_phot(star_data, rd, ibd, obd, shape, name = peak_list.index(p), VERBOSE = 0)
             if student.flux < 0:
+                continue
+            if student.flux == np.nan:
+                continue
+            if student.bkg == np.nan:
+                continue
+            if student.e_bkg = np.nan:
                 continue
             star_row = np.array([x, y, student.flux, student.bkg, student.e_flux ])
             star_list.append(star_row)
-        if VERBOSE>0: raw_input("pause, please press enter to go on.")
+        if self.VERBOSE>2: raw_input("pause, please press enter to go on.")
         # set the unit and title of params in table
         star_title = np.array(['xcenter', 'ycenter', 'flux', 'bkg', 'e_bkg'])
         star_unit = np.array(['pixel', 'pixel', 'count', 'count', 'count'])
@@ -451,6 +461,7 @@ class phot_control:
     star_table = None
     mag_table = None
     paras = None
+    VERBOSE = 2
     fits_name = "untitle.fits"
     star_table_name = "untitle_table.fits"
     result_region_name = "untitle_region"
@@ -460,7 +471,7 @@ class phot_control:
     opt_list = ["aperphot", "gaussianphot", "psfphot"]
     # opt is the photometry you choosed.
     opt = "aperphot"
-    def __init__(self, fits_name, opt):
+    def __init__(self, fits_name, opt, VERBOSE = 2):
         if VERBOSE>0: print "---      start process      ---" 
         # name setting
         self.fits_name = fits_name
@@ -469,6 +480,7 @@ class phot_control:
         self.result_region_name = "{0}_region".format(self.fits_name[0:-5])
         self.dao_table_name = "{0}_dao_table.fits".format(self.fits_name[0:-5])
         self.dao_region_name = "{0}_dao_region".format(self.fits_name[0:-5])
+        self.VERBOSE = VERBOSE
         # test aperphot is better or psfphot?
         self.paras = parameter(self.data)
         self.paras.observator_property(fits_name)
@@ -511,7 +523,7 @@ class phot_control:
         return
     # get del mag
     def observertory_property(self, del_mag_table, paras):
-        if VERBOSE>0: print "------   find match del mag   ------"
+        if self.VERBOSE>0: print "------   find match del mag   ------"
         # create a empty list with length of property list
         property_name_array = paras.property_name_array
         property_list = [paras.date, paras.scope, paras.band, paras.method, paras.obj]
@@ -521,7 +533,7 @@ class phot_control:
         # temp_list = [   [], [], [], ... ,[tar_list]  ]
         temp_list.append(del_mag_table)
         for i in xrange(len(property_name_array)):
-            if VERBOSE>0:print "current property = ",property_list[i]
+            if self.VERBOSE>0:print "current property = ",property_list[i]
             for tar in temp_list[i-1]:
                 if tar[property_name_array[i]] == property_list[i]:
                     if temp_list[i] == None:
@@ -529,10 +541,10 @@ class phot_control:
                     else:
                         temp_list[i].add_row(tar)
         if len(temp_list[len(property_list)-1]) == 0:
-            if VERBOSE>0:print "No matched data."
+            if self.VERBOSE>0:print "No matched data."
             return None
         match_del_mag_table = temp_list[len(property_list)-1]
-        if VERBOSE>0: print match_del_mag_table 
+        if self.VERBOSE>2: print match_del_mag_table 
         return match_del_mag_table
     # this def is for cut origin image into several piece. 
     # In order to get much more accurate psf model and fitting result.
@@ -540,27 +552,27 @@ class phot_control:
         return puzz_data
     # do psf fitting, powered by psfphot.
     def psfphot(self, paras, data, it):
-        if VERBOSE>0: print "---      psfphot star      ---"
+        if self.VERBOSE>0: print "---      psfphot star      ---"
         psffitting = psfphot(paras, data, it)
         star_table = None
         dao_table = None
         psfed_data = psffitting.psfed_data
         return psfed_data
     def aperphot(self, paras, data):
-        if VERBOSE>0: print "---      aperphot star      ---"
+        if self.VERBOSE>0: print "---      aperphot star      ---"
         aperfitting = aperphot(paras, data)
         star_table = aperfitting.star_table
         dao_table = aperfitting.dao_table
         return star_table, dao_table
     def gaussianphot(self, paras, data):
-        if VERBOSE>0: print "---      gaussianphot star      ---"
+        if self.VERBOSE>0: print "---      gaussianphot star      ---"
         gaussianfitting = gaussianphot(paras, data)
         star_table = gaussianfitting.star_table
         dao_table = gaussianfitting.dao_table
         return star_table, dao_table
     # save result of photometry.
     def save(self):
-        if VERBOSE>0: print "---      save table      ---"
+        if self.VERBOSE>0: print "---      save table      ---"
         star_table = self.star_table
         dao_table = self.dao_table
         # save table
@@ -609,28 +621,30 @@ class wcs_controller(unit_converter):
     wcs_table = None
     inst_table = None
     mag_table = None
+    VERBOSE = 2
     # usually, mag_table is result_table
     result_table = None
     match_del_mag_table = None
     fits_name = ""
-    def __init__(self, star_table, match_del_mag_table, fits_name):
+    def __init__(self, star_table, match_del_mag_table, fits_name, VERBOSE = 2):
         if VERBOSE>0: print "---      start to process wcs      ---"
         self.fits_name = fits_name
         self.star_table = star_table
         self.match_del_mag_table = match_del_mag_table
+        self.VERBOSE = VERBOSE
         # get wcs coords
         self.wcs_table = self.pix2wcs(star_table, fits_name)
-        print self.wcs_table
+        if self.VERBOSE>2: print self.wcs_table
         # get instrument mag
         self.inst_table = self.pix2mag(self.wcs_table, fits_name)
-        print self.inst_table
+        if self.VERBOSE>2: print self.inst_table
         # get real mag
         self.mag_table = self.realmag(self.inst_table, match_del_mag_table)
-        print self.mag_table
+        if self.VERBOSE>2: print self.mag_table
         return
     # convert star table into wcs table
     def pix2wcs(self, star_table, fits_name):
-        if VERBOSE>0: print "------   convert pixel to wcs   ------"
+        if self.VERBOSE>0: print "------   convert pixel to wcs   ------"
         # initialized wcs
         try:
             hdulist = pyfits.open(fits_name)
@@ -687,7 +701,7 @@ class wcs_controller(unit_converter):
             i += 1
         return wcs_table
     def pix2mag(self, star_table, fits_name):
-        if VERBOSE>0: print "------   convert count to mag   ------"
+        if self.VERBOSE>0: print "------   convert count to mag   ------"
         # initailized info
         column_name = ["mag", "e_mag"]
         collection = { 'mag':None, 'e_mag':None} 
@@ -716,7 +730,7 @@ class wcs_controller(unit_converter):
         return mag_table
     # get real magnitude
     def realmag(self, star_table, match_del_mag_table):
-        if VERBOSE>0: print "------   convert inst mag to real mag   ------"
+        if self.VERBOSE>0: print "------   convert inst mag to real mag   ------"
         # initailized info 
         local_name = ['U', 'B', 'V', 'R', 'I', 'N']
         mag_unit = 'mag_per_sec'

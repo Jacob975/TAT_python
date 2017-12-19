@@ -15,6 +15,9 @@ update log
 20171206 version alpha 2
     1. add a new parameters, name, used to control the name of plot.
     2. I using get_rid_of_exotic to wipe out bright star affect on bkg region.
+
+20171220 version alpha 3 
+    1. update the variable name, e_flux -> e_bkg, make the code more human friendly
 '''
 from sys import argv
 import numpy as np
@@ -33,7 +36,7 @@ class aper_phot:
     data = None
     # output variable
     flux = None
-    e_flux = None
+    e_bkg = None
     bkg = None
     # parameters
     region_radius = None
@@ -44,7 +47,7 @@ class aper_phot:
     name = 0
     VERBOSE = 0
     # the main sequense of aperture photometry process
-    def __init__(self, data, region_radius = 12, inner_bkg_radius = 16, outer_bkg_radius = 18, shape = "rect", name = 0, VERBOSE = 0):
+    def __init__(self, data, region_radius = 12, inner_bkg_radius = 16, outer_bkg_radius = 18, shape = "circle", name = 0, VERBOSE = 0):
         self.data = data
         self.region_radius = region_radius
         self.inner_bkg_radius = inner_bkg_radius
@@ -52,11 +55,11 @@ class aper_phot:
         self.name = name
         self.VERBOSE = VERBOSE
         if shape == "rect":
-            self.flux, self.e_flux, self.bkg = self.get_flux_rect(data)
+            self.flux, self.e_bkg, self.bkg = self.get_flux_rect(data)
             if self.VERBOSE>1:
                 self.plot_rect()
         if shape == "circle":
-            self.flux, self.e_flux, self.bkg = self.get_flux_circle(data)
+            self.flux, self.e_bkg, self.bkg = self.get_flux_circle(data)
             if self.VERBOSE>1:
                 self.plot_circle()
         return
@@ -86,11 +89,11 @@ class aper_phot:
         bkg_array = gross[in_region]
         bkg_array = curvefit.get_rid_of_exotic(bkg_array)
         bkg = np.mean(bkg_array)
-        e_flux = np.std(bkg_array)
+        e_bkg = np.std(bkg_array)
         gross_flux = gross_flux - bkg
         flux = np.sum(gross_flux)
-        if self.VERBOSE>2:print "total flux = {0:.2f}, bkg = {1:.2f}+-{2:.2f}".format(flux, bkg, e_flux)
-        return flux, e_flux, bkg
+        if self.VERBOSE>2:print "total flux = {0:.2f}, bkg = {1:.2f}+-{2:.2f}".format(flux, bkg, e_bkg)
+        return flux, e_bkg, bkg
     def plot_rect(self):
         #--------------------------
         # prepare some parameters
@@ -105,7 +108,7 @@ class aper_phot:
         # start to plot
         #--------------------
         result_plt = plt.figure("aper phot {0}".format(self.name))
-        plt.imshow(self.data, vmin = self.bkg - 3*self.e_flux, vmax = self.bkg + 3*self.e_flux)
+        plt.imshow(self.data, vmin = self.bkg - 3*self.e_bkg, vmax = self.bkg + 3*self.e_bkg)
         plt.colorbar()
         axe = plt.gca()
         # obr means outer bkg range
@@ -143,11 +146,11 @@ class aper_phot:
         bkg_array = data[gross_hollow_mask]
         bkg_array = curvefit.get_rid_of_exotic(bkg_array)
         bkg = np.mean(bkg_array)
-        e_flux = np.std(bkg_array)
+        e_bkg = np.std(bkg_array)
         flux_matrix = np.array(data - bkg)
         flux = np.sum(flux_matrix[gross_flux_mask])
-        if self.VERBOSE>2:print "total flux = {0:.2f}, bkg = {1:.2f}+-{2:.2f}".format(flux, bkg, e_flux)
-        return flux, e_flux, bkg
+        if self.VERBOSE>2:print "total flux = {0:.2f}, bkg = {1:.2f}+-{2:.2f}".format(flux, bkg, e_bkg)
+        return flux, e_bkg, bkg
     def plot_circle(self):
         #--------------------------
         # prepare some parameters
@@ -162,7 +165,7 @@ class aper_phot:
         # start to plot
         #--------------------
         result_plt = plt.figure("aper phot {0}".format(self.name))
-        plt.imshow(self.data, vmin = self.bkg - 3*self.e_flux, vmax = self.bkg + 3*self.e_flux)
+        plt.imshow(self.data, vmin = self.bkg - 3*self.e_bkg, vmax = self.bkg + 3*self.e_bkg)
         plt.colorbar()
         axe = plt.gca()
         # obc means outer bkg circle

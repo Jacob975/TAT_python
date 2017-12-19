@@ -33,7 +33,10 @@ import math
 # This is used to read a list of fits name.
 # and return a list data
 def readfile(filename):
-    f = open(filename, 'r')
+    try:
+        f = open(filename, 'r')
+    except:
+        return []
     data = []
     for line in f.readlines():
         # skip if no data or it's a hint.

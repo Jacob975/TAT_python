@@ -14,6 +14,7 @@ update log
 import numpy as np
 import time
 from astropy.table import Table
+from astropy.table import Column
 import os
 #--------------------------------------------
 # main code
@@ -26,11 +27,19 @@ if __name__ == "__main__":
     # first example
     # setup a basic table
     print "--- first ---"
-    a = [1, 4, 5]
-    b = [2.0, 5.0, 8.2]
-    c = ['x', 'y', 'z']
+    a = [1, 4, 5, 0]
+    b = [2.0, 5.0, 8.2, 10.0]
+    c = ['x', 'y', 'z', 't']
     t = Table([a, b, c], names=('a', 'b', 'c'), meta={'name': 'first table'})
-    
+    print t
+    # each row in table is "Row type"
+    print len(t)
+    tt = t[0]
+    col_new = Column(name="n", data=['hi'])
+    # row cannot expand
+    #tt.add_column(col_new)
+    # but turn into table can
+
     if VERBOSE>0:print t
 
     #--------------------------------------------
@@ -43,15 +52,11 @@ if __name__ == "__main__":
                 (5, 8.2, 'z')]
     t = Table(rows=data_rows, names=('a', 'b', 'c'), meta={'name': 'first table'}, dtype=('i4', 'f8', 'S1'))
     t['b'].unit = 's'
-    for row in t:
-        print row
-    if VERBOSE>0:
-        print t
-        print t.info
-        print t['b'].quantity
-        print t['b'].to('min')
-    # show_in_notebook do no reaction, I don't know why.
-    t.show_in_notebook()
+    row = t[1]
+    # a row of table can be convert into table straight forward.
+    tt = Table(rows = row)
+    print tt
+    print t
     #---------------------------------------------
     # third example
     # type of saved file
