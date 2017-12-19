@@ -28,7 +28,7 @@ if __name__ == "__main__":
     # get property from argv
     fits_name = argv[-1]
     imA = pyfits.getdata(fits_name)
-    paras, cov = curvefit.hist_gaussian_fitting("picture", imA, VERBOSE =4)
+    paras, cov = curvefit.hist_gaussian_fitting("picture", imA, half_width = 100, shift = -10, VERBOSE =4)
     raw_input()
     # measuring time
     elapsed_time = time.time() - start_time
