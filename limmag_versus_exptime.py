@@ -397,9 +397,9 @@ class lim_mag_versus_time():
             data = np.array([self.properties["object"], self.properties["scope"], self.properties["band"], self.properties["date"], self.stack_mod, self.list_name, paras[0], e_parameters[0], paras[1], e_parameters[1]])
         # save result in combinator database
         try:
-            pre_table = Table.read(self.path_of_noise_to_some)
-            pre_table.add_row(data)
-            pre_table.write(self.path_of_noise_to_some, overwrite = True)
+            existing_table = Table.read(self.path_of_noise_to_some)
+            existing_table.add_row(data)
+            existing_table.write(self.path_of_noise_to_some, overwrite = True)
             hdulist = fits.open(self.path_of_noise_to_some, mode = 'update')
             prihdr = hdulist[0].header
             prihdr['fitting_function'] = self.fitting_func
@@ -407,10 +407,10 @@ class lim_mag_versus_time():
             hdulist.close()
             success = 1
         except:
-            sub_table = Table(rows = [data], names = data_name)
+            new_table = Table(rows = [data], names = data_name)
             for i in xrange(len(data)):
-                sub_table[data_name[i]].unit = sub_units[i]
-            sub_table.write(self.path_of_noise_to_some)
+                new_table[data_name[i]].unit = sub_units[i]
+            new_table.write(self.path_of_noise_to_some)
             hdulist = fits.open(self.path_of_noise_to_some, mode = 'update')
             prihdr = hdulist[0].header
             prihdr['fitting_function'] = self.fitting_func
