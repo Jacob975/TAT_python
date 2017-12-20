@@ -62,6 +62,10 @@ update log
     1. rename type of phot
     2. old aperphot -> gaussianphot
     3. test aperphot -> aperphot, real aperphot, also put wcs convertor into aperphot.
+
+20171220 version alpha 13
+    1. update the func of VERBOSE, now the VERBOSE can work when this code is imported.
+    2. make some variable name more human-friendly.
 '''
 from sys import argv
 from photutils.detection import IRAFStarFinder, DAOStarFinder
@@ -70,6 +74,7 @@ from curvefit import hist_gaussian_fitting, get_peak_filter, get_star, get_star_
 from astropy.table import Table, Column
 from tat_datactrl import readfile
 from skimage import restoration 
+from astropy.io import fits
 import numpy as np
 import TAT_env
 import pyfits
@@ -273,10 +278,13 @@ class aperphot(parameter):
                 continue
             if student.bkg == np.nan:
                 continue
-            if student.e_bkg = np.nan:
+            if student.e_bkg == np.nan:
                 continue
-            star_row = np.array([x, y, student.flux, student.bkg, student.e_flux ])
+            star_row = np.array([x, y, student.flux, student.bkg, student.e_bkg ])
             star_list.append(star_row)
+        # check the list is valid
+        if len(star_list) == 0:
+            return None
         if self.VERBOSE>2: raw_input("pause, please press enter to go on.")
         # set the unit and title of params in table
         star_title = np.array(['xcenter', 'ycenter', 'flux', 'bkg', 'e_bkg'])
@@ -481,19 +489,23 @@ class phot_control:
         self.dao_table_name = "{0}_dao_table.fits".format(self.fits_name[0:-5])
         self.dao_region_name = "{0}_dao_region".format(self.fits_name[0:-5])
         self.VERBOSE = VERBOSE
-        # test aperphot is better or psfphot?
         self.paras = parameter(self.data)
         self.paras.observator_property(fits_name)
         # three option:
         # 1. aperphot
         # 2. gaussianphot
         # 3. psfphot
+        if self.VERBOSE>0: print "processed image: {0}".format(fits_name)
         if opt == "aperphot":
             self.star_table, self.dao_table = self.aperphot(self.paras, self.data)
             self.mag_table = self.star_table
+            if self.star_table == None:
+                return
         if opt == "gaussianphot":
             self.star_table, self.dao_table = self.guassianphot(self.paras, self.data)
             self.mag_table = self.star_table
+            if self.star_table == None:
+                return
         if opt == "psfphot":
             self.header = pyfits.getheader(fits_name)
             # do wiener deconvolution recursively
@@ -597,7 +609,7 @@ class phot_control:
         # save dao table
         dao_table.write(self.dao_table_name, overwrite = True)
         # save header to that table
-        hdulist = fits.open(self,dao_table_name, mode = 'update')
+        hdulist = fits.open(self.dao_table_name, mode = 'update')
         prihdr = hdulist[0].header
         prihdr['DATE'] = self.paras.date
         prihdr['BAND'] = self.paras.band

@@ -42,6 +42,9 @@ path_of_code = "/home/Jacob975/bin/tat_python"
 # recommand: /home/tat_result
 path_of_result = "/home/Jacob975/demo"
 
+#--------------- Name of Folders---------------------
+catalog_dir = "tat_catalog"
+
 #--------------- Object list---------------------------------
 # every object recorded below will be read
 object_list = []

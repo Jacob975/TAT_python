@@ -41,7 +41,7 @@ class argv_controller:
     START_TIME = None
     # the name of log
     # all thing the code do will be save in log file
-    LOG_NAME = None
+    LOGNAME = None
     # how load the code be
     VERBOSE = 2
     # ---------------------------------------------
@@ -62,13 +62,13 @@ class argv_controller:
         # set the initial time 
         self.START_TIME = time.time()
         # set the log name
-        self.LOG_NAME = "{0}_tat_catalog.log".format(self.START_TIME)
-        if VERBOSE>1: print "the log will be saved here: {0}".format(self.LOG_NAME)
+        self.LOGNAME = "{0}_tat_catalog.log".format(self.START_TIME)
+        if VERBOSE>1: print "the log will be saved here: {0}".format(self.LOGNAME)
         # write log 
         self.savelog()
         return
     def savelog(self):
-        log_file = open(self.LOG_NAME, "a+")
+        log_file = open(self.LOGNAME, "a+")
         log_file.write("the option: {0}\n".format(self.opt))
         log_file.close()
         return
@@ -87,7 +87,7 @@ class cursor:
     # the timestamp of the starting time
     START_TIME = None
     # where are we save the log.
-    LOG_NAME = None
+    LOGNAME = None
     # how load the code be
     VERBOSE = 2
     # the list of processed data
@@ -103,22 +103,22 @@ class cursor:
         self.opt = arg_ctrl.opt
         self.code_name = arg_ctrl.code_name
         self.START_TIME = arg_ctrl.START_TIME
-        self.LOG_NAME = arg_ctrl.LOG_NAME
+        self.LOGNAME = arg_ctrl.LOGNAME
         self.VERBOSE = VERBOSE
         # read log
         if self.opt == '-t':
-            self.process_fits_list = []
+            self.processed_fits_list = []
         elif self.opt == '-u':
             self.processed_fits_list = readfile(self.PROCESSED_FITS_LIST_NAME)
         # determine which image will be process
         self.fits_name_list = glob.glob("*.fits")
         self.unprocessed_fits_list = list(set(self.fits_name_list) - set(self.processed_fits_list))
-        # process
-        worker = distributor(self.unprocessed_fits_list)
         # update the list of processed image
-        self.writefile(self.unprocessed_fits_list)
+        self.writefile()
         # write down log
         self.savelog()
+        # process
+        worker = distributor(self.unprocessed_fits_list, self.LOGNAME, self.PROCESSED_FITS_LIST_NAME)
         return
     # this class is used to update the list of processed image.
     def writefile(self):
@@ -126,29 +126,13 @@ class cursor:
         time_stamp = datetime.datetime.fromtimestamp(self.START_TIME).strftime('%Y-%m-%d %H:%M:%S')
         log_file.write("# date: {0}\n".format(time_stamp))
         log_file.write("# Processed files:\n")
-        if len(self.unprocessed_fits_list) == 0:
-            log_file.write("#\tNo file in this process\n")
-            log_file.write("# the end of this process.")
-            log_file.close()
-            return
-        for name in self.unprocessed_fits_list:
-            log_file.write("{0}\n".format(name))
-        log_file.write("# the end of this process.")
         log_file.close()
         return
     def savelog(self):
-        log_file = open(self.LOG_NAME, "a+")
+        log_file = open(self.LOGNAME, "a+")
         time_stamp = datetime.datetime.fromtimestamp(self.START_TIME).strftime('%Y-%m-%d %H:%M:%S')
         log_file.write("# date: {0}\n".format(time_stamp))
         log_file.write("# Processed files:\n")
-        if len(self.unprocessed_fits_list) == 0:
-            log_file.write("#\tNo file in this process\n")
-            log_file.write("# the end of this process.")
-            log_file.close()
-            return
-        for name in self.unprocessed_fits_list:
-            log_file.write("{0}\n".format(name))
-        log_file.write("# the end of this process.")
         log_file.close()
 # This class is used to arrange raw star catalog to form a star catalog.
 class distributor:
@@ -158,18 +142,22 @@ class distributor:
     error = TAT_env.pix1/3600.0 * 6.0
     path_of_execute = os.getcwd()
     # where were you save this catalog
-    path_of_catalog = "{0}/tat_test_catalog".format(TAT_env.path_of_result)
-    def __init__(self, fits_list, VERBOSE = 2):
+    path_of_catalog = "{0}/{1}".format(TAT_env.path_of_result, TAT_env.catalog_dir)
+    def __init__(self, fits_list, LOGNAME, PROCESSED_FITS_LIST_NAME, VERBOSE = 2):
         # setting the constants
         self.VERBOSE = VERBOSE
+        self.LOGNAME = LOGNAME
+        self.PROCESSED_FITS_LIST_NAME = PROCESSED_FITS_LIST_NAME
         print "tolerate error: {0}".format(self.error)
-        self.path_of_catalog = "{0}/tat_test_catalog".format(TAT_env.path_of_result)
         self.fits_list = fits_list
         for name in fits_list:
             # do tat phot
             worker = tat_phot.phot_control(name, "aperphot")
             # read table
             phot_table = worker.star_table
+            # check if is the table valid
+            if phot_table == None:
+                continue
             paras = worker.paras
             # add image info parameters into table
             date = [paras.date for i in range(len(phot_table))]
@@ -190,6 +178,8 @@ class distributor:
             phot_table.add_column(exptime_col)
             phot_table["exptime"].unit = "sec"
             self.execute(phot_table, paras)
+            self.writefile(name)
+            self.savelog(name)
         return
     # this def is used to execute distributing
     def execute(self, star_table, paras):
@@ -229,10 +219,10 @@ class distributor:
             DEC_include = ref_DEC - error < loc_DEC and ref_DEC + error > loc_DEC
             # if match, return existing table name.
             if RA_include and DEC_include:
-                print "{0:.5f} {1:.5f} success".format(loc_RA, loc_DEC)
+                print "{0:.5f} {1:.5f} appended".format(loc_RA, loc_DEC)
                 return table_name, len(table_list)
         # if noting match, return None
-        print "{0:.5f} {1:.5f} fail".format(loc_RA, loc_DEC)
+        print "{0:.5f} {1:.5f} new".format(loc_RA, loc_DEC)
         return None, len(table_list)
     # if the star is a new star, this def is used to setup a new table.
     def new_table(self, star_row, searching_list_length):
@@ -249,8 +239,16 @@ class distributor:
         existing_table.add_row(star_row)
         existing_table.write(path_of_table, format = 'fits', overwrite = True)
         return
+    # write a file to mention that which image is done or not.
+    def writefile(self, name):
+        f = open(self.PROCESSED_FITS_LIST_NAME, "a+")
+        f.write("{0}\n".format(name))
+        f.close()
     # save log of this process.
-    def savelog(self):
+    def savelog(self, name):
+        f = open(self.LOGNAME, "a+")
+        f.write("{0}\n".format(name))
+        f.close()
         return
 # This class is used to check whether the star is stable or not
 class analysis:
