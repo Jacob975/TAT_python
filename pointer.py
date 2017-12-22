@@ -12,10 +12,13 @@ Classes included:
 
 Test Usage:
 1. pointer.py [RA] [DEC] [PATH]
+2. pointer.py [RA] [DEC] [IMAGE NAME]
 
 RA: the Right accention of the point you want to take a look.
 DEC: the declination of the point you want ot take a look.
 PATH: Where you save these image.
+
+IMAGE NAME: the name of image whose you want to observe.
 
 editor Jacob975
 20171210
@@ -29,6 +32,9 @@ update log
 20171217 version alpha 2
     1. the class "pointer" is done.
     2. the class "ccs" is done.
+
+20171222 version alpha 3
+    1. add a new feature that you can specify a image to be processed.
 '''
 from sys import argv
 import numpy as np
@@ -58,20 +64,36 @@ class pointer:
     #------------------------------------------------------------------------
     # initialize, read the coor of point and the path we save image.
     # find out which image contain the point.
-    def __init__(self, RA, DEC, path):
+    def __init__(self, RA, DEC, path = "."):
+        # initalize variables
+        self.sky = ccs(RA, DEC)
         # save current path
         self.init_path = os.getcwd()
-        # switch to the directed path
-        self.path = path
-        os.chdir(path)
-        self.fits_name_list = glob.glob("*.fits")
-        self.sky = ccs(RA, DEC)
-        self.near_image_name, self.near_image_data, self.near_image_header = self.finder(self.sky)
+        # check the path variable is a path or a name of image?
+        # if it is a name of some image, save it
+        if path.find("fits") != -1:
+            self.near_image_name = path
+            self.near_image_data = pyfits.getdata(path)
+            self.near_image_header = pyfits.getheader(path)
+            self.pix = self.sky2pix(self.sky, path)
+        # if not, searching proper image in that path.
+        else:
+            # switch to the directed path
+            self.path = path
+            os.chdir(path)
+            self.fits_name_list = glob.glob("*.fits")
+            self.near_image_name, self.near_image_data, self.near_image_header = self.finder(self.sky)
         # check whether finder success or not
         if self.near_image_name == None:
             return
         if VERBOSE>1: self.ds9()
         return
+    def sky2pix(self, sky, fits_name):
+        hdulist = pyfits.open(fits_name)
+        wcs = pywcs.WCS(hdulist[0].header)
+        coors = np.dstack((sky.hms, sky.dms))
+        pix = wcs.wcs_sky2pix(coors[0], 1)
+        return pix
     def finder(self, p_ccs):
         # determine the coordinate is on the image or not.
         for fits_name in self.fits_name_list:
@@ -79,12 +101,9 @@ class pointer:
             is_valid_x = False
             is_valid_y = False
             # read data
-            hdulist = pyfits.open(fits_name)
-            wcs = pywcs.WCS(hdulist[0].header)
+            pix = self.sky2pix(p_ccs, fits_name)
             data = pyfits.getdata(fits_name)
             fits_header = pyfits.getheader(fits_name)
-            coors = np.dstack((p_ccs.hms, p_ccs.dms))
-            pix = wcs.wcs_sky2pix(coors[0], 1)
             # check whether the point is located inside the image or not.
             if 0 < pix[0][0] and pix[0][0] < len(data):
                 is_valid_x = True
@@ -101,7 +120,7 @@ class pointer:
         # save region
         os.chdir(self.init_path)
         region_name = "{0}_region".format(time.time())
-        region_file = open(region_name, "a")
+        region_file = open(region_name, "a+")
         region_file.write("{0} {1}".format(self.pix[0][0], self.pix[0][1]))
         region_file.close()
         # using ds9 to display
