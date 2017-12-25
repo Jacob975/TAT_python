@@ -3,7 +3,7 @@
 Program:
 This is a program to do aperture photometry
 Usage:
-1. aper_test.py [fits_name]
+1. aper_lib.py [fits_name]
 editor Jacob975
 20171130
 #################################

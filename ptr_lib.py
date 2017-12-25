@@ -11,8 +11,8 @@ Classes included:
         This is a following class of pointer, because I need some ccs calculation.
 
 Test Usage:
-1. pointer.py [RA] [DEC] [PATH]
-2. pointer.py [RA] [DEC] [IMAGE NAME]
+1. ptr_lib.py [RA] [DEC] [PATH]
+2. ptr_lib.py [RA] [DEC] [IMAGE NAME]
 
 RA: the Right accention of the point you want to take a look.
 DEC: the declination of the point you want ot take a look.

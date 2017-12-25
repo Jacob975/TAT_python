@@ -83,7 +83,7 @@ import time
 import warnings
 from scipy.signal import convolve2d
 import scipy
-import aper_test
+import aper_lib
 
 # This is used to control argus.
 class argv_controller:
@@ -271,7 +271,7 @@ class aperphot(parameter):
             # ibd means the minimun of radius of bkg
             # obd means the maximun of radius of bkg
             # shape mean the shape used to fitting
-            student = aper_test.aper_phot(star_data, rd, ibd, obd, shape, name = peak_list.index(p), VERBOSE = 0)
+            student = aper_lib.aper_phot(star_data, rd, ibd, obd, shape, name = peak_list.index(p), VERBOSE = 0)
             if student.flux < 0:
                 continue
             if student.flux == np.nan:
@@ -502,7 +502,7 @@ class phot_control:
             if self.star_table == None:
                 return
         if opt == "gaussianphot":
-            self.star_table, self.dao_table = self.guassianphot(self.paras, self.data)
+            self.star_table, self.dao_table = self.gaussianphot(self.paras, self.data)
             self.mag_table = self.star_table
             if self.star_table == None:
                 return
@@ -546,6 +546,8 @@ class phot_control:
         temp_list.append(del_mag_table)
         for i in xrange(len(property_name_array)):
             if self.VERBOSE>0:print "current property = ",property_list[i]
+            if temp_list[i-1] == None:
+                return None
             for tar in temp_list[i-1]:
                 if tar[property_name_array[i]] == property_list[i]:
                     if temp_list[i] == None:
@@ -585,7 +587,7 @@ class phot_control:
     # save result of photometry.
     def save(self):
         if self.VERBOSE>0: print "---      save table      ---"
-        star_table = self.star_table
+        star_table = self.star_table 
         dao_table = self.dao_table
         # save table
         self.mag_table.write(self.star_table_name, overwrite = True)
@@ -651,7 +653,10 @@ class wcs_controller(unit_converter):
         self.inst_table = self.pix2mag(self.wcs_table, fits_name)
         if self.VERBOSE>2: print self.inst_table
         # get real mag
-        self.mag_table = self.realmag(self.inst_table, match_del_mag_table)
+        if self.match_del_mag_table == None:
+            self.mag_table = self.inst_table
+        else:
+            self.mag_table = self.realmag(self.inst_table, match_del_mag_table)
         if self.VERBOSE>2: print self.mag_table
         return
     # convert star table into wcs table
@@ -777,7 +782,7 @@ if __name__ == "__main__":
     start_time = time.time()
     # get property from argv
     fits_name=argv[-1]
-    phot = phot_control(fits_name, "aperphot")
+    phot = phot_control(fits_name, "gaussianphot")
     phot.save()
     # measuring time
     elapsed_time = time.time() - start_time
