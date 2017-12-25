@@ -134,8 +134,7 @@ def get_img_property(VERBOSE = 0):
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
-    VERBOSE = 0
-
+    VERBOSE = 3
     # measure times
     start_time = time.time()
     # get all names of fits
@@ -184,7 +183,7 @@ if __name__ == "__main__":
     hwl = 3
     ecc = 1
     ref_star_list = []
-    while len(ref_star_list) > 20 or len(ref_star_list) < 3:
+    while len(ref_star_list) > 25 or len(ref_star_list) < 3:
         hwl += 1
         ref_star_list = curvefit.get_star(ref_data, ref_peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
         if VERBOSE>1:print "hwl = {0}, len of ref_star_list = {1}".format(hwl, len(ref_star_list))
@@ -242,7 +241,7 @@ if __name__ == "__main__":
                 sz +=1
                 peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz)
             hwl = 3
-            while len(star_list) > 20 or len(star_list) < 3:
+            while len(star_list) > 25 or len(star_list) < 3:
                 hwl += 1
                 star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
                 if VERBOSE>1:print "hwl = {0}, len of star_list = {1}".format(hwl, len(star_list))
@@ -312,7 +311,7 @@ if __name__ == "__main__":
             print "the result of match"
             print "mean of delta_x: ", mean_delta_x ," stdev = ", std_delta_x
             print "mean of delta_y: ", mean_delta_y ," stdev = ", std_delta_y
-        #create_matched_fits(fits_list[order], data, mean_delta_x, mean_delta_y)
+        create_matched_fits(fits_list[order], data, mean_delta_x, mean_delta_y)
         if VERBOSE>0 : print fits_list[order], "match OK"
 
         elapsed_time = time.time() - start_time
