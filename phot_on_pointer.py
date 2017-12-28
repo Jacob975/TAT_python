@@ -3,13 +3,14 @@
 Program:
 This is a program to phot a point on different images with the same wcs.
 Usage:
-1. phot_on_pointer.py [RA] [DEC] [rr] [ibr] [obr] [opt]
+1. phot_on_pointer.py [RA] [DEC] [rr] [ibr] [obr] [T name] [opt]
 
 RA:     right accention of that point
 DEC:    declination of that point
 rr:     radius region of the aperphot
 ibr:    inner boundary radius of the aperphot
 obr:    outer boundary radius of the aperphot
+T name: the name of the target you observe
 
 editor Jacob975
 20171225
@@ -21,11 +22,16 @@ update log
 
 20171226 version alpha 2
     1. the code works well!
+
+20171228 version alpha 3
+    1. add new func, plot the result.
 '''
 from sys import argv
 from tat_phot import parameter
 from ptr_lib import ccs
 from astropy.table import Table, Column
+from jdcal import gcal2jd, jd2gcal
+import matplotlib.pyplot as plt
 import aper_lib
 import numpy as np
 import pyfits
@@ -119,8 +125,8 @@ class cursor:
     # -s means the program will only resolve the first image be found. 
     opt_list = ['-a', '-s']
     # the title and unit of the table
-    titles = np.array(["RAJ2000", "DECJ2000", "xcenter", "ycenter", "flux", "bkg", "e_bkg", "date", "band", "scope", "method", "exptime"])
-    units = np.array(["hhmmss", "ddmmss", "pix", "pix", "count", "count", "count", "yyyymmdd", "", "", "", "sec"])
+    titles = np.array(["RAJ2000", "DECJ2000", "xcenter", "ycenter", "flux", "bkg", "e_bkg", "jdcal", "date", "band", "scope", "method", "exptime"])
+    units = np.array(["hhmmss", "ddmmss", "pix", "pix", "count", "count", "count", "day", "yyyymmdd", "", "", "", "sec"])
     # opt means the option you choose
     # default by '-u'
     opt = '-a'
@@ -156,6 +162,7 @@ class cursor:
         self.obr = float(arg_ctrl.obr)
         self.fits_name_list = glob.glob("*.fits")
         self.result_table_name = "{0}_phot_on_pointer.fits".format(self.START_TIME)
+        self.result_image_name = "{0}_phot_on_pointer.png".format(self.START_TIME)
         # If you choose to process all images
         if self.opt == '-a':
             for name in self.fits_name_list:
@@ -167,6 +174,8 @@ class cursor:
                     self.result_table = star_table
                 else:
                     self.result_table.add_row(star_table[0])
+            self.result_table.sort("jdcal")
+            self.plot()
         # If you choose to process the first image contain the point
         elif self.opt == '-s':
             for name in self.fits_name_list:
@@ -191,7 +200,6 @@ class cursor:
             is_valid_x = True
         if 0 < pix[0][1] and pix[0][1] < len(data):
             is_valid_y = True
-        print pix[0][0], pix[0][1]
         # If it is valid, compute the result
         if is_valid_y and is_valid_x:
             # cut the region we are interested in.
@@ -202,10 +210,13 @@ class cursor:
             wk = aper_lib.aper_phot(star_data, self.rr, self.ibr, self.obr, shape = "circle", name = fits_name, VERBOSE = 0)
             # read info from image header
             wk2 = parameter_lite(fits_name)
-            obj_list = [[self.p_ccs.hms, self.p_ccs.dms, x, y, wk.flux, wk.bkg, wk.e_bkg, wk2.date, wk2.band, wk2.scope, wk2.method, wk2.exptime]]
-            print len(obj_list)
-            print len(self.titles)
-            print len(self.units)
+            # convert yymmdd to jdcal
+            date = int(wk2.date)
+            yy = date/10000
+            mm = (date - yy*10000)/100
+            dd = date%100
+            jd_day = gcal2jd(yy, mm, dd) 
+            obj_list = [[self.p_ccs.hms, self.p_ccs.dms, x, y, wk.flux, wk.bkg, wk.e_bkg, jd_day[1], wk2.date, wk2.band, wk2.scope, wk2.method, float(wk2.exptime)]]
             # initialize the table
             star_table = Table(rows = obj_list, names = self.titles)
             # setting unit
@@ -225,6 +236,27 @@ class cursor:
         # save the table 
         self.result_table.write(self.result_table_name, overwrite = True)
         # save the plot of flux versus date
+        return
+    def plot(self):
+        # read table
+        t = self.result_table
+        # base on the table, draw a plot
+        title = "target: SgrNova 2015b"
+        result_plot = plt.figure(title)
+        # set text
+        axes = plt.gca()
+        axes.grid(linestyle='--')
+        plt.xlabel("julian date (day)")
+        plt.ylabel("flux (count)")
+        plt.title(title)
+        # plot dots
+        x_plt = np.array(t["jdcal"])
+        y_plt = np.array(t["flux"])/np.array(t["exptime"])
+        weight_y = np.array(t["e_bkg"])/np.array(t["exptime"]) * np.sqrt(np.pi) * float(self.rr)
+        plt.errorbar(x_plt, y_plt, yerr = weight_y, fmt = 'rx')
+        result_plot.show()
+        result_plot.savefig(self.result_image_name)
+        raw_input()
         return
     def savelog(self):
         log_file = open(self.LOGNAME, "a+")
