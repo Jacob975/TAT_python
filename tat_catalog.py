@@ -11,7 +11,7 @@ editor Jacob975
 #################################
 update log
     20171217 version alpha 1
-    1.  
+    1. the code work well.
 '''
 from sys import argv
 import numpy as np

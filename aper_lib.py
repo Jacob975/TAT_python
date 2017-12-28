@@ -88,8 +88,9 @@ class aper_phot:
         # find bkg and e_bkg
         bkg_array = gross[in_region]
         bkg_array = curvefit.get_rid_of_exotic(bkg_array)
-        bkg = np.mean(bkg_array)
-        e_bkg = np.std(bkg_array)
+        paras, cov = curvefit.hist_gaussian_fitting("default", bkg_array, half_width = 20, shift = 0, VERBOSE = 0)
+        bkg = paras[0]
+        e_bkg = paras[1]
         gross_flux = gross_flux - bkg
         flux = np.sum(gross_flux)
         if self.VERBOSE>2:print "total flux = {0:.2f}, bkg = {1:.2f}+-{2:.2f}".format(flux, bkg, e_bkg)
@@ -144,9 +145,10 @@ class aper_phot:
         gross_i_mask = np.power(x, 2) + np.power(y, 2) <= np.power(ibd, 2)
         gross_hollow_mask = gross_o_mask - gross_i_mask
         bkg_array = data[gross_hollow_mask]
-        bkg_array = curvefit.get_rid_of_exotic(bkg_array)
-        bkg = np.mean(bkg_array)
-        e_bkg = np.std(bkg_array)
+        bkg_array = curvefit.get_rid_of_exotic(bkg_array)        
+        paras, cov = curvefit.hist_gaussian_fitting("default", bkg_array, half_width = 20, shift = 0, VERBOSE = 0)
+        bkg = paras[0]
+        e_bkg = paras[1]
         flux_matrix = np.array(data - bkg)
         flux = np.sum(flux_matrix[gross_flux_mask])
         if self.VERBOSE>2:print "total flux = {0:.2f}, bkg = {1:.2f}+-{2:.2f}".format(flux, bkg, e_bkg)
