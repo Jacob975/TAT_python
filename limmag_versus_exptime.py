@@ -8,7 +8,7 @@ variable : t
 paras: N_{0}, p, C
 
 Usage:
-1. get_noise.py [stack option] [unit of noise] [list name]
+1. limmag_versus_exptime.py [stack option] [unit of noise] [list name]
 
 stack option
     1. default : 
