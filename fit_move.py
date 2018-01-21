@@ -131,6 +131,50 @@ def get_img_property(VERBOSE = 0):
     filter_name = list_path[-1]
     return scope_name, date_name, obj_name, filter_name
 
+def get_significant_stars(data, peak_list, hwl = 4, ecc =1, VERBOSE = 0):
+    #-------------------------------------
+    # find stars from peaks
+    star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
+    # the order is set in curvefit.get_star
+    star_list = np.sort(star_list, order = 'amplitude')
+    # Choose 20 the most bright stars as the reference.
+    if len(star_list) > 20 :
+        star_list = star_list[-20:]
+    if VERBOSE>1:print "hwl = {0}, len of star_list = {1}".format(hwl, len(star_list))
+    if VERBOSE>3:
+        print "star list: "
+        for star in star_list:
+            print star[2], star[1]
+    star_list = np.sort(star_list, order = 'xsigma')
+    star_list = np.sort(star_list, order = 'ysigma')
+    if VERBOSE>1 :
+        print "The number of star is ", len(star_list)
+        for value in star_list:
+            print "height = ", value[0], " position= (", value[1], value[2], ") size= (", value[3], value[4],")"    
+    return star_list
+
+def plot_dots(data, data_mean, data_std, peak_list, star_list):
+    # draw three plot, one with point, another without
+    f = plt.figure(fits_list[order])
+    plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+    plt.colorbar()
+    f.show()
+
+    g = plt.figure(fits_list[order]+'_peaks')
+    plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+    plt.colorbar()
+    for pos in peak_list:
+        plt.plot( pos[1], pos[0] , 'ro')
+    g.show()
+
+    h = plt.figure(fits_list[order]+'_stars')
+    plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
+    plt.colorbar()
+    for pos in star_list:
+        plt.plot( pos[2], pos[1] , 'ro')
+    h.show()
+    raw_input()
+    return
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
@@ -177,48 +221,9 @@ if __name__ == "__main__":
         print "peak list: "
         for peak in ref_peak_list:
             print peak[1], peak[0]
-
-    # test how many stars in this figure.
-    # If too much, raise up the limitation of half_width with default = 4
-    hwl = 3
-    ecc = 1
-    ref_star_list = []
-    while len(ref_star_list) > 25 or len(ref_star_list) < 3:
-        hwl += 1
-        ref_star_list = curvefit.get_star(ref_data, ref_peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
-        if VERBOSE>1:print "hwl = {0}, len of ref_star_list = {1}".format(hwl, len(ref_star_list))
+    ref_star_list = get_significant_stars(ref_data, ref_peak_list, hwl = 4, ecc =1, VERBOSE = 3)
     if VERBOSE>3:
-        print "star list: "
-        for star in ref_star_list:
-            print star[2], star[1]
-    ref_star_list = np.sort(ref_star_list, order = 'xsigma')
-    ref_star_list = np.sort(ref_star_list, order = 'ysigma')
-    if VERBOSE>1 : 
-        print "The number of star is ", len(ref_star_list)
-        for value in ref_star_list:
-            print "height = ", value[0], " position= (", value[1], value[2], ") size= (", value[3], value[4],")" 
-    if VERBOSE>3:
-        # draw three plot, one with point, another without
-        '''
-        f = plt.figure('ref_'+ref_name)
-        plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
-        plt.colorbar()
-        f.show()
-        '''
-        g = plt.figure('ref_'+ref_name+'_peaks')
-        plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
-        plt.colorbar()
-        for pos in ref_peak_list:
-            plt.plot( pos[1], pos[0] , 'ro')
-        g.show()
-
-        h = plt.figure('ref_'+ref_name+'_stars')
-        plt.imshow(ref_data, vmin = ref_data_mean - 1 * ref_data_std , vmax = ref_data_mean + 1 * ref_data_std )
-        plt.colorbar()
-        for pos in ref_star_list:
-            plt.plot( pos[2], pos[1] , 'ro')
-        h.show()
-        #raw_input()
+        plot_dots(ref_data, ref_data_mean, ref_data_std, ref_peak_list, ref_star_list)
 
     # matching images
     for order in xrange(len(fits_list)):
@@ -232,66 +237,14 @@ if __name__ == "__main__":
         if VERBOSE>1:
             print "mean: ", data_mean, "std: ", data_std
         # rest sz and hwl, because ref img is clear, easy to find stars, but belows is not.
-        peak_list = []
-        star_list = []
-        if order == 0:
-            sz = 29
-            tl = 15
-            while len(peak_list) >500 or len(peak_list) < 3:
-                sz +=1
-                peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz)
-            hwl = 3
-            while len(star_list) > 25 or len(star_list) < 3:
-                hwl += 1
-                star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc)
-                if VERBOSE>1:print "hwl = {0}, len of star_list = {1}".format(hwl, len(star_list))
-        else:
-            peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz) 
-            star_list = curvefit.get_star(data, peak_list, margin = 4, half_width_lmt = hwl, eccentricity = ecc )
-        # print to check the number of stars in local image compare to ref image.
-        if VERBOSE>3:
-            print "peak list: "
-            for peak in peak_list:
-                print peak[1], peak[0]
-        if VERBOSE>3:
-            print "star list: "
-            for star in star_list:
-                print star[2], star[1]
-        star_list = np.sort(star_list, order = 'xsigma')
-        star_list = np.sort(star_list, order = 'ysigma')
-        if VERBOSE>3:
-            # draw three plot, one with point, another without
-        
-            f = plt.figure(fits_list[order])
-            plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
-            plt.colorbar()
-            f.show()
-        
-            g = plt.figure(fits_list[order]+'_peaks')
-            plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
-            plt.colorbar()
-            for pos in peak_list:
-                plt.plot( pos[1], pos[0] , 'ro')
-            g.show()
-
-            h = plt.figure(fits_list[order]+'_stars')
-            plt.imshow(data, vmin = data_mean - 1 * data_std , vmax = data_mean + 1 * data_std )
-            plt.colorbar()
-            for pos in star_list:
-                plt.plot( pos[2], pos[1] , 'ro')
-            h.show()
-            #raw_input()
-    
-        if VERBOSE>1:
-            # print height and position of found stars.
-            print fits_list[order]
-            print "The number of star is ", len(star_list)
-            for value in star_list:
-                print "height = ", value[0], " position= (", value[1], value[2], ") size= (", value[3], value[4],")"
-    
+        peak_list = curvefit.get_peak_filter(data, tall_limit = tl, size = sz) 
+        star_list = get_significant_stars(data, peak_list, hwl = 4, ecc = 1, VERBOSE = 3)
         if len(star_list) < 3:
             print fits_list[order], "Number of stars is less than 3, match fail."
             continue
+        # Visualize the result
+        if VERBOSE>3:
+            plot_dots(data, data_mean, data_std, peak_list, star_list)
         # match function call    
         match_star_list, delta_x_list, delta_y_list, succeed = get_match(ref_star_list, star_list )    
         if not succeed:
