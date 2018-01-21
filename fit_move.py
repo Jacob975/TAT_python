@@ -26,6 +26,11 @@ update log
 
     20170808 version alpha 5
     1.  use tat_config to control path of result data instead of fix the path in the code.
+    
+    20180122 version alpha 6
+    1.  Optimize the part of finding proper stars for match.
+        In previous version, the code will find the same star for lots of times.
+        Now, the bug is fixed, the code become more efficient.
 '''
 from sys import argv
 import numpy as np
