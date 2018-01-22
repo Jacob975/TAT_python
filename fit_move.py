@@ -40,6 +40,7 @@ import curvefit
 import matplotlib.pyplot as plt
 import os
 import tat_datactrl
+import TAT_env
 
 # controll how many thing would be printed. 0 mean no, 1 means nessesary, 2 means debug.
 VERBOSE = 3
@@ -194,7 +195,7 @@ if __name__ == "__main__":
     # get the data of referance img.
     # include mean, std, the position of stars.
     scope_name, date_name, obj_name, filter_name = get_img_property()
-    path_of_result = tat_datactrl.get_path("path_of_result")
+    path_of_result = TAT_env.path_of_result
     ref_name ="{2}/reference/{1}_{0}.fits".format(date_name[:-4], obj_name, path_of_result)
     if VERBOSE>1 :
             print " "
