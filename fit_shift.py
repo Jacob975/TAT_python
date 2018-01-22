@@ -145,7 +145,7 @@ fits_list=tat_datactrl.readfile(list_name)
 # get the data of referance img.
 # include mean, std, the position of stars.
 scope_name, date_name, obj_name, filter_name = get_img_property()
-path_of_result = tat_datactrl.get_path("path_of_result")
+path_of_result = TAT_env.path_of_result
 ref_name ="{2}/reference/{1}_{0}.fits".format(date_name[:-4], obj_name, path_of_result)
 if VERBOSE>1 :
         print " "

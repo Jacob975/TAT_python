@@ -60,7 +60,7 @@ def read_tsv_file(file_name):
         data.append(line_data)
     f.close()
     return data
-
+'''
 #---------------------------------------------------------
 # Function in this section is for read path from setting.
 
@@ -82,7 +82,7 @@ def get_path(option, VERBOSE = 1):
                 return answer[0]
         else:
                 return answer
-
+'''
 #----------------------------------------------------------
 # This section is for tsv data control
 # This is a class for read tsv file

@@ -51,6 +51,9 @@ VERBOSE = 1
 # read a list of images
 # also create array of bkg and noise.
 image_list = glob.glob('*.fit')
+# check the valid of image_list
+if len(image_list) == 0:
+    exit()
 bkg_array = np.array([ 0 for i in range(len(image_list)) ])
 noise_array = np.array([ 0 for i in range(len(image_list)) ])
 #create a list of parameters
@@ -122,7 +125,7 @@ if VERBOSE>0:
     print "Number of fail: {0}".format(bad_img_count)
     print "check end\n##################################"
 
-log_file = open("log", "a")
+log_file = open("chkarrimg.log", "a")
 log_file.write("log from: /home/Jacob975/bin/tat_python/chkarrimg.py")
 log_file.write("# Number of total image: {0}\n".format(len(image_list)))
 log_file.write("# Number of success: {0}\n".format(len(image_list) - bad_img_count))

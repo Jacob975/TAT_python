@@ -32,6 +32,7 @@ from math import pow
 import numpy as np
 import pyfits
 import time
+import TAT_env
 
 def readfile(filename):
     file = open(filename)
@@ -63,6 +64,7 @@ if __name__ == "__main__":
     # get property from argv
     list_name=argv[-1]
     fits_list=readfile(list_name)
+    path_of_source = TAT_env.path_of_source
     for name in fits_list:
         print name
     # do what you want.

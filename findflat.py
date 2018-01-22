@@ -26,7 +26,7 @@ update log
 
 import os
 import fnmatch
-import tat_datactrl
+import TAT_env
 import pyfits
 
 def readfile(filename):
@@ -153,7 +153,7 @@ def main_process():
     temp_list=temp.split("_") 
     filters=temp_list[0] 
     # go to the dir of calibrate
-    path_of_source = tat_datactrl.get_path("path_of_source")
+    path_of_source = TAT_env.path_of_source
     path_of_calibrate="{0}/{1}/calibrate".format(path_of_source, telescope)
     os.chdir(path_of_calibrate)
     # get a list of all object in calibrate

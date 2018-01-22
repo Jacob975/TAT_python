@@ -5,7 +5,7 @@ This is a program to build a catalog of tat images.
 and some following features
 1. Input the ccs, output the plot of nearest object.
 Usage:
-1. tat_catalog.py
+1. tat_catalog.py -u
 editor Jacob975
 20171217
 #################################

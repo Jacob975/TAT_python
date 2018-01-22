@@ -80,7 +80,7 @@ from sys import argv
 import numpy as np
 import pyfits
 import time
-import tat_datactrl
+import TAT_env
 import warnings
 from astropy.table import Table
 
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     # get property from argv
     properties = argv_controller(argv, VERBOSE)
     # read delta_mag.fits and noise_in_mag.fits
-    path_of_result = tat_datactrl.get_path("path_of_result")
+    path_of_result = TAT_env.path_of_result
     path_of_del_m = path_of_result + "/limitation_magnitude_and_noise/delta_mag.fits"
     path_of_inst_m = path_of_result + "/limitation_magnitude_and_noise/noise_in_mag.fits"
     if VERBOSE>1:
