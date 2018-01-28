@@ -1,17 +1,38 @@
 #!/usr/bin/python
 '''
 Program:
-This is a program to build a catalog of tat images. 
-and some following features
-1. Input the ccs, output the plot of nearest object.
+    This is a program to build a catalog of tat images. 
+    and some following features
+    1. Input the ccs, output the plot of nearest object.
+    
+    All catalog will be saved in [path_of_result]/[catalog_dir]
+    path_of_result and catalog_dir are variable saved in TAT_env.py
+    
+    The name is style is that:
+    ###################################################################
+    #
+    #   TAT_[RA in float]_[DEC in float]_[number of found]_.ctlg
+    #
+    ###################################################################
+    [RA in float] means the right accention when the object been found the first time.
+    [DEC in float] means the declination when the object been found the first time.
+    [number of found] means the how much times the object been found
+    .ctlg mean catalog file
+
 Usage:
-1. tat_catalog.py -u
-editor Jacob975
+    tat_catalog.py -u
+Editor:
+    Jacob975
 20171217
 #################################
 update log
-    20171217 version alpha 1
+
+20171217 version alpha 1
     1. the code work well.
+20180128 version alpha 2
+    1. improve the efficency significantly.
+    2. add some user guide in front of the code
+    3. change the name style of tat's catalog
 '''
 from sys import argv
 import numpy as np
@@ -188,12 +209,11 @@ class distributor:
         # distribute the table
         for i in xrange(len(star_table)):
             match_table_name = ""
-            searching_list_length = 0
             RA = star_table[i]['RAJ2000']
             DEC = star_table[i]['DECJ2000']
-            match_table_name, searching_list_length = self.finder(RA, DEC)
+            match_table_name = self.finder(RA, DEC)
             if match_table_name == None:
-                self.new_table(star_table[i], searching_list_length)
+                self.new_table(star_table[i])
             else:
                 self.append_table(star_table[i], match_table_name)
         os.chdir(self.path_of_execute)
@@ -205,39 +225,43 @@ class distributor:
         loc_DEC = float(DEC)
         error = self.error
         # grab the list of possible match table 
-        table_list = glob.glob("TAT{0}{1}_*.fits".format(int(RA), int(DEC)))
+        table_list = glob.glob("TAT_{0}*_{1}*.ctlg".format(int(RA), int(DEC)))
         if len(table_list) == 0:
             print "{0:.5f} {1:.5f} new".format(loc_RA, loc_DEC)
-            return None, 0
+            return None
         for table_name in table_list:
             # grab data from the selected table.
-            table = Table.read(table_name)
-            ref_RA = float(table[0]['RAJ2000'])
-            ref_DEC = float(table[0]['DECJ2000'])
+            name_splited = table_name.split("_")
+            ref_RA = float(name_splited[1])
+            ref_DEC = float(name_splited[2])
             # check they are match or not.
             RA_include = ref_RA - error < loc_RA and ref_RA + error > loc_RA
             DEC_include = ref_DEC - error < loc_DEC and ref_DEC + error > loc_DEC
             # if match, return existing table name.
             if RA_include and DEC_include:
                 print "{0:.5f} {1:.5f} appended".format(loc_RA, loc_DEC)
-                return table_name, len(table_list)
+                return table_name
         # if noting match, return None
         print "{0:.5f} {1:.5f} new".format(loc_RA, loc_DEC)
-        return None, len(table_list)
+        return None
     # if the star is a new star, this def is used to setup a new table.
-    def new_table(self, star_row, searching_list_length):
+    def new_table(self, star_row):
         # create a new table
         new_table = Table(star_row)
-        path_of_table = "{0}/TAT{1}{2}_{3}.fits".format(self.path_of_catalog, int(star_row['RAJ2000']), int(star_row['DECJ2000']), searching_list_length)
+        path_of_table = "{0}/TAT_{1}_{2}_{3:04d}_.ctlg".format(self.path_of_catalog, float(star_row['RAJ2000']), float(star_row['DECJ2000']), 1)
         new_table.write(path_of_table, format = 'fits', overwrite = True)
         return
     # if the star is founded star, the def is used to append the row to a existed table.
     def append_table(self, star_row, match_table_name):
         path_of_table = "{0}/{1}".format(self.path_of_catalog, match_table_name)
         print path_of_table
-        existing_table = Table.read(path_of_table)
+        existing_table = Table.read(path_of_table, format = 'fits')
+        l = len(existing_table)
         existing_table.add_row(star_row)
         existing_table.write(path_of_table, format = 'fits', overwrite = True)
+        # rename the table to display how long is it
+        new_path_of_table = "{0}{1:04d}_.ctlg".format(path_of_table[:-10], l+1)
+        os.rename(path_of_table, new_path_of_table)
         return
     # write a file to mention that which image is done or not.
     def writefile(self, name):
@@ -253,6 +277,10 @@ class distributor:
 # This class is used to check whether the star is stable or not
 class analysis:
     def __init__(self):
+        return
+    def check_overlap(self):
+        return
+    def check_new_obj(self):
         return
 
 #--------------------------------------------
