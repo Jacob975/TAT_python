@@ -1,79 +1,16 @@
 #!/usr/bin/python
 '''
 Program:
-This is a liberary program of fitting , currently containning gaussian, poisson, 2D-gaussian.
-method:
-1. from curvefit import [func name] or import curvefit
-2. use it in your lovely code.
-editor Jacob975
+    This is a liberary program of fitting , currently containning gaussian, poisson, 2D-gaussian.
+Usage:
+    1. from curvefit import [func name] or import curvefit
+    2. use it in your lovely code.
+Editor:
+    Jacob975
 #################################
 update log
-    20170320 version alpha 1 
-    add func stdev, gaussian, gaussian_fitting, poisson, poisson_fitting
-    where poisson_fitting is sensitive in original.
-    In other word, poisson_fitting fucn cannot fit data which has large lambda.
-
-    20170321 version alpha 2
-    delete func stdev, because of the bad efficiency.
-    improve the efficiency of all func.
-
-    20170326 version alpha 3
-    add a function to find the center of a 2-D gaussion curve.
-
-    20170328 version alpha 4
-    add a function to fitting 2D gaussian distribution.
-
-    20170402 version alpha 5
-    delete the func to find the center of a 2-S gaussion curve.
-    add a new error func fitting func.
-    rename all gaussion series funcs as gaussion,
-    only distribute them by input
-
-    20170402 version alpha 6
-    add a func to fit lots of star with a star data list, named gau2Dlist.
-
-    20170422 version alpha 7
-    add a new extensive func to find out the position of stars after gaussian 2D fitting.
-
-    20170508 version alpha 8 
-    add three new func in match fits district.
-    one is get local maximum of a image, named get_peak
-    another is get the position of stars of a image, named get_star.
-    final is calculate inner product, named get_inner_prod
-
-    20170518 version alpha 9 
-    A new bug outbreak in hist_gaussian_fitting.
-    It cannot fit any gaussian now.
-
-    20170519 version alpha 10 
-    fix the bug of hist_gaussian_fitting
-    no new added func.
-
-    20170706 version alpha 11
-    add a new func, get_noise_median_method and get_noise_mean_method
-    both of them are used to find the noise of a list of matched images.
-
-    20170717 version alpha 12
-    1.  add a new func, error_transmission and its belongs
-        It can calculate error transmission of a array of data
-    2.  add a transformation between mag and count.
-        all details is writen in comment.
-
-    20170721 version alpha 13
-    1.  add comment of get_peak
-
-    20170728 version alpha 14
-    1.  improve the efficiency of get_star
-    2.  Update 2D gaussian fitting, now it could return error of each quantities.
-
-    20170914 version alpha 15 
-    1.  Hotfix, save file name will be lost by a bit in back in def subtract_list.
-
-    20171004 version alpha 16
-    1. add get_star_unit for finding the unit of def "get_star".
-
-    20171205 version alpha 17
-    1. Hotfix: correct the algorithm of def get_rid_of_exotic
+20180621 version alpha 1
+    1. move to python3
 '''
 import numpy as np
 import matplotlib.pyplot as plt
@@ -81,7 +18,7 @@ import scipy
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
 import math
-import pyfits
+from astropy.io import fits as pyfits
 from numpy import pi, r_, sqrt
 from scipy.misc import factorial
 from scipy import optimize
@@ -237,7 +174,7 @@ def FitGauss2D_leastsq(Data,ip=None):
     p, success = scipy.optimize.leastsq(errfun, ip)
 
     return p,success
-
+'''
 #----------------------------------------------------------------
 # This is 2D gaussian fitting program with curve_fit method
 # moments is shared with leastsq method
@@ -268,7 +205,7 @@ def FitGauss2D_curve_fit(data, ip = None):
         return 0, 0, 0
     else:
         return paras, cov, 1
-
+'''
 #----------------------------------------------------
 # fitting function in mag unit
 def pow_function_mag(x, amp, const):

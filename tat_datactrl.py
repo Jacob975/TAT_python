@@ -137,7 +137,7 @@ class raw_star_catalog_editor(tsv_editor):
         mag_array = np.array(mag_data[2:], dtype = float)
         x_plt, y_plt = self.hist(mag_array)
         max_num_in_mag = x_plt[np.argmax(y_plt)]
-        if VERBOSE>0:print "most stars within {0} mag region".format(max_num_in_mag)
+        if VERBOSE>0:print ("most stars within {0} mag region".format(max_num_in_mag))
         #------------------------------
         # plot section
         fig = plt.figure("Histogram of {0} in {1}".format(title, self.file_name))

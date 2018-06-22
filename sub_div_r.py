@@ -28,7 +28,7 @@ update log
 
 20170719 alpha 6 
     add new header file for this code.
-    rotate, subtract dark and divide flat is moved to curvefit.py
+    rotate, subtract dark and divide flat is moved to fit_lib.py
 
 #############################
 '''
@@ -36,7 +36,7 @@ import os
 import fnmatch
 import pyfits
 import numpy as np
-import curvefit
+import fit_lib
 from tat_datactrl import readfile
 from sys import exit
 
@@ -54,7 +54,7 @@ flat_success = 0
 for name in imagelist:
     if fnmatch.fnmatch(name,"Median_dark*"):
         dark_success = 1
-        curvefit.subtract_list("list", name)
+        fit_lib.subtract_list("list", name)
         break
 
 temp="ls *subDARK.fits > list_subDARK"
@@ -63,7 +63,7 @@ os.system(temp)
 for name in imagelist:
     if fnmatch.fnmatch(name, "Median_flat*"):
         flat_success = 1
-        curvefit.division_list("list_subDARK", name)
+        fit_lib.division_list("list_subDARK", name)
         break
 
 temp="ls *divFLAT.fits > list_divFLAT"
@@ -81,14 +81,14 @@ header=temp_list[0]
 # and rotate images with subDARK or divFLAT
 if dark_success == 1 and flat_success != 1:
     list_subDARK = readfile("list_subDARK")
-    curvefit.rotate(telescope, list_subDARK)
+    fit_lib.rotate(telescope, list_subDARK)
     '''
     temp = "rm *subDARK.fits"
     '''
     os.system(temp)
 if dark_success == 1 and flat_success == 1:
     list_divFLAT = readfile("list_divFLAT")
-    curvefit.rotate(telescope, list_divFLAT)
+    fit_lib.rotate(telescope, list_divFLAT)
     temp = "rm *subDARK.fits"
     os.system(temp)
     temp = "rm *divFLAT.fits"
