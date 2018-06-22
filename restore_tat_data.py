@@ -25,7 +25,7 @@ if __name__ == "__main__":
     start_time = time.time()
     #----------------------------------------
     # Move images back to base directory
-    command = "find . -mindepth 2 -type f -exec mv -t . -i '{}' +"
+    command = "find . -mindepth 2 -type f -exec mv -t . '{}' +"
     os.system(command)
     # Remove all sub-folder
     command = "rm -R -- */"

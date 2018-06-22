@@ -55,7 +55,7 @@ def stack_mdn_method(fits_list):
 def get_dark_to(telescope, exptime, date, path_of_dark):
     temp_path=os.getcwd()
     dark_keywords = "dark{0}{1}*{2}.fit".format(telescope, date[2:], exptime)
-    command = "cp {0} {1}".format(dark_keywords, path_of_dark)
+    command = "cp {0} {1} 2>/dev/null".format(dark_keywords, path_of_dark)
     os.system(command)
     answer = len(glob.glob("{0}/*.fit".format(path_of_dark)))
     return answer
