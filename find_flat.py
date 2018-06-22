@@ -117,13 +117,15 @@ if __name__ == "__main__":
     os.chdir(path_of_flat)
     flat_list = glob.glob('{0}flat*.fit'.format(band))
     os.system("find_dark.py")
-    # subtracted by dark
+    # flat subtracted by dark
     dark_name = glob.glob("Median_dark*")[0]
     subtract_images(flat_list, dark_name)
-    # normalized
+    # median all flats and normalize
     sub_flat_list = glob.glob("*_subDARK*")
     median_sub_flat = stack_mdn_method(sub_flat_list) 
     norm_median_sub_flat = np.divide(median_sub_flat, np.mean(median_sub_flat))
+    #-----------------------------------------
+    # Give it a name, save, and export
     Median_flat_name="Median_flat_{0}_{1}.fits".format(date, flat_exptime)
     print ("The flat name is :"+Median_flat_name)
     pyfits.writeto(Median_flat_name, norm_median_sub_flat, overwrite= True)

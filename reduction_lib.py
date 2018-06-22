@@ -17,6 +17,30 @@ from astropy.io import fits as pyfits
 import numpy as np
 import time
 
+#---------------------------------------------------------------------
+# basic fits processing
+
+# This is used to rotate img
+# The direction needed to modified.
+def rotate(telescope, image_list):
+    if telescope == "KU":
+        for name in image_list:
+            imA=pyfits.getdata(name)
+            imAh=pyfits.getheader(name)
+            imC = np.rot90(imA, 2)
+            imC = np.fliplr(imC)
+            pyfits.writeto(name[0:-5]+'_r.fits', imC, imAh)
+            print name[0:-5]+"_r.fits OK"
+    elif telescope == "TF":
+        for name in image_list:
+            imA=pyfits.getdata(name)
+            imAh=pyfits.getheader(name)
+            imC = np.rot90(imA, 2)
+            imC = np.fliplr(imC)
+            pyfits.writeto(name[0:-5]+'_r.fits', imC, imAh)
+            print name[0:-5]+"_r.fits OK"
+    return
+
 # This is used to generate subDARK fits
 def subtract_images(image_list, dark_name):
     dark = pyfits.getdata(dark_name)
@@ -33,7 +57,7 @@ def subtract_images(image_list, dark_name):
 # This is used to generate divFLAT fits
 def division_images(image_list, flat_name):
     flat = pyfits.getdata(flat_name)
-    for name in fits_list:
+    for name in image_list:
         imA = pyfits.getdata(name)
         imAh = pyfits.getheader(name)
         imB = np.divide(imA, flat)
@@ -42,3 +66,5 @@ def division_images(image_list, flat_name):
         pyfits.writeto(new_name, imB, imAh, overwrite = True)
         print "{0}, OK ".format(new_name)
     return
+
+

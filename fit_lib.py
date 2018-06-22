@@ -658,35 +658,5 @@ def rotate(telescope, fits_list):
             print name[0:-5]+"_r.fits OK"
     return
 
-# This is used to generate subDARK fits
-# lsit_name should be a list of fits name
-def subtract_list(list_name, dark_name):
-    fits_list = readfile(list_name)
-    dark = pyfits.getdata(dark_name)
-    for name in fits_list:
-        imA = pyfits.getdata(name)
-        imAh = pyfits.getheader(name)
-        imB = np.subtract(imA, dark)
-        name_list = name.split(".")
-        new_name = "{0}_subDARK.fits".format(name_list[0])
-        pyfits.writeto(new_name, imB, imAh)
-        print "{0}, OK".format(new_name)
-    return
-
-# This is used to generate divFLAT fits
-# list_name should be a list of fits name
-def division_list(list_name, flat_name):
-    fits_list = readfile(list_name)
-    flat = pyfits.getdata(flat_name)
-    for name in fits_list:
-        imA = pyfits.getdata(name)
-        imAh = pyfits.getheader(name)
-        imB = np.divide(imA, flat)
-        name_list = name.split(".")
-        new_name = "{0}_divFLAT.fits".format(name_list[0])
-        pyfits.writeto(new_name, imB, imAh)
-    print "{0}, OK ".format(new_name)
-    return
-
 #---------------------------------------------------------------------
 
