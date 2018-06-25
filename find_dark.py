@@ -52,21 +52,21 @@ def stack_mdn_method(fits_list):
     sum_fits = np.median(data_list, axis = 0)
     return sum_fits
 
-def get_dark_to(telescope, exptime, date, path_of_dark):
+def get_dark_to(site, exptime, date, path_of_dark):
     temp_path=os.getcwd()
-    dark_keywords = "dark{0}{1}*{2}.fit".format(telescope, date[2:], exptime)
+    dark_keywords = "dark{0}{1}*{2}.fit".format(site, date[2:], exptime)
     command = "cp {0} {1} 2>/dev/null".format(dark_keywords, path_of_dark)
     os.system(command)
     answer = len(glob.glob("{0}/*.fit".format(path_of_dark)))
     return answer
 
-def sub_process(path, telescope, date, date_list, path_of_dark, exptime):
+def sub_process(path, site, date, date_list, path_of_dark, exptime):
     # find another proper date to find dark.
     nearest_date = match_date(date , date_list)
     os.chdir(nearest_date)
     os.system("pwd")
     # get dark 
-    number = get_dark_to(telescope, exptime, nearest_date, path_of_dark)
+    number = get_dark_to(site, exptime, nearest_date, path_of_dark)
     os.chdir("..")
     date_list.remove(nearest_date)
     return number, nearest_date
@@ -87,21 +87,21 @@ if __name__ == "__main__":
     temp_path = path.split(path_of_source)
     temp_path_2 = temp_path[1].split("/")
     date=temp_path_2[3]
-    telescope = temp_path_2[1]
+    site = temp_path_2[1]
     # get exptime from header of one of images 
     image_list = glob.glob("*.fit")
     darkh = pyfits.getheader(image_list[0])
     exptime = int(darkh["EXPTIME"])
     #----------------------------------------
     # Go to the dir of calibrate 
-    path_of_calibrate = path_of_source+"/"+telescope+"/calibrate"
+    path_of_calibrate = path_of_source+"/"+site+"/calibrate"
     os.chdir(path_of_calibrate)
     # get a list of all items in calibrate
     date_list = os.listdir(path_of_calibrate)
     # find the nearest date reference to original date.
     nearest_date = match_date(date, date_list)
     # defind the dir of median dark, if it doesn't exist , create it
-    path_of_dark = "{0}/{1}/calibrate/{2}/dark_{3}".format(path_of_source, telescope, nearest_date, exptime)
+    path_of_dark = "{0}/{1}/calibrate/{2}/dark_{3}".format(path_of_source, site, nearest_date, exptime)
     print "path of dark is :"+path_of_dark
     if os.path.isdir(path_of_dark)==False:
         temp="mkdir -p "+path_of_dark
@@ -111,7 +111,10 @@ if __name__ == "__main__":
     number = len(glob.glob(path_of_dark)) 
     # check whether the number of dark is enough, if no, find other darks.
     while number < 10:
-        number, nearest_date = sub_process(path, telescope, date, date_list, path_of_dark, exptime)
+        number, nearest_date = sub_process(path, site, date, date_list, path_of_dark, exptime)
+        if len(date_list) == 1:
+            print "No enough dark found"
+            exit()
     os.chdir(path_of_dark)
     dark_list = glob.glob('dark*.fit')
     m_dark = stack_mdn_method(dark_list)

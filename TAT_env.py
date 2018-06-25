@@ -16,6 +16,8 @@ update log
 
 20171130 version alpha 2:
     2. the path of source on zeus is moved from /brick to /mazu.
+20180625 version alpha 3:
+    1. Path of result is removed
 '''
 
 # Comment of what kinds of variables are saved here.
@@ -36,12 +38,6 @@ path_of_source = "/mazu/users/Jacob975"
 # recommand: /home/username/bin/tat_python
 path_of_code = "/home/Jacob975/bin/tat_python"
 
-#--------------- Setting result path ----------------
-# result path means once you produce some data by tat_python.
-# result path will be where to save.
-# recommand: /home/tat_result
-path_of_result = "/home/Jacob975/demo"
-
 #--------------- Name of Folders---------------------
 catalog_dir = "tat_catalog"
 
@@ -61,6 +57,10 @@ object_list = [ {'RA':'21:53:24','DEC':'47:16:00','name':'IC5146'},
 
 #--------------- band list-------------------------
 band_list = ["A", "B", "C", "N", "R", "V" ]
+#--------------- site list-------------------------
+site_list = ["TF", "KU"]
+#--------------- type list-------------------------
+type_list = ["data", "dark", "flat"]
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.19 arcsec on TAT image.
 pix1 = 2.2

@@ -9,8 +9,8 @@ Editor:
     Jacob975
 #################################
 update log
-20180621 version alpha 1
-    1. move to python3
+20180625 version alpha 1
+    1. Remove some 
 '''
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,11 +19,8 @@ import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
 import math
 from astropy.io import fits as pyfits
-from numpy import pi, r_, sqrt
 from scipy.misc import factorial
 from scipy import optimize
-from scipy.signal import argrelextrema
-from tat_datactrl import readfile
 
 def gaussian(x, mu, sig, height):
     return np.power(2 * np.pi , -0.5)*np.exp(-np.power(x - mu , 2.) / (2 * np.power(sig, 2.)))/sig+height
@@ -384,7 +381,7 @@ def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detai
         params[1] = coor[i][0]+params[1]-half_width-margin
         params[2] = coor[i][1]+params[2]-half_width-margin
         if detailed:
-            error = sqrt(cov)
+            error = np.sqrt(cov)
             temp = (params[0], error[0,0], params[1], error[1,1], params[2], error[2,2], params[3], error[3,3], params[4], error[4,4], params[5], error[5,5], params[6], error[6,6])
         else:
             temp = tuple(params)
@@ -537,126 +534,6 @@ def get_rid_of_exotic_vector(value_list, additional, threshold = 3):
         temp_value_list, temp_additional = get_rid_of_exotic_vector(temp_value_list, temp_additional, threshold)
     return temp_value_list, temp_additional
 
-#---------------------------------------------------------------------
-# This is a code to do error transmission calculation.
-# If you got answer 0, 0 , which means you fail.
-def error_transmission(value_array, error_array, sign = ""):
-    # test does user specify the sign of arthemetic.
-    try :
-        No_sign = sign == ""
-    except:
-        print "Please Specify the sign of Arithmetic"
-        print "Usage: error_transmission(value_array, error_array, sign == \"+\")"
-        return 0, 0
-    else:
-        if No_sign:
-            print "Please Specify the sign of Arithmetic"
-            print "Usage: error_transmission(value_array, error_array, sign == \"+\")"
-            return 0, 0
-    value_array = np.array(value_array, dtype = float)
-    error_array = np.array(error_array, dtype = float)
-    answer = 0
-    error = 0
-    # do calculate
-    if sign == "+" :
-        answer = np.sum(value_array)
-        error = plus_sub_error_transmission(error_array)
-    elif sign == "-" :
-        # hint: only two elements is acceptable, no more neither less
-        answer = value_array[0] - value_array[1]
-        error = plus_sub_error_transmission(error_array)
-    elif sign == "*" :
-        answer, error = multi_error_transmission(value_array, error_array)
-    elif sign == "/" :
-        # hint: only two elements is acceptable, no more neither less
-        answer, error = div_error_transmission(value_array, error_array)
-    else:
-        print "Please Specify the sign of Arithmetic"
-        print "Usage: error_transmission(value_array, error_array, sign == \"+\")"
-    return answer, error
-
-def plus_sub_error_transmission(error_array):
-    # prototype: error = sqrt(a_error^2 + b_error^2 + ...)
-    error_array = np.square(error_array)
-    error_square = np.sum(error_array)
-    error = np.sqrt(error_square)
-    return error
-
-def multi_error_transmission(value_array, error_array):
-    # prototype: error = amp * sqrt((a_sigma/a)^2 + (b_sigma/b)^2 + ...)
-    # where amp = a*b
-    amp_list  = np.cumprod(value_array)
-    amp = amp_list[-1]
-    answer_array = np.divide(error_array, value_array)
-    answer_array = np.square(answer_array)
-    answer = np.sum(answer_array)
-    answer = amp * np.sqrt(answer)
-    return amp, answer
-def div_error_transmission(value_array, error_array):
-    # prototype: error = amp * sqrt((a_sigma/a)^2 + (b_sigma/b)^2)
-    # where amp = a/b
-    # hint: only two elements is acceptable, no more neither less
-    if len(value_array) != 2:
-        return 0, 0
-    amp = np.divide(value_array[0], value_array[1])
-    answer_array = np.divide(error_array, value_array)
-    answer_array = np.square(answer_array)
-    answer = np.sum(answer_array)
-    answer = amp * np.sqrt(answer)
-    return amp, answer
-#---------------------------------------------------------------------
-# This is a code to transfer between mag and count
-
-class unit_converter:
-    def mag2count(self, mag, error_mag = 0):
-        # prototype: count = 10^(mag / -2.5), return count
-        temp_1 = np.divide(mag, -2.5)
-        count = np.power(10, temp_1)
-        if error_mag != 0:
-            temp_2 = np.add(mag, error_mag)
-            temp_2 = np.divide(temp_2, -2.5)
-            error_count = np.power(10, temp_2) - np.power(10, temp_1)
-        # if needn't to deal with error, just return the value
-        elif error_mag == 0:
-            error_count = 0
-            return count
-        return count, error_count
-
-    def count2mag(self, count, error_count = 0):
-        # prototype: mag = -2.5 * log10( count ), return mag
-        mag = -2.5*np.log10(count)
-        if error_count[0] != 0:
-            temp = np.add(count, error_count)
-            error_mag = -2.5*np.log10(count) + 2.5*np.log10(temp)
-        # if needn't to deal with error, just return the value
-        elif error_count[0] == 0:
-            error_mag = 0
-            return mag
-        return mag, error_mag
-
-#---------------------------------------------------------------------
-# basic fits processing
-
-# This is used to rotate img
-# The direction needed to modified.
-def rotate(telescope, fits_list):
-    if telescope == "KU":
-        for name in fits_list:
-            imA=pyfits.getdata(name)
-            imAh=pyfits.getheader(name)
-            imC = np.rot90(imA, 2)
-            imC = np.fliplr(imC)
-            pyfits.writeto(name[0:-5]+'_r.fits', imC, imAh)
-            print name[0:-5]+"_r.fits OK"
-    elif telescope == "TF":
-        for name in fits_list:
-            imA=pyfits.getdata(name)
-            imAh=pyfits.getheader(name)
-            imC = np.rot90(imA, 2)
-            imC = np.fliplr(imC)
-            pyfits.writeto(name[0:-5]+'_r.fits', imC, imAh)
-            print name[0:-5]+"_r.fits OK"
-    return
 
 #---------------------------------------------------------------------
 

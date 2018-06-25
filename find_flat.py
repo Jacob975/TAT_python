@@ -74,19 +74,20 @@ if __name__ == "__main__":
     # Initialize
     # get original path as str and list
     path=os.getcwd()
-    list_path=path.split("/")
-    del list_path [0]
     # get info from path
     path_of_source = TAT_env.path_of_source
     temp_path = path.split(path_of_source)
     temp_path_2 = temp_path[1].split("/")
     date=temp_path_2[3]
-    telescope = temp_path_2[1]
     # get exptime and band from header of one of images 
     image_list = glob.glob("*.fit")
     darkh = pyfits.getheader(image_list[0])
     exptime = int(darkh["EXPTIME"])
     band = darkh["FILTER"]
+    try:
+        telescope = darkh["OBSERVAT"]
+    except:
+        telescope = temp_path_2[1]
     #----------------------------------------
     # Go to the dir of calibrate 
     path_of_calibrate = path_of_source+"/"+telescope+"/calibrate"
@@ -109,7 +110,7 @@ if __name__ == "__main__":
     # check whether the number of flat is enough, if no, find other darks.
     while number < 10:
         if len(date_list) == 1:
-            print "No enought flat found"
+            print "No enough flat found"
             exit()
         number, nearest_date = sub_process(path, band, telescope, date, date_list, path_of_flat, flat_exptime)
     #-----------------------------------------
@@ -119,16 +120,15 @@ if __name__ == "__main__":
     os.system("find_dark.py")
     # flat subtracted by dark
     dark_name = glob.glob("Median_dark*")[0]
-    subtract_images(flat_list, dark_name)
-    # median all flats and normalize
-    sub_flat_list = glob.glob("*_subDARK*")
-    median_sub_flat = stack_mdn_method(sub_flat_list) 
-    norm_median_sub_flat = np.divide(median_sub_flat, np.mean(median_sub_flat))
+    subdark_flat_list = subtract_images(flat_list, dark_name)
+    # median and normalize on all flats
+    median_subdark_flat = stack_mdn_method(subdark_flat_list) 
+    norm_median_subdark_flat = np.divide(median_subdark_flat, np.mean(median_subdark_flat))
     #-----------------------------------------
     # Give it a name, save, and export
     Median_flat_name="Median_flat_{0}_{1}.fits".format(date, flat_exptime)
     print ("The flat name is :"+Median_flat_name)
-    pyfits.writeto(Median_flat_name, norm_median_sub_flat, overwrite= True)
+    pyfits.writeto(Median_flat_name, norm_median_subdark_flat, overwrite= True)
     command="cp -R {0} {1}".format(Median_flat_name, path)
     os.system(command)
     #---------------------------------------

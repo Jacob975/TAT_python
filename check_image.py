@@ -8,7 +8,7 @@ Program:
     subtract images with dark
     normalize the images with flat
 Usage: 
-    check_image.py
+    check_image.py [type] [band] [exptime]
 Editor:
     Jacob975
 20180621
@@ -24,6 +24,8 @@ import numpy as np
 from fit_lib import hist_gaussian_fitting
 import glob
 import time
+from sys import argv
+from termcolor import colored
 
 def check_header(name_image, PARAS):
     darkh=pyfits.getheader(name_image)
@@ -60,22 +62,41 @@ if __name__ == "__main__":
     # measure times
     start_time = time.time()
     #----------------------------------------
-    # Completeness check
-    # make a list with names of images in this directory
-    image_list = glob.glob('*.fit')
-    # check the valid of image_list
-    if len(image_list) == 0:
-        print "Error!\nNo image found"
+    # Load Arguments
+    if len(argv) != 4:
+        print colored("Error! Wrong arguments", "red")
+        print "Usage: check_image.py [type] [band] [exptime]"
+        print "Available type: data, dark, flat"
+        print "Available bands: A, B, C, N, R, V"
         exit()
+    print ("### check image ###")
+    # make a list with names of images in this directory
+    type_ = argv[1]
+    band = argv[2]
+    exptime = argv[3]
+    print "type: {0}, band: {1}, exptime: {2}".format(type_, band, exptime)
     #---------------------------------------
     # Initialize
+    image_list = []
+    if type_ == 'data':
+        image_list = glob.glob('{0}*.fit'.format(band))
+        PARAS=['CCDTEMP','EXPTIME','RA','DEC']
+    elif type_ == 'dark':
+        image_list = glob.glob('dark*{0}.fit'.format(exptime))
+        PARAS=['CCDTEMP','EXPTIME']
+    elif type_ == 'flat':
+        image_list = glob.glob('{0}flat*{1}.fit'.format(band, exptime))
+        PARAS=['CCDTEMP','EXPTIME']
+    # check the valid of image_list
+    if len(image_list) == 0:
+        print "No image found"
+        exit()
     # There are the parameters of header infos
-    PARAS=['CCDTEMP','EXPTIME','RA','DEC']
     mean_bkgs = []
     std_bkgs = []
     bad_headers = []
     bad_bkgs = []
-    print "### data reduction ###"
+    print "--- data reduction ---"
     #---------------------------------------
     # Header and check
     # check headers of images, then load mean and std of background.
@@ -95,7 +116,6 @@ if __name__ == "__main__":
             mean_bkgs.append(0)
             std_bkgs.append(0)
             continue
-        bad_headers.append(0)
         mean_bkgs.append(mean_bkg)
         std_bkgs.append(std_bkg)
         print name_image, ",checked"
@@ -111,22 +131,23 @@ if __name__ == "__main__":
     median_std_bkgs = np.median(std_bkgs[no_loss_in_std_bkgs])
     print "median_std_bkgs = {0}".format(median_std_bkgs)
     index_of_bad_bkgs = np.where(np.absolute(mean_bkgs - median_mean_bkgs) > 5 * median_std_bkgs)
-    bad_bkgs = np.zeros(len(mean_bkgs))
+    bad_bkgs = np.zeros(len(mean_bkgs), dtype = int)
     bad_bkgs[index_of_bad_bkgs] = 1
     print "bad_bkgs:\n{0}".format(bad_bkgs)
     bad_headers = np.array(bad_headers)
     print "bad_headers:\n{0}".format(bad_headers)
     index_of_interset_of_bad = np.where((bad_headers == 1) & (bad_bkgs == 1))
-    interset_of_bad = np.zeros(len(mean_bkgs))
+    interset_of_bad = np.zeros(len(mean_bkgs), dtype = int)
     interset_of_bad[index_of_interset_of_bad] = 1
     print "interset_of_bad:\n{0}".format(interset_of_bad)
     for i in xrange(len(mean_bkgs)):
         if bad_bkgs[i] == 1 and bad_headers[i] == 0:
             command = "mv {0} X_{0}_X".format(image_list[i])
             os.system(command)
-    print "### Check finished! ###"
+    #-----------------------------------------
+    print "--- Check finished! ---"
     print "Number of total image: {0}".format(len(image_list))
-    print "Number of success: {0}".format(len(image_list) - np.sum(interset_of_bad, dtype = int)) 
+    print "Number of success: {0}".format(len(image_list) - np.sum(bad_headers, dtype = int) - np.sum(bad_bkgs, dtype = int) + np.sum(interset_of_bad, dtype = int)) 
     print "Number of broken header: {0}".format(np.sum(bad_headers, dtype = int))
     print "Number of inconsistent background: {0}".format(np.sum(bad_bkgs, dtype = int))
     #---------------------------------------

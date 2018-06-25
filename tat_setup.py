@@ -18,6 +18,8 @@ update log
 
 20171114 version alpha 3:
     1. Using py to save environment constant instead of a dat file.
+20180625 versiona alpha 4:
+    1. Path of result is removed
 '''
 import time
 import glob
@@ -98,9 +100,8 @@ else:
 # back to path of code
 print code_path
 os.chdir(code_path)
-# get path of result and source from TAT_env
+# get path of source from TAT_env
 path_of_source = TAT_env.path_of_source
-path_of_result = TAT_env.path_of_result
 # construct necessary folder
 if VERBOSE>0:print "construct necessary folders..."
 # source folder
@@ -108,18 +109,13 @@ temp = "mkdir -p {0}/TF/image".format(path_of_source)
 os.system(temp)
 temp = "mkdir -p {0}/TF/calibrate".format(path_of_source)
 os.system(temp)
+temp = "mkdir -p {0}/TF/log".format(path_of_source)
+os.system(temp)
 temp = "mkdir -p {0}/KU/image".format(path_of_source)
 os.system(temp)
 temp = "mkdir -p {0}/KU/calibrate".format(path_of_source)
 os.system(temp)
-# result folder
-temp = "mkdir -p {0}/TAT_done".format(path_of_result)
-os.system(temp)
-temp = "mkdir -p {0}/TAT_raw_star_catalog/done".format(path_of_result)
-os.system(temp)
-temp = "mkdir -p {0}/limitation_magnitude_and_noise".format(path_of_result)
-os.system(temp)
-temp = "mkdir -p {0}/ref_catalog".format(path_of_result)
+temp = "mkdir -p {0}/KU/log".format(path_of_source)
 os.system(temp)
 # measuring time
 elapsed_time = time.time() - start_time
