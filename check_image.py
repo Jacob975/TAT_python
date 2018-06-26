@@ -118,7 +118,7 @@ if __name__ == "__main__":
             continue
         mean_bkgs.append(mean_bkg)
         std_bkgs.append(std_bkg)
-        print name_image, ",checked"
+        print "{0}, checked".format(name_image)
     mean_bkgs = np.array(mean_bkgs)
     std_bkgs = np.array(std_bkgs)
     #----------------------------------------

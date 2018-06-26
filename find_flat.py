@@ -111,7 +111,7 @@ if __name__ == "__main__":
     while number < 10:
         if len(date_list) == 1:
             print "No enough flat found"
-            exit()
+            exit(1)
         number, nearest_date = sub_process(path, band, telescope, date, date_list, path_of_flat, flat_exptime)
     #-----------------------------------------
     # Find dark for flat

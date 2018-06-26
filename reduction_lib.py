@@ -14,6 +14,7 @@ update log
 '''
 import os 
 from astropy.io import fits as pyfits
+from fit_lib import hist_gaussian_fitting, get_peak_filter, get_star
 import numpy as np
 import time
 
@@ -71,4 +72,120 @@ def divide_images(image_list, flat_name):
         print "{0}, OK ".format(new_name)
     return new_image_list
 
+#----------------------------------------------
+# This class is for finding basic paras of image.
+class image_info:
+    name_image = ""
+    data = None
+    bkg = 0.0
+    std = 0.0
+    sigma = 0.0
+    date = ""
+    time = ""
+    site = ""
+    band = ""
+    exptime = 0.0
+    def __init__(self, name_image):
+        self.name_image = name_image
+        self.data = pyfits.getdata(name_image)
+        self.sigma = self.get_sigma()
+        paras, cov = hist_gaussian_fitting('default', self.data)
+        self.bkg = paras[0]
+        self.std = paras[1]
+        self.observator_property()
+        return
+    # This def is used to find the average sigma of a star
+    def get_sigma(self):
+        data = self.data
+        # peak list is a list contain elements with position tuple.
+        sz = 30
+        tl = 5
+        peak_list = get_peak_filter(data, tall_limit = tl,  size = sz)
+        # star list is a list contain elements with star in this fits
+        hwl = 4
+        ecc = 1
+        star_list = get_star(data, peak_list, half_width_lmt = hwl, eccentricity = ecc)
+        proper_star_list = self.proper_sigma(star_list, 3, 4)
+        x_sigma = np.array([column[3] for column in proper_star_list])
+        y_sigma = np.array([column[4] for column in proper_star_list])
+        sigma = np.average([x_sigma, y_sigma], axis = None)
+        return sigma
+    # find coordinate and flux of a star by aperture photometry.
+    def proper_sigma(self, star_list, pos_xsigma, pos_ysigma):
+        # take out all inproper value
+        # for example inf and nan
+        nosigular_star_list = []
+        for column in star_list:
+            if np.inf in column:
+                continue
+            elif np.nan in column:
+                continue
+            nosigular_star_list.append(column)
+        # in x direction
+        x_sigma = [column[pos_xsigma] for column in nosigular_star_list]
+        proper_x_sigma, proper_star_list = get_rid_of_exotic_vector(x_sigma, nosigular_star_list, 3)
+        # in y direction
+        y_sigma = [column[pos_ysigma] for column in proper_star_list]
+        proper_y_sigma, proper_star_list = get_rid_of_exotic_vector(y_sigma, proper_star_list, 3)
+        return proper_star_list
+    # get property of images from path
+    def observator_property(self):
+        # get info from header
+        imAh = pyfits.getheader(self.name_image)
+        self.exptime = float(imAh["EXPTIME"])
+        self.site = imAh["OBSERVAT"]
+        self.date = imAh["DATE-OBS"]
+        self.time = imAh["TIME-OBS"]
+        self.band = imAh["FILTER"] 
+        return
+
+#--------------------------------------------------------------------
+# This is a func to wipe out exotic number in a list
+# This one is made for matching images
+def get_rid_of_exotic_severe(value_list, VERBOSE = 0):
+    if VERBOSE>0:print value_list
+    std = np.std(value_list)
+    # resursive condition
+    if std < 1 :
+        return value_list
+    mean = np.mean(value_list)
+    # get the error of each value to the mean, than delete one with largest error.
+    temp_value_list = value_list[:]
+    sub_value_list = np.subtract(temp_value_list, mean)
+    abs_value_list = np.absolute(sub_value_list)
+    index_max = np.argmax(abs_value_list)
+    temp_value_list= np.delete(temp_value_list, index_max)
+    # check if the list is not exotic, if not, get in to recursive.
+    value_list = get_rid_of_exotic_severe(temp_value_list)
+    return value_list
+
+# This one is made for scif calculation
+def get_rid_of_exotic(value_list):
+    std = np.std(value_list)
+    mean = np.mean(value_list)
+    # get the error of each value to the mean, than delete one with largest error.
+    sub_value_list = np.subtract(value_list, mean)
+    abs_value_list = np.absolute(sub_value_list)
+    for i in xrange(len(abs_value_list)):
+        if abs_value_list[i] >= 3 * std:
+            value_list = np.delete(value_list, i)
+            value_list = get_rid_of_exotic(value_list)
+            return value_list
+    return value_list
+
+def get_rid_of_exotic_vector(value_list, additional, threshold = 3):
+    temp_value_list = []
+    temp_additional = []
+    std = np.std(value_list)
+    mean = np.mean(value_list)
+    # get the error of each value to the mean, than delete one with largest error.
+    sub_value_list = np.subtract(value_list, mean)
+    abs_value_list = np.absolute(sub_value_list)
+    for i in xrange(len(abs_value_list)):
+        if abs_value_list[i] <= threshold * std:
+            temp_value_list.append(value_list[i])
+            temp_additional.append(list(additional[i]))
+    if len(abs_value_list) != len(temp_value_list):
+        temp_value_list, temp_additional = get_rid_of_exotic_vector(temp_value_list, temp_additional, threshold)
+    return temp_value_list, temp_additional
 

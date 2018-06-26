@@ -114,7 +114,7 @@ if __name__ == "__main__":
         number, nearest_date = sub_process(path, site, date, date_list, path_of_dark, exptime)
         if len(date_list) == 1:
             print "No enough dark found"
-            exit()
+            exit(1)
     os.chdir(path_of_dark)
     dark_list = glob.glob('dark*.fit')
     m_dark = stack_mdn_method(dark_list)

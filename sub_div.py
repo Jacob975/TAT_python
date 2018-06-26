@@ -46,7 +46,7 @@ if __name__ == "__main__":
         name_flat = glob.glob("Median_flat*")[0]
     except:  
         print("reduction fail, no enough darks or flats")
-        exit()
+        exit(1)
     #---------------------------------------
     # Subtraction and Division
     subdark_image_list = subtract_images(image_list, name_dark)

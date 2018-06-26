@@ -171,7 +171,7 @@ def FitGauss2D_leastsq(Data,ip=None):
     p, success = scipy.optimize.leastsq(errfun, ip)
 
     return p,success
-'''
+
 #----------------------------------------------------------------
 # This is 2D gaussian fitting program with curve_fit method
 # moments is shared with leastsq method
@@ -202,7 +202,7 @@ def FitGauss2D_curve_fit(data, ip = None):
         return 0, 0, 0
     else:
         return paras, cov, 1
-'''
+
 #----------------------------------------------------
 # fitting function in mag unit
 def pow_function_mag(x, amp, const):
@@ -483,57 +483,4 @@ def get_noise_mean_method(fits_list, VERBOSE = 0):
     paras, cov = hist_gaussian_fitting("Untitle", div_fits, shift = -7)
     data_std = paras[1]/exptime
     return exptime*len(fits_list), data_std
-
-#--------------------------------------------------------------------
-# This is a func to wipe out exotic number in a list
-# This one is made for matching images
-def get_rid_of_exotic_severe(value_list, VERBOSE = 0):
-    if VERBOSE>0:print value_list
-    std = np.std(value_list)
-    # resursive condition
-    if std < 1 :
-        return value_list
-    mean = np.mean(value_list)
-    # get the error of each value to the mean, than delete one with largest error.
-    temp_value_list = value_list[:]
-    sub_value_list = np.subtract(temp_value_list, mean)
-    abs_value_list = np.absolute(sub_value_list)
-    index_max = np.argmax(abs_value_list)
-    temp_value_list= np.delete(temp_value_list, index_max)
-    # check if the list is not exotic, if not, get in to recursive.
-    value_list = get_rid_of_exotic_severe(temp_value_list)
-    return value_list
-
-# This one is made for scif calculation
-def get_rid_of_exotic(value_list):
-    std = np.std(value_list)
-    mean = np.mean(value_list)
-    # get the error of each value to the mean, than delete one with largest error.
-    sub_value_list = np.subtract(value_list, mean)
-    abs_value_list = np.absolute(sub_value_list)
-    for i in xrange(len(abs_value_list)):
-        if abs_value_list[i] >= 3 * std:
-            value_list = np.delete(value_list, i)
-            value_list = get_rid_of_exotic(value_list)
-            return value_list
-    return value_list
-
-def get_rid_of_exotic_vector(value_list, additional, threshold = 3):
-    temp_value_list = []
-    temp_additional = []
-    std = np.std(value_list)
-    mean = np.mean(value_list)
-    # get the error of each value to the mean, than delete one with largest error.
-    sub_value_list = np.subtract(value_list, mean)
-    abs_value_list = np.absolute(sub_value_list)
-    for i in xrange(len(abs_value_list)):
-        if abs_value_list[i] <= threshold * std:
-            temp_value_list.append(value_list[i]) 
-            temp_additional.append(list(additional[i]))
-    if len(abs_value_list) != len(temp_value_list):
-        temp_value_list, temp_additional = get_rid_of_exotic_vector(temp_value_list, temp_additional, threshold)
-    return temp_value_list, temp_additional
-
-
-#---------------------------------------------------------------------
 
