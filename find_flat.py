@@ -22,14 +22,12 @@ import TAT_env
 import datetime
 from find_dark import match_date, stack_mdn_method
 from reduction_lib import subtract_images
-from datetime import date, timedelta
+from datetime import datetime, timedelta
 
 def get_flat_to(band, telescope, flat_exptime, date, path_of_flat):
     temp_path=os.getcwd()
     # next date
-    t=time.strptime(date,'%Y%m%d')
-    newdate=date(t.tm_year,t.tm_mon,t.tm_mday)+timedelta(1)
-    next_date = newdate.strftime('%Y%m%d')
+    next_date = (datetime.strptime(date, '%Y%m%d') + timedelta(days=1)).strftime('%Y%m%d')
     # setup keywords of flats
     flat_keywords_1 = "{0}flat{1}{2}*{3}.fit".format(band, telescope, date[2:], flat_exptime)
     flat_keywords_2 = "{0}flat{1}{2}*{3}.fit".format(band, telescope, next_date[2:], flat_exptime)

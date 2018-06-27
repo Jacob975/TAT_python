@@ -21,7 +21,6 @@ import os
 import subprocess
 import warnings
 from psf_register import starfinder
-from pynput.keyboard import Key, Listener
 
 def data_reduction(site):
     # Load path
