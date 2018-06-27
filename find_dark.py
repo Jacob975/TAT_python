@@ -20,6 +20,7 @@ import time
 import fnmatch
 import TAT_env
 import datetime
+from datetime import date, timedelta
 
 def match_date(current_date, date_list):
     # comfirm the type of date and datelist is int.
@@ -54,8 +55,17 @@ def stack_mdn_method(fits_list):
 
 def get_dark_to(site, exptime, date, path_of_dark):
     temp_path=os.getcwd()
-    dark_keywords = "dark{0}{1}*{2}.fit".format(site, date[2:], exptime)
-    command = "cp {0} {1} 2>/dev/null".format(dark_keywords, path_of_dark)
+    # next date
+    t=time.strptime(date,'%Y%m%d')
+    newdate=date(t.tm_year,t.tm_mon,t.tm_mday)+timedelta(1)
+    next_date = newdate.strftime('%Y%m%d')
+    # setup keywords of darks
+    dark_keywords_1 = "dark{0}{1}*{2}.fit".format(site, date[2:], exptime)
+    dark_keywords_2 = "dark{0}{1}*{2}.fit".format(site, next_date[2:], exptime)
+    # copy files matching the keywords.
+    command = "cp {0} {1} 2>/dev/null".format(dark_keywords_1, path_of_dark)
+    os.system(command)
+    command = "cp {0} {1} 2>/dev/null".format(dark_keywords_2, path_of_dark)
     os.system(command)
     answer = len(glob.glob("{0}/*.fit".format(path_of_dark)))
     return answer

@@ -22,11 +22,21 @@ import TAT_env
 import datetime
 from find_dark import match_date, stack_mdn_method
 from reduction_lib import subtract_images
+from datetime import date, timedelta
 
 def get_flat_to(band, telescope, flat_exptime, date, path_of_flat):
     temp_path=os.getcwd()
-    dark_keywords = "{0}flat{1}{2}*{3}.fit".format(band, telescope, date[2:], flat_exptime)
-    command = "cp {0} {1} 2>/dev/null".format(dark_keywords, path_of_flat)
+    # next date
+    t=time.strptime(date,'%Y%m%d')
+    newdate=date(t.tm_year,t.tm_mon,t.tm_mday)+timedelta(1)
+    next_date = newdate.strftime('%Y%m%d')
+    # setup keywords of flats
+    flat_keywords_1 = "{0}flat{1}{2}*{3}.fit".format(band, telescope, date[2:], flat_exptime)
+    flat_keywords_2 = "{0}flat{1}{2}*{3}.fit".format(band, telescope, next_date[2:], flat_exptime)
+    # Copy files matching the keywords
+    command = "cp {0} {1} 2>/dev/null".format(flat_keywords_1, path_of_flat)
+    os.system(command)
+    command = "cp {0} {1} 2>/dev/null".format(flat_keywords_2, path_of_flat)
     os.system(command)
     answer = len(glob.glob("{0}/*.fit".format(path_of_flat)))
     return answer

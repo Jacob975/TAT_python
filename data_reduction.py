@@ -21,6 +21,7 @@ import os
 import subprocess
 import warnings
 from psf_register import starfinder
+from pynput.keyboard import Key, Listener
 
 def data_reduction(site):
     # Load path
@@ -52,7 +53,7 @@ def unprocessed_check(path_of_log, path_of_data, type_):
         processed = []
     unprocessed = []
     # Match list in folder and log data list
-    candidates = glob.glob("{0}/*".format(path_of_data))
+    candidates = glob.glob("{0}/20*".format(path_of_data))
     for candidate in candidates:
         try:
             temp = processed.index(candidate)
@@ -163,6 +164,7 @@ if __name__ == "__main__":
     # Initialize
     warnings.filterwarnings("ignore")
     site_list = TAT_env.site_list
+
     #---------------------------------------
     # Data reduction
     for site in site_list:
