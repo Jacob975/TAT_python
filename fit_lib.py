@@ -13,13 +13,11 @@ update log
     1. Remove some 
 '''
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
 import math
 from astropy.io import fits as pyfits
-from scipy.misc import factorial
 from scipy import optimize
 
 def gaussian(x, mu, sig, height):
@@ -47,45 +45,25 @@ def hist_gaussian_fitting(name, data, half_width = 20, shift = 0, VERBOSE = 0):
     flatten_data = data[~np.isnan(data)]
     flatten_data = flatten_data[flatten_data < 100000.0]
     flatten_data = flatten_data[flatten_data > -10000.0]
-    if VERBOSE>2:print len(flatten_data)
     data_mean = np.mean(flatten_data)
     if math.isnan(data_mean):
         data_mean = 0.0
-    if VERBOSE>2:print data_mean
     # number is the number of star with this value
     # bin_edges is left edge position of each point on histagram.
-    # patches control each rectangle's property..
-    fig = plt.figure(name)
-    numbers, bin_edges, patches = plt.hist(flatten_data, bins= 80, range = [data_mean - half_width + shift , data_mean + half_width + shift], normed = True)
+    numbers, bin_edges = np.histogram(flatten_data, bins= 80, range = [data_mean - half_width + shift , data_mean + half_width + shift], normed = True)
     # find the maximum number, where will be the central of fitting figure.
     index_max = np.argmax(numbers)
     index_max = bin_edges[index_max]
-    if VERBOSE>2:print "numbers: ", numbers
     bin_middles = 0.5*(bin_edges[1:] + bin_edges[:-1])
-    if VERBOSE>2:print "bin_middles: ",bin_middles
     # initial paras
     if math.isnan(np.std(flatten_data)):
         std = 1.0
     else :
         std = np.std(flatten_data)
     moments = (data_mean, std)
-    if VERBOSE>2:print moments
     # fit 
     paras, cov = optimize.curve_fit(hist_gaussian, bin_middles, numbers, p0 = moments)
-    if VERBOSE>3:
-        # draw
-        x_plot = np.linspace(index_max+ half_width+ shift, index_max- half_width+ shift, 500)
-        plt.plot(x_plot, hist_gaussian(x_plot, paras[0], paras[1]), 'r-', lw= 2)
-        axes = plt.gca()
-        axes.set_xlim([index_max-half_width+shift, index_max+half_width+shift])
-        fig.show()
-    if VERBOSE>0:
-        print "paras: ", paras
-        print "cov: \n", cov
     return paras, cov
-
-def poisson(k, lamb, shift):
-    return (lamb**(k-shift)/factorial(k-shift)) * np.exp(-lamb)
 
 #---------------------------------------------------------------------
 # current using 2D guassian fitting 
@@ -370,13 +348,6 @@ def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detai
             # check the excentricity
             if (math.pow(long_axis, 2.0)-math.pow(short_axis, 2.0))/long_axis > eccentricity :
                 continue
-        if VERBOSE>2:
-            # draw a figure of star
-            f = plt.figure(i)
-            plt.imshow(imA, vmin = imA.min() , vmax = imA.max() )
-            plt.colorbar()
-            plt.plot(params[1], params[2], 'ro')
-            f.show()
         # Turn local coord into image coor.
         params[1] = coor[i][0]+params[1]-half_width-margin
         params[2] = coor[i][1]+params[2]-half_width-margin

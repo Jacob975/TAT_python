@@ -133,10 +133,22 @@ class image_info:
         # get info from header
         imAh = pyfits.getheader(self.name_image)
         self.exptime = float(imAh["EXPTIME"])
-        self.site = imAh["OBSERVAT"]
-        self.date = imAh["DATE-OBS"]
-        self.time = imAh["TIME-OBS"]
-        self.band = imAh["FILTER"] 
+        try:
+            self.site = imAh["OBSERVAT"]
+        except:
+            self.site = ""
+        try:
+            self.date = imAh["DATE-OBS"]
+        except:
+            self.date = ""
+        try:
+            self.time = imAh["TIME-OBS"]
+        except:
+            self.time = ""
+        try:
+            self.band = imAh["FILTER"] 
+        except:
+            self.band = ""
         return
 
 #--------------------------------------------------------------------

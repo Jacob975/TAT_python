@@ -36,7 +36,7 @@ def starfinder(name_image):
                             roundlo = -1.0, \
                             sharplo = 0.5, \
                             sharphi = 2.0)
-    iraf_table = daofind.find_stars(infos.data)
+    iraf_table = iraffind.find_stars(infos.data)
     # create a region file from iraf table
     x = np.array(iraf_table['xcentroid'])
     y = np.array(iraf_table['ycentroid'])
