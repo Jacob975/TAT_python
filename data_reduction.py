@@ -20,7 +20,7 @@ import TAT_env
 import os
 import subprocess
 import warnings
-from psf_register import starfinder
+from starfinder import starfinder, iraf_tbl2reg
 
 def data_reduction(site):
     # Load path
@@ -47,7 +47,7 @@ def data_reduction(site):
 def unprocessed_check(path_of_log, path_of_data, type_):
     # Load processed log data list
     try:
-        processed = list(np.loadtxt("{0}/{1}_reduction_log.txt".format(path_of_log, type_, fmt="%s"), comments = "#", dtype = str))
+        processed = list(np.loadtxt("{0}/{1}_reduction_log.txt".format(path_of_log, type_), comments = "#", dtype = str))
     except:
         processed = []
     unprocessed = []
@@ -141,12 +141,7 @@ def check_arr_sub_div_image(unprocessed_data_list):
                     os.chdir('..')
                     continue
                 else:
-                    for name_image in reducted_images:
-                        iraf_table, region = starfinder(name_image)
-                        # Save iraf table and region file
-                        np.savetxt("{0}_pr.txt".format(name_image[:-5]), iraf_table)
-                        np.save("{0}_pr.npy".format(name_image[:-5]), iraf_table)
-                        np.savetxt("{0}_pr.reg".format(name_image[:-5]), region)
+                    os.system("new_register.py reducted_image_list")
                     os.chdir('..')
             os.chdir('..')
         # if redcution is OK, list the folder in success list.

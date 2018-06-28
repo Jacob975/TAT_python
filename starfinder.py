@@ -3,7 +3,7 @@
 Program:
     This is a program to do psf register 
 Usage: 
-    psf_register.py [image_name]
+    starfinder.py [image_name]
 Editor:
     Jacob975
 20180626
@@ -29,7 +29,7 @@ def starfinder(name_image):
     mean_bkg = infos.bkg
     std_bkg = infos.std
     sigma = infos.sigma
-    iraffind = IRAFStarFinder(threshold = 3.0*std_bkg + mean_bkg, \
+    iraffind = IRAFStarFinder(threshold = 5.0*std_bkg + mean_bkg, \
                             fwhm = sigma*gaussian_sigma_to_fwhm, \
                             minsep_fwhm = 0.5, \
                             roundhi = 1.0, \
@@ -37,12 +37,15 @@ def starfinder(name_image):
                             sharplo = 0.5, \
                             sharphi = 2.0)
     iraf_table = iraffind.find_stars(infos.data)
+    return iraf_table, infos
+
+def iraf_tbl2reg(iraf_table):
     # create a region file from iraf table
     x = np.array(iraf_table['xcentroid'])
     y = np.array(iraf_table['ycentroid'])
     region = np.stack((x, y))
     region = np.transpose(region)
-    return iraf_table, region
+    return region
 
 #--------------------------------------------
 # main code
@@ -51,10 +54,15 @@ if __name__ == "__main__":
     start_time = time.time()
     #----------------------------------------
     # Initialize
+    if len(argv) != 2:
+        print "Error! Wrong argument"
+        print "Usage: starfinder.py [image_name]"
+        exit()
     name_image = argv[1]
     #----------------------------------------
     # PSF register
-    iraf_table, region = starfinder(name_image)
+    iraf_table, infos = starfinder(name_image)
+    region = iraf_tbl2reg(iraf_table)
     #---------------------------------------
     # Save iraf table and region file
     np.savetxt("{0}_pr.txt".format(name_image[:-5]), iraf_table)

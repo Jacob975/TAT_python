@@ -181,23 +181,6 @@ def FitGauss2D_curve_fit(data, ip = None):
     else:
         return paras, cov, 1
 
-#----------------------------------------------------
-# fitting function in mag unit
-def pow_function_mag(x, amp, const):
-    return amp * np.log10(x) + const
-
-# initial value of fitting for pow_function in mag unit
-def moment_pow_fitting_mag(x_plt, value):
-    const = value[0]
-    amp = (value[0] - value[-1])/(np.log10(x_plt[0]) - np.log10(x_plt[-1]))
-    return (amp, const)
-
-# fitting
-def pow_fitting_mag(x_plt, value):
-    moment = moment_pow_fitting_mag(x_plt, value)
-    paras, cov = optimize.curve_fit(pow_function_mag, x_plt, value, p0 = moment)
-    return paras, cov
-
 #---------------------------------------------------------------------
 # star matching program
 # include how to find the peak of a image
@@ -362,62 +345,6 @@ def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detai
     else:
         star_list = np.array(star_list, dtype = [('amplitude', float), ('xcenter', float), ('ycenter', float), ('xsigma', float), ('ysigma', float), ('rot', float), ('bkg', float)])
     return star_list
-
-# calculate the inner product and error of two side, from star_1 to star_2 and from star_1 to star_3.
-def inner_product(star_1, star_2, star_3):
-    try:
-        x_part_1 = math.pow(star_1[1] - star_2[1], 2)
-        x_error_1 = (math.pow(star_1[3], 2) + math.pow(star_2[3], 2))/x_part_1
-        x_part_2 = math.pow(star_1[1] - star_3[1], 2)
-        x_error_2 = (math.pow(star_1[3], 2) + math.pow(star_3[3], 2))/x_part_2
-        y_part_1 = math.pow(star_1[2] - star_2[2], 2)
-        y_error_1 = (math.pow(star_1[4], 2) + math.pow(star_2[4], 2))/y_part_1
-        y_part_2 = math.pow(star_1[2] - star_3[2], 2)
-        y_error_2 = (math.pow(star_1[4], 2) + math.pow(star_3[4], 2))/y_part_2
-        inner_prod = (star_1[1] - star_2[1])*(star_1[1] - star_3[1]) + (star_1[2] - star_2[2])*(star_1[2] - star_3[2])
-        var = x_part_1*x_part_2*(x_error_1 + x_error_2) + y_part_1*y_part_2*(y_error_1 + y_error_2)
-        error = math.pow(var, 0.5)
-    except : 
-        return 0, 0
-    else:
-        return inner_prod, error
-
-# check the number of matching inner prod of two stars, then return the number.
-def relation_counter(ref_star, star, error):
-    valid_inner_prod = 0
-    for ref_inner_prod in ref_star:
-        for i in xrange(len(star)):
-            if ref_inner_prod <= star[i] + error[i] and ref_inner_prod >= star[i] - error[i]:
-                valid_inner_prod = valid_inner_prod + 1
-                continue
-    return valid_inner_prod
-
-# choose a star as a target, than choose two else the calculate the inner product.
-def get_inner_product(star_list):
-    inner_prod_star_list = []
-    inner_prod_error_list = []
-    # choose a star, named A
-    for i in xrange(len(star_list)):
-        inner_prod_star = np.array([])
-        inner_prod_error = np.array([])
-        # choose two else stars, named B and C, to get inner product of two side AB and AC.
-        for j in xrange(len(star_list)):
-            if i == j:
-                continue
-            for k in xrange(len(star_list)):
-                if k == i:
-                    continue
-                if k <= j:
-                    continue
-                inner_prod, error = inner_product(star_list[i], star_list[j], star_list[k])
-                inner_prod_star = np.append(inner_prod_star, inner_prod)
-                inner_prod_error = np.append(inner_prod_error, error)
-        # set all inner product as a list, seems like DNA of this star
-        inner_prod_star_list.append(inner_prod_star)
-        inner_prod_error_list.append(inner_prod_error)
-    inner_prod_star_list = np.array(inner_prod_star_list)
-    inner_prod_error_list = np.array(inner_prod_error_list)
-    return inner_prod_star_list, inner_prod_error_list
 
 #---------------------------------------------------------------------
 # Take noise and effective exptime from a list of image
