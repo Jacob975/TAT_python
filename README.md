@@ -12,10 +12,16 @@ Program for sorting and processing images of TAT telescope
 2. install extra python module below
 
 	numpy
-	pyfits
-	tabulate
 	photutils
 	scikit-image
+	PyAstronomy
+	astropy
+	scipy
+3. Install packages
+	
+	python-devel for CentOS
+
+	python-dev for Ubuntu
 
 You can install these module by this command: $python -m pip install modulename
 
