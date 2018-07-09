@@ -32,15 +32,18 @@ def data_reduction(site):
     
     # Process calibration first
     failure = flatten(unprocessed_calibrate_list)
+    '''
     success_unpro_cal_list = check_cal(unprocessed_calibrate_list)
     cal_list = np.append(processed_calibrate_list, success_unpro_cal_list)
     np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), cal_list, fmt="%s")
-
+    '''
     # Then process data
     failure = flatten(unprocessed_data_list)
+    '''
     success_unpro_data_list = check_arr_sub_div_image(unprocessed_data_list)
     data_list = np.append(processed_data_list, success_unpro_data_list)
     np.savetxt("{0}/data_reduction_log.txt".format(path_of_log), data_list, fmt="%s")
+    '''
     return failure
 
 # The def for checking which date is not processed.
@@ -66,7 +69,7 @@ def flatten(unprocessed_list):
     for unpro in unprocessed_list:
         print unpro
         os.chdir(unpro)
-        os.system("flatten_tat_data.py")
+        os.system("{0}/flatten_tat_data.py".format(TAT_env.path_of_code))
     os.system("cd")
     return 0
 
@@ -92,11 +95,11 @@ def check_cal(unprocessed_calibrate_list):
         print exptime_list
         # Dark process
         for exptime in exptime_list:
-            os.system("check_image.py dark 0 {0}".format(exptime))
+            os.system("{0}/check_image.py dark 0 {1}".format(TAT_env.path_of_code, exptime))
         # Flat process
         for band in band_list:
             for exptime in exptime_list:
-                os.system("check_image.py flat {0} {1}".format(band, exptime))
+                os.system("{0}/check_image.py flat {1} {2}".format(TAT_env.path_of_code, band, exptime))
         # if redcution is OK, list the folder in success list.
         if True:
             success_unpro_cal_list.append(unpro_cal)
@@ -118,9 +121,9 @@ def check_arr_sub_div_image(unprocessed_data_list):
         os.chdir(unpro_data)
         # Check
         for band in band_list:
-            os.system("check_image.py data {0} 0".format(band))
+            os.system("{0}/check_image.py data {1} 0".format(TAT_env.path_of_code, band))
         # Arrange
-        os.system("arrange_images.py")
+        os.system("{0}/arrange_images.py".format(TAT_env.path_of_code))
         # find dark and flat
         target_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)] 
         for target in target_list:
@@ -129,10 +132,10 @@ def check_arr_sub_div_image(unprocessed_data_list):
             for band_exptime in band_exptime_list:
                 os.chdir(band_exptime)
                 # find proper calibrate
-                os.system("find_dark.py")
-                os.system("find_flat.py")
+                os.system("{0}/find_dark.py".format(TAT_env.path_of_code))
+                os.system("{0}/find_flat.py".format(TAT_env.path_of_code))
                 # reduction
-                os.system("sub_div.py")
+                os.system("{0}/sub_div.py".format(TAT_env.path_of_code))
                 # psf register
                 try: 
                     reducted_images = np.loadtxt("reducted_image_list", dtype = str)
@@ -141,7 +144,7 @@ def check_arr_sub_div_image(unprocessed_data_list):
                     os.chdir('..')
                     continue
                 else:
-                    os.system("new_register.py reducted_image_list")
+                    os.system("{0}/new_register.py reducted_image_list".format(TAT_env.path_of_code))
                     os.chdir('..')
             os.chdir('..')
         # if redcution is OK, list the folder in success list.

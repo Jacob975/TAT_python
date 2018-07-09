@@ -31,12 +31,12 @@ path_of_python = "/usr/bin/python"
 #--------------- Setting source path ----------------
 # source path means where will you put your row image.
 # recommand: /home/username
-path_of_source = "/mazu/users/Jacob975/TAT_test"
+path_of_source = "/home2/TAT_test"
 
 #--------------- Setting code path ------------------
 # code path means where do you install these code about tat.
 # recommand: /home/username/bin/tat_python
-path_of_code = "/home/Jacob975/bin/tat_python"
+path_of_code = "/home/tat/TAT_programs/TAT_image_reduction"
 
 #--------------- Name of Folders---------------------
 catalog_dir = "tat_catalog"

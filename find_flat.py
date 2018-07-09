@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # Find dark for flat
     os.chdir(path_of_flat)
     flat_list = glob.glob('{0}flat*.fit'.format(band))
-    os.system("find_dark.py")
+    os.system("{0}/find_dark.py".format(TAT_env.path_of_code))
     # flat subtracted by dark
     dark_name = glob.glob("Median_dark*")[0]
     subdark_flat_list = subtract_images(flat_list, dark_name)

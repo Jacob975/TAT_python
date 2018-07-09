@@ -37,6 +37,10 @@ if __name__ == "__main__":
     os.system(command)
     command = "rm *.fits"
     os.system(command)
+    command = "rm *.tar"
+    os.system(command)
+    command = "rm *.pro"
+    os.system(command)
     # Remove all denotation
     X_denotations = glob('X_*_X')
     for name in X_denotations:

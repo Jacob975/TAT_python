@@ -12,11 +12,11 @@ update log
 20180621 version alpha 1
     1. the code looks good.
 '''
-import os 
 from astropy.io import fits as pyfits
 from fit_lib import hist_gaussian_fitting, get_peak_filter, get_star
 import numpy as np
-import time
+from astropy import coordinates as coord, units as u
+from astropy import time as astrotime
 
 #---------------------------------------------------------------------
 # basic fits processing
@@ -201,3 +201,30 @@ def get_rid_of_exotic_vector(value_list, additional, threshold = 3):
         temp_value_list, temp_additional = get_rid_of_exotic_vector(temp_value_list, temp_additional, threshold)
     return temp_value_list, temp_additional
 
+#------------------------------------------------------------
+# The functions for finding HJD, BJD, and AIRMASS
+
+class header_editor():
+    def __init__(self, header):
+        self.jd = float(header["JD"])
+        self.ra = header["RA"]
+        self.dec = header["DEC"]
+        self.lat = header["LATITUDE"]
+        self.lon = header["LONGITUD"]
+        self.exptime = float(header["EXPTIME"])
+        self.target = coord.SkyCoord(self.ra, self.dec, unit=(u.hourangle, u.deg), frame='icrs')
+        self.site = coord.EarthLocation.from_geodetic(self.lon, self.lat)
+        self.times = astrotime.Time(self.jd, format='jd', scale='utc', location=self.site)
+        return 
+    def bjd(self):
+        self.ltt_bary = self.times.light_travel_time(self.target)
+        bjd = self.times.utc + self.ltt_bary
+        return bjd
+    def hjd(self):
+        self.ltt_helio = self.times.light_travel_time(self.target, "heliocentric")
+        hjd = self.times.utc + self.ltt_helio
+        return hjd
+    def air_mass(self):
+        mid_time = astrotime.Time(self.jd + self.exptime/86400., format='jd', scale='utc', location=self.site)
+        target_altaz = self.target.transform_to(coord.AltAz(obstime = mid_time, location = self.site))
+        return target_altaz.secz

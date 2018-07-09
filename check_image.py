@@ -25,7 +25,7 @@ from fit_lib import hist_gaussian_fitting
 import glob
 import time
 from sys import argv
-from termcolor import colored
+from reduction_lib import header_editor
 
 def check_header(name_image, PARAS):
     darkh=pyfits.getheader(name_image)
@@ -56,6 +56,20 @@ def bkg_info(name_image):
     std_bkg = params[1]
     return 0, mean_bkg, std_bkg
 
+def add_jd_airmass_info(name_image):
+    data = pyfits.getdata(name_image)
+    header = pyfits.getheader(name_image)
+    stu = header_editor(header)
+    hjd = stu.hjd().value
+    bjd = stu.bjd().value
+    air_mass = stu.air_mass().value
+    header["HJD"] = (hjd, "Heliocentric Julian Date")
+    header["BJD"] = (bjd, "Barycentric, Julian Date")
+    header["AIRMASS"] = (air_mass, "Air mass when a half of exposure.")
+    print "HJD: {0}, BJD: {1}, AIRMASS: {2}".format(header["HJD"], header["BJD"], header["AIRMASS"])
+    pyfits.writeto(name_image, data, header, overwrite = True)
+    return 0
+
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
@@ -64,7 +78,7 @@ if __name__ == "__main__":
     #----------------------------------------
     # Load Arguments
     if len(argv) != 4:
-        print colored("Error! Wrong arguments", "red")
+        print "Error! Wrong arguments"
         print "Usage: check_image.py [type] [band] [exptime]"
         print "Available type: data, dark, flat"
         print "Available bands: A, B, C, N, R, V"
@@ -80,7 +94,7 @@ if __name__ == "__main__":
     image_list = []
     if type_ == 'data':
         image_list = glob.glob('{0}*.fit'.format(band))
-        PARAS=['CCDTEMP','EXPTIME','RA','DEC']
+        PARAS=['CCDTEMP','EXPTIME','RA','DEC', 'JD', 'LATITUDE', 'LONGITUD']
     elif type_ == 'dark':
         image_list = glob.glob('dark*{0}.fit'.format(exptime))
         PARAS=['CCDTEMP','EXPTIME']
@@ -110,6 +124,9 @@ if __name__ == "__main__":
             std_bkgs.append(0)
             continue
         bad_headers.append(0)
+        # If image type is data, add more infos into header
+        if type_ == 'data':
+            add_jd_airmass_info(name_image)
         # read bkg info of image
         failure, mean_bkg, std_bkg = bkg_info(name_image)
         if failure:

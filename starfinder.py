@@ -13,7 +13,6 @@ update log
 20180626 version alpha 1
     1. The code works
 '''
-import os 
 from photutils.detection import IRAFStarFinder, DAOStarFinder
 from astropy.stats import gaussian_sigma_to_fwhm
 from astropy.io import fits as pyfits
