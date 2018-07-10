@@ -101,21 +101,21 @@ else:
 print code_path
 os.chdir(code_path)
 # get path of source from TAT_env
-path_of_source = TAT_env.path_of_source
+path_of_image = TAT_env.path_of_image
 # construct necessary folder
 if VERBOSE>0:print "construct necessary folders..."
 # source folder
-temp = "mkdir -p {0}/TF/image".format(path_of_source)
+temp = "mkdir -p {0}/TF/image".format(path_of_image)
 os.system(temp)
-temp = "mkdir -p {0}/TF/calibrate".format(path_of_source)
+temp = "mkdir -p {0}/TF/calibrate".format(path_of_image)
 os.system(temp)
-temp = "mkdir -p {0}/TF/log".format(path_of_source)
+temp = "mkdir -p {0}/TF/log".format(path_of_image)
 os.system(temp)
-temp = "mkdir -p {0}/KU/image".format(path_of_source)
+temp = "mkdir -p {0}/KU/image".format(path_of_image)
 os.system(temp)
-temp = "mkdir -p {0}/KU/calibrate".format(path_of_source)
+temp = "mkdir -p {0}/KU/calibrate".format(path_of_image)
 os.system(temp)
-temp = "mkdir -p {0}/KU/log".format(path_of_source)
+temp = "mkdir -p {0}/KU/log".format(path_of_image)
 os.system(temp)
 # measuring time
 elapsed_time = time.time() - start_time

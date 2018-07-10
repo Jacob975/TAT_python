@@ -3,7 +3,7 @@
 Program:
     This is a program for doing psf register on images. 
 Usage: 
-    new_register.py [list of names of images]
+    register.py [list of names of images]
 Editor:
     Jacob975
 20170628
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # Load arguments and Initialize
     if len(argv) != 2:
         print "Error! Wrong arguments"
-        print "Usage: new_register.py [list of names of images]"
+        print "Usage: register.py [list of names of images]"
         exit(1)
     list_name = argv[1]
     #---------------------------------------
@@ -178,6 +178,7 @@ if __name__ == "__main__":
         if not failure:
             shift_image(image_list[i], offset_ym, offset_xm)
             print "{0}_m.fits, OK".format(image_list[i][:-5])
+    os.system("ls *_m.fits > registed_image_list")
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

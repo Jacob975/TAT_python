@@ -206,24 +206,36 @@ def get_rid_of_exotic_vector(value_list, additional, threshold = 3):
 
 class header_editor():
     def __init__(self, header):
-        self.jd = float(header["JD"])
+        try:
+            self.lat = header["LATITUDE"]
+        except:
+            self.lat = header["LAT"]
+        try:
+            self.lon = header["LONGITUD"]
+        except:
+            self.lon = header["LONG"]
+        self.site = coord.EarthLocation.from_geodetic(self.lon, self.lat)
+        try:
+            self.jd = float(header["JD"])
+            self.times = astrotime.Time(self.jd, format='jd', scale='utc', location=self.site)
+        except:
+            self.date_obs = header["DATE-OBS"]
+            self.time_obs = header["TIME-OBS"]
+            self.times = astrotime.Time("{0}T{1}".format(self.date_obs, self.time_obs), format='isot', scale='utc', location = self.site)
+            self.jd = self.times.jd
         self.ra = header["RA"]
         self.dec = header["DEC"]
-        self.lat = header["LATITUDE"]
-        self.lon = header["LONGITUD"]
         self.exptime = float(header["EXPTIME"])
         self.target = coord.SkyCoord(self.ra, self.dec, unit=(u.hourangle, u.deg), frame='icrs')
-        self.site = coord.EarthLocation.from_geodetic(self.lon, self.lat)
-        self.times = astrotime.Time(self.jd, format='jd', scale='utc', location=self.site)
         return 
     def bjd(self):
         self.ltt_bary = self.times.light_travel_time(self.target)
         bjd = self.times.utc + self.ltt_bary
-        return bjd
+        return bjd.jd
     def hjd(self):
         self.ltt_helio = self.times.light_travel_time(self.target, "heliocentric")
         hjd = self.times.utc + self.ltt_helio
-        return hjd
+        return hjd.jd
     def air_mass(self):
         mid_time = astrotime.Time(self.jd + self.exptime/86400., format='jd', scale='utc', location=self.site)
         target_altaz = self.target.transform_to(coord.AltAz(obstime = mid_time, location = self.site))

@@ -91,8 +91,8 @@ if __name__ == "__main__":
     list_path=path.split("/")
     del list_path [0]
     # get info from path
-    path_of_source = TAT_env.path_of_source
-    temp_path = path.split(path_of_source)
+    path_of_image = TAT_env.path_of_image
+    temp_path = path.split(path_of_image)
     temp_path_2 = temp_path[1].split("/")
     date=temp_path_2[3]
     site = temp_path_2[1]
@@ -102,14 +102,14 @@ if __name__ == "__main__":
     exptime = int(darkh["EXPTIME"])
     #----------------------------------------
     # Go to the dir of calibrate 
-    path_of_calibrate = path_of_source+"/"+site+"/calibrate"
+    path_of_calibrate = path_of_image+"/"+site+"/calibrate"
     os.chdir(path_of_calibrate)
     # get a list of all items in calibrate
     date_list = os.listdir(path_of_calibrate)
     # find the nearest date reference to original date.
     nearest_date = match_date(date, date_list)
     # defind the dir of median dark, if it doesn't exist , create it
-    path_of_dark = "{0}/{1}/calibrate/{2}/dark_{3}".format(path_of_source, site, nearest_date, exptime)
+    path_of_dark = "{0}/{1}/calibrate/{2}/dark_{3}".format(path_of_image, site, nearest_date, exptime)
     print "path of dark is :"+path_of_dark
     if os.path.isdir(path_of_dark)==False:
         temp="mkdir -p "+path_of_dark

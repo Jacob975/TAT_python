@@ -36,8 +36,8 @@ if __name__ == "__main__":
         site = imAh["OBSERVAT"]
     except:
         path=os.getcwd()
-        path_of_source = TAT_env.path_of_source
-        temp_path = path.split(path_of_source)
+        path_of_image = TAT_env.path_of_image
+        temp_path = path.split(path_of_image)
         temp_path_2 = temp_path[1].split("/")
         site = temp_path_2[1] 
     # Check if dark and flat exist.

@@ -83,8 +83,8 @@ if __name__ == "__main__":
     # get original path as str and list
     path=os.getcwd()
     # get info from path
-    path_of_source = TAT_env.path_of_source
-    temp_path = path.split(path_of_source)
+    path_of_image = TAT_env.path_of_image
+    temp_path = path.split(path_of_image)
     temp_path_2 = temp_path[1].split("/")
     date=temp_path_2[3]
     # get exptime and band from header of one of images 
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         telescope = temp_path_2[1]
     #----------------------------------------
     # Go to the dir of calibrate 
-    path_of_calibrate = path_of_source+"/"+telescope+"/calibrate"
+    path_of_calibrate = path_of_image+"/"+telescope+"/calibrate"
     os.chdir(path_of_calibrate)
     # get a list of all items in calibrate
     date_list = os.listdir(path_of_calibrate)
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     # find the nearest date reference to original date.
     nearest_date = match_date(date, date_list)
     # defind the dir of median dark, if it doesn't exist , create it
-    path_of_flat = "{0}/{1}/calibrate/{2}/{3}flat_{4}".format(path_of_source, telescope, nearest_date, band, flat_exptime)
+    path_of_flat = "{0}/{1}/calibrate/{2}/{3}flat_{4}".format(path_of_image, telescope, nearest_date, band, flat_exptime)
     print "path of flat is :"+path_of_flat
     if os.path.isdir(path_of_flat)==False:
         temp="mkdir -p "+path_of_flat

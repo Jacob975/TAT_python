@@ -33,7 +33,7 @@ if __name__ == "__main__":
     command = "rm -R -- */"
     os.system(command)
     # Remove synthesis files
-    command = "rm list*"
+    command = "rm *_list*"
     os.system(command)
     command = "rm *.fits"
     os.system(command)

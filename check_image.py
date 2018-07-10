@@ -59,14 +59,18 @@ def bkg_info(name_image):
 def add_jd_airmass_info(name_image):
     data = pyfits.getdata(name_image)
     header = pyfits.getheader(name_image)
-    stu = header_editor(header)
-    hjd = stu.hjd().value
-    bjd = stu.bjd().value
-    air_mass = stu.air_mass().value
+    try:
+        stu = header_editor(header)
+        hjd = stu.hjd()
+        bjd = stu.bjd()
+        air_mass = stu.air_mass().value
+    except:
+        print "Fail to update header with HJD, BJD, AIRMASS."
+        return 1
     header["HJD"] = (hjd, "Heliocentric Julian Date")
     header["BJD"] = (bjd, "Barycentric, Julian Date")
     header["AIRMASS"] = (air_mass, "Air mass when a half of exposure.")
-    print "HJD: {0}, BJD: {1}, AIRMASS: {2}".format(header["HJD"], header["BJD"], header["AIRMASS"])
+    #print "HJD: {0}, BJD: {1}, AIRMASS: {2}".format(header["HJD"], header["BJD"], header["AIRMASS"])
     pyfits.writeto(name_image, data, header, overwrite = True)
     return 0
 
@@ -94,7 +98,7 @@ if __name__ == "__main__":
     image_list = []
     if type_ == 'data':
         image_list = glob.glob('{0}*.fit'.format(band))
-        PARAS=['CCDTEMP','EXPTIME','RA','DEC', 'JD', 'LATITUDE', 'LONGITUD']
+        PARAS=['CCDTEMP','EXPTIME','RA','DEC']
     elif type_ == 'dark':
         image_list = glob.glob('dark*{0}.fit'.format(exptime))
         PARAS=['CCDTEMP','EXPTIME']
@@ -141,32 +145,34 @@ if __name__ == "__main__":
     #----------------------------------------
     # Image quality check
     # mean of bkgs should be consistent
-    no_loss_in_mean_bkgs = np.where(mean_bkgs != 0)
-    median_mean_bkgs = np.median(mean_bkgs[no_loss_in_mean_bkgs])
-    print "median_mean_bkgs = {0}".format(median_mean_bkgs)
-    no_loss_in_std_bkgs = np.where(std_bkgs != 0)
-    median_std_bkgs = np.median(std_bkgs[no_loss_in_std_bkgs])
-    print "median_std_bkgs = {0}".format(median_std_bkgs)
-    index_of_bad_bkgs = np.where(np.absolute(mean_bkgs - median_mean_bkgs) > 5 * median_std_bkgs)
     bad_bkgs = np.zeros(len(mean_bkgs), dtype = int)
-    bad_bkgs[index_of_bad_bkgs] = 1
-    print "bad_bkgs:\n{0}".format(bad_bkgs)
-    bad_headers = np.array(bad_headers)
-    print "bad_headers:\n{0}".format(bad_headers)
-    index_of_interset_of_bad = np.where((bad_headers == 1) & (bad_bkgs == 1))
     interset_of_bad = np.zeros(len(mean_bkgs), dtype = int)
-    interset_of_bad[index_of_interset_of_bad] = 1
-    print "interset_of_bad:\n{0}".format(interset_of_bad)
-    for i in xrange(len(mean_bkgs)):
-        if bad_bkgs[i] == 1 and bad_headers[i] == 0:
-            command = "mv {0} X_{0}_X".format(image_list[i])
-            os.system(command)
+    if type_ != 'flat':
+        no_loss_in_mean_bkgs = np.where(mean_bkgs != 0)
+        median_mean_bkgs = np.median(mean_bkgs[no_loss_in_mean_bkgs])
+        print "median_mean_bkgs = {0}".format(median_mean_bkgs)
+        no_loss_in_std_bkgs = np.where(std_bkgs != 0)
+        median_std_bkgs = np.median(std_bkgs[no_loss_in_std_bkgs])
+        print "median_std_bkgs = {0}".format(median_std_bkgs)
+        index_of_bad_bkgs = np.where(np.absolute(mean_bkgs - median_mean_bkgs) > 5 * median_std_bkgs)
+        bad_bkgs[index_of_bad_bkgs] = 1
+        print "bad_bkgs:\n{0}".format(bad_bkgs)
+        bad_headers = np.array(bad_headers)
+        print "bad_headers:\n{0}".format(bad_headers)
+        index_of_interset_of_bad = np.where((bad_headers == 1) & (bad_bkgs == 1))
+        interset_of_bad[index_of_interset_of_bad] = 1
+        print "interset_of_bad:\n{0}".format(interset_of_bad)
+        for i in xrange(len(mean_bkgs)):
+            if bad_bkgs[i] == 1 and bad_headers[i] == 0:
+                command = "mv {0} X_{0}_X".format(image_list[i])
+                os.system(command)
     #-----------------------------------------
     print "--- Check finished! ---"
     print "Number of total image: {0}".format(len(image_list))
     print "Number of success: {0}".format(len(image_list) - np.sum(bad_headers, dtype = int) - np.sum(bad_bkgs, dtype = int) + np.sum(interset_of_bad, dtype = int)) 
     print "Number of broken header: {0}".format(np.sum(bad_headers, dtype = int))
-    print "Number of inconsistent background: {0}".format(np.sum(bad_bkgs, dtype = int))
+    if type_ != 'flat':
+        print "Number of inconsistent background: {0}".format(np.sum(bad_bkgs, dtype = int))
     #---------------------------------------
     # measuring time
     elapsed_time = time.time() - start_time
