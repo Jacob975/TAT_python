@@ -14,6 +14,7 @@ update log
 '''
 import os 
 from astropy.io import fits as pyfits
+from astropy import time as astrotime
 import numpy as np
 import glob
 import time
@@ -80,10 +81,10 @@ if __name__ == "__main__":
     start_time = time.time()
     #----------------------------------------
     # Initialize
-    # get original path as str and list
-    path=os.getcwd()
     # get info from path
+    path=os.getcwd()
     path_of_image = TAT_env.path_of_image
+    print "--- Find flat for {0} ---".format(path)
     temp_path = path.split(path_of_image)
     temp_path_2 = temp_path[1].split("/")
     date=temp_path_2[3]
@@ -108,7 +109,7 @@ if __name__ == "__main__":
     nearest_date = match_date(date, date_list)
     # defind the dir of median dark, if it doesn't exist , create it
     path_of_flat = "{0}/{1}/calibrate/{2}/{3}flat_{4}".format(path_of_image, telescope, nearest_date, band, flat_exptime)
-    print "path of flat is :"+path_of_flat
+    print "path of flat is : {0}".format(path_of_flat)
     if os.path.isdir(path_of_flat)==False:
         temp="mkdir -p "+path_of_flat
         os.system(temp)
@@ -116,18 +117,28 @@ if __name__ == "__main__":
     # Let's find the proper flat
     number = len(glob.glob(path_of_flat)) 
     # check whether the number of flat is enough, if no, find other darks.
+    date_t = astrotime.Time("{0}-{1}-{2}".format(date[0:4], date[4:6], date[6:8]))
+    nearest_date_t = astrotime.Time("{0}-{1}-{2}".format(nearest_date[0:4], nearest_date[4:6], nearest_date[6:8]))
     while number < 10:
         if len(date_list) == 1:
             print "No enough flat found"
             exit(1)
+        if abs(date_t.jd - nearest_date_t.jd) > 90:
+            print "No enough flat found"
+            exit(1)
         number, nearest_date = sub_process(path, band, telescope, date, date_list, path_of_flat, flat_exptime)
+        nearest_date_t = astrotime.Time("{0}-{1}-{2}".format(nearest_date[0:4], nearest_date[4:6], nearest_date[6:8]))
     #-----------------------------------------
     # Find dark for flat
     os.chdir(path_of_flat)
     flat_list = glob.glob('{0}flat*.fit'.format(band))
     os.system("{0}/find_dark.py".format(TAT_env.path_of_code))
     # flat subtracted by dark
-    dark_name = glob.glob("Median_dark*")[0]
+    try:
+        dark_name = glob.glob("Median_dark*")[0]
+    except:
+        print "No enough darks for flats, find_flat.py stop."
+        exit()
     subdark_flat_list = subtract_images(flat_list, dark_name)
     # median and normalize on all flats
     median_subdark_flat = stack_mdn_method(subdark_flat_list) 
