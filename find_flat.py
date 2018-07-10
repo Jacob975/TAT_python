@@ -34,10 +34,8 @@ def get_flat_to(band, telescope, flat_exptime, date, path_of_flat):
     flat_keywords_2 = "{0}flat{1}{2}*{3}.fit".format(band, telescope, next_date[2:], flat_exptime)
     # Copy files matching the keywords
     command = "cp {0} {1} 2>/dev/null".format(flat_keywords_1, path_of_flat)
-    print command
     os.system(command)
     command = "cp {0} {1} 2>/dev/null".format(flat_keywords_2, path_of_flat)
-    print command
     os.system(command)
     answer = len(glob.glob("{0}/*.fit".format(path_of_flat)))
     return answer

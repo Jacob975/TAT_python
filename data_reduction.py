@@ -37,9 +37,12 @@ def data_reduction(site):
     np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), cal_list, fmt="%s")
     # Then process data
     failure = undo(unprocessed_data_list)
-    success_unpro_data_list = check_arr_sub_div_image(unprocessed_data_list)
+    success_unpro_data_list, darks_not_found, flats_not_found = check_arr_sub_div_image(unprocessed_data_list)
     data_list = np.append(processed_data_list, success_unpro_data_list)
+    # save log infomations
     np.savetxt("{0}/data_reduction_log.txt".format(path_of_log), data_list, fmt="%s")
+    np.savetxt("{0}/darks_not_found.txt".format(path_of_log), darks_not_found, fmt="%s")
+    np.savetxt("{0}/flats_not_found.txt".format(path_of_log), flats_not_found, fmt="%s")
     return failure
 
 # The def for checking which date is not processed.
@@ -147,13 +150,13 @@ def check_arr_sub_div_image(unprocessed_data_list):
                         darks_not_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
                 # check if flat were found
                 try:
-                    name_flat = glob.glob("Median_dark_*.fits")[0]
+                    name_flat = glob.glob("Median_flat_*.fits")[0]
                 except:
                     # find proper flats
                     os.system("{0}/find_flat.py".format(TAT_env.path_of_code))
                     # check if the program success
                     try:
-                        name_flat = glob.glob("Median_dark_*.fits")[0]
+                        name_flat = glob.glob("Median_flat_*.fits")[0]
                     except:
                         failure = 1
                         flats_not_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
@@ -184,10 +187,7 @@ def check_arr_sub_div_image(unprocessed_data_list):
         # if redcution is OK, list the folder in success list.
         if not failure_unpro_data:
             success_unpro_data_list.append(unpro_data)
-    # send a email to user, let he/she know where darks or flats not found.
-    np.savetxt("{0}/log/darks_no_found.txt".format(path_of_image), darks_not_found, dtype = str)
-    np.savetxt("{0}/log/flats_no_found.txt".format(path_of_image), flats_not_found, dtype = str)
-    return success_unpro_data_list
+    return success_unpro_data_list, darks_not_found, flats_not_found
 
 #--------------------------------------------
 # main code
