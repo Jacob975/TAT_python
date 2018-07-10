@@ -34,8 +34,10 @@ def get_flat_to(band, telescope, flat_exptime, date, path_of_flat):
     flat_keywords_2 = "{0}flat{1}{2}*{3}.fit".format(band, telescope, next_date[2:], flat_exptime)
     # Copy files matching the keywords
     command = "cp {0} {1} 2>/dev/null".format(flat_keywords_1, path_of_flat)
+    print command
     os.system(command)
     command = "cp {0} {1} 2>/dev/null".format(flat_keywords_2, path_of_flat)
+    print command
     os.system(command)
     answer = len(glob.glob("{0}/*.fit".format(path_of_flat)))
     return answer
@@ -93,6 +95,7 @@ if __name__ == "__main__":
     darkh = pyfits.getheader(image_list[0])
     exptime = int(darkh["EXPTIME"])
     band = darkh["FILTER"]
+    print band
     try:
         telescope = darkh["OBSERVAT"]
     except:
@@ -123,10 +126,14 @@ if __name__ == "__main__":
         if len(date_list) == 1:
             print "No enough flat found"
             exit(1)
+        '''
+        # Tolerance of time range
         if abs(date_t.jd - nearest_date_t.jd) > 90:
             print "No enough flat found"
             exit(1)
+        '''
         number, nearest_date = sub_process(path, band, telescope, date, date_list, path_of_flat, flat_exptime)
+        print "number of found flats: {0}".format(number)
         nearest_date_t = astrotime.Time("{0}-{1}-{2}".format(nearest_date[0:4], nearest_date[4:6], nearest_date[6:8]))
     #-----------------------------------------
     # Find dark for flat
@@ -138,7 +145,7 @@ if __name__ == "__main__":
         dark_name = glob.glob("Median_dark*")[0]
     except:
         print "No enough darks for flats, find_flat.py stop."
-        exit()
+        exit(1)
     subdark_flat_list = subtract_images(flat_list, dark_name)
     # median and normalize on all flats
     median_subdark_flat = stack_mdn_method(subdark_flat_list) 

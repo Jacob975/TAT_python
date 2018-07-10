@@ -31,12 +31,12 @@ def data_reduction(site):
     processed_data_list, unprocessed_data_list = unprocessed_check(path_of_log, path_of_data, type_ = "data")
     
     # Process calibration first
-    failure = flatten(unprocessed_calibrate_list)
+    failure = undo(unprocessed_calibrate_list)
     success_unpro_cal_list = check_cal(unprocessed_calibrate_list)
     cal_list = np.append(processed_calibrate_list, success_unpro_cal_list)
     np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), cal_list, fmt="%s")
     # Then process data
-    failure = flatten(unprocessed_data_list)
+    failure = undo(unprocessed_data_list)
     success_unpro_data_list = check_arr_sub_div_image(unprocessed_data_list)
     data_list = np.append(processed_data_list, success_unpro_data_list)
     np.savetxt("{0}/data_reduction_log.txt".format(path_of_log), data_list, fmt="%s")
@@ -61,11 +61,11 @@ def unprocessed_check(path_of_log, path_of_data, type_):
     return processed, unprocessed
 
 # The def for flattening files in a folder.
-def flatten(unprocessed_list):
+def undo(unprocessed_list):
     for unpro in unprocessed_list:
         print unpro
         os.chdir(unpro)
-        os.system("{0}/flatten_tat_data.py".format(TAT_env.path_of_code))
+        os.system("{0}/undo_tat_reduction.py".format(TAT_env.path_of_code))
     os.system("cd")
     return 0
 
@@ -115,7 +115,7 @@ def check_arr_sub_div_image(unprocessed_data_list):
     darks_not_found = []
     flats_not_found = []
     for unpro_data in unprocessed_data_list:
-        unsuccessed = 0
+        failure_unpro_data = 0
         print "DIR: {0}".format(unpro_data)
         os.chdir(unpro_data)
         # Check
@@ -178,12 +178,15 @@ def check_arr_sub_div_image(unprocessed_data_list):
                     except:
                         failure = 1
                 if failure:
-                    unsuccessed = 1
+                    failure_unpro_data = 1
                 os.chdir('..')
             os.chdir('..')
         # if redcution is OK, list the folder in success list.
-        if not failure:
+        if not failure_unpro_data:
             success_unpro_data_list.append(unpro_data)
+    # send a email to user, let he/she know where darks or flats not found.
+    np.savetxt("{0}/log/darks_no_found.txt".format(path_of_image), darks_not_found, dtype = str)
+    np.savetxt("{0}/log/flats_no_found.txt".format(path_of_image), flats_not_found, dtype = str)
     return success_unpro_data_list
 
 #--------------------------------------------

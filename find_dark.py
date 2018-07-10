@@ -85,16 +85,18 @@ if __name__ == "__main__":
     # Measure time
     start_time = time.time()
     #----------------------------------------
+    image_list = glob.glob("*.fit")
+    if len(image_list) == 0:
+        print "No image found, find_dark.py stop."
+        exit()
     # Initialize
-    # get original path as str and list
-    path=os.getcwd()
-    list_path=path.split("/")
-    del list_path [0]
     # get info from path
+    path=os.getcwd()
     path_of_image = TAT_env.path_of_image
+    print "--- Find dark for {0} ---".format(path)
     temp_path = path.split(path_of_image)
     temp_path_2 = temp_path[1].split("/")
-    date=temp_path_2[3]
+    date = temp_path_2[3]
     site = temp_path_2[1]
     # get exptime from header of one of images 
     image_list = glob.glob("*.fit")
@@ -121,7 +123,7 @@ if __name__ == "__main__":
     while number < 10:
         number, nearest_date = sub_process(path, site, date, date_list, path_of_dark, exptime)
         if len(date_list) == 1:
-            print "No enough dark found"
+            print "No enough dark found, find_dark.py stops."
             exit(1)
     os.chdir(path_of_dark)
     dark_list = glob.glob('dark*.fit')

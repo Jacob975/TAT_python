@@ -18,6 +18,7 @@ import time
 from sys import argv
 from register_lib import get_inner_product, num_relation_lister, get_rid_of_exotic, get_rid_of_exotic_severe
 from starfinder import starfinder
+import os
 
 class register:
     def __init__(self, iraf_table, infos):
