@@ -1,4 +1,4 @@
-# tat_image_calibration
+# Installation guide for tat_image_calibration
 Program for calibrating and reducting images of TAT telescope
 
 # Preparation
@@ -33,10 +33,10 @@ Program for calibrating and reducting images of TAT telescope
 # Standard Steps of processing TAT Data.
 
 1. data_reduction.py
-    After sent this command, first HQ check the log file to know which folders are unprocessed.
-    Check the header and quality of darks and flats.
-    Check the header and quality of images.
-    Arrange images with folder: /path_of_image/KU/image/date/target/band_exptime .
-    find darks and flats for each catagory of images.
+    After sent this command, first, HQ checkes the log files to know which folders are unprocessed.
+    Check the headers and quality of darks and flats.
+    Check the headers and quality of images.
+    Arrange images into folders: /path_of_image/KU/image/date/target/band_exptime .
+    Find darks and flats for each catagory of images.
     Do data reduction(subDARK, divFLAT, psf regist) on images in each catagory.
-    After reduction finished, HQ will save update the list of processed folder. and reply where darks or flats is not found.
+    After reduction finished, HQ will save update the list of processed folders, and reply whose darks or flats is not found.
