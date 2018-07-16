@@ -179,7 +179,7 @@ if __name__ == "__main__":
         if not failure:
             shift_image(image_list[i], offset_ym, offset_xm)
             print "{0}_m.fits, OK".format(image_list[i][:-5])
-    os.system("ls *_m.fits > registed_image_list")
+    os.system("ls *_m.fits > registed_image_list.txt")
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

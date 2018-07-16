@@ -3,7 +3,7 @@
 Program:
     This is a program for data reduction on tat. 
 Usage: 
-    data_reduction.py
+    Do_Data_Reduction.py
 Editor:
     Jacob975
 20170625
@@ -37,12 +37,14 @@ def data_reduction(site):
     np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), cal_list, fmt="%s")
     # Then process data
     failure = undo(unprocessed_data_list)
-    success_unpro_data_list, darks_not_found, flats_not_found = check_arr_sub_div_image(unprocessed_data_list)
+    success_unpro_data_list, darks_not_found, flats_not_found, psf_register_fail, not_all_wcs_found = check_arr_sub_div_image(unprocessed_data_list)
     data_list = np.append(processed_data_list, success_unpro_data_list)
     # save log infomations
     np.savetxt("{0}/data_reduction_log.txt".format(path_of_log), data_list, fmt="%s")
     np.savetxt("{0}/darks_not_found.txt".format(path_of_log), darks_not_found, fmt="%s")
     np.savetxt("{0}/flats_not_found.txt".format(path_of_log), flats_not_found, fmt="%s")
+    np.savetxt("{0}/psf_register_fail.txt".format(path_of_log), psf_register_fail, fmt="%s")
+    np.savetxt("{0}/not_all_wcs_found.txt".format(path_of_log), not_all_wcs_found, fmt="%s")
     return failure
 
 # The def for checking which date is not processed.
@@ -69,6 +71,15 @@ def undo(unprocessed_list):
         print unpro
         os.chdir(unpro)
         os.system("{0}/undo_tat_reduction.py".format(TAT_env.path_of_code))
+        '''
+        # This part for fix headers with wrong filter
+        try:
+            os.system("ls *flat*.fit > flat_list.txt")
+            os.system("{0}/fix_header.py flat_list.txt".format(TAT_env.path_of_code))
+        except:
+            os.system("ls *Star*.fit > star_list.txt")
+            os.system("{0}/fix_header.py star_list.txt".format(TAT_env.path_of_code))
+        '''
     os.system("cd")
     return 0
 
@@ -117,6 +128,8 @@ def check_arr_sub_div_image(unprocessed_data_list):
     success_unpro_data_list = []
     darks_not_found = []
     flats_not_found = []
+    psf_register_fail = []
+    not_all_wcs_found = []
     for unpro_data in unprocessed_data_list:
         failure_unpro_data = 0
         print "DIR: {0}".format(unpro_data)
@@ -136,50 +149,71 @@ def check_arr_sub_div_image(unprocessed_data_list):
                 name_dark = ""
                 name_flat = ""
                 os.chdir(band_exptime)
+                #--------------------------------------------------------------------------
                 # check if dark were found.
                 try:
                     name_dark = glob.glob("Median_dark_*.fits")[0]
                 except:
-                    # find proper dark
-                    os.system("{0}/find_dark.py".format(TAT_env.path_of_code))
                     # check if the program success
                     try:
+                        # find proper dark
+                        os.system("{0}/find_dark.py".format(TAT_env.path_of_code))
                         name_dark = glob.glob("Median_dark_*.fits")[0]
                     except:
                         failure = 1
                         darks_not_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                #--------------------------------------------------------------------------
                 # check if flat were found
                 try:
                     name_flat = glob.glob("Median_flat_*.fits")[0]
                 except:
-                    # find proper flats
-                    os.system("{0}/find_flat.py".format(TAT_env.path_of_code))
                     # check if the program success
                     try:
+                        # find proper flats
+                        os.system("{0}/find_flat.py".format(TAT_env.path_of_code))
                         name_flat = glob.glob("Median_flat_*.fits")[0]
                     except:
                         failure = 1
                         flats_not_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                #--------------------------------------------------------------------------
                 # Subtracted by dark and divided by flat
                 try:
-                    reducted_images = np.loadtxt("reducted_image_list", dtype = str)    
+                    reducted_images = np.loadtxt("reducted_image_list.txt", dtype = str)    
                 except:
-                    # subtracted by darks and divided by flat
-                    os.system("{0}/sub_div.py".format(TAT_env.path_of_code))
                     try:
-                        reducted_images = np.loadtxt("reducted_image_list", dtype = str)    
+                        # subtracted by darks and divided by flat
+                        os.system("{0}/sub_div.py".format(TAT_env.path_of_code))
+                        reducted_images = np.loadtxt("reducted_image_list.txt", dtype = str)    
                     except:
                         failure = 1
+                #--------------------------------------------------------------------------
                 # psf register
                 # try to load registed_image_list, which is produced by register.py
                 try: 
-                    registed_images = np.loadtxt("registed_image_list", dtype = str)
+                    registed_images = np.loadtxt("registed_image_list.txt", dtype = str)
+                    temp_name_space = registed_images[1]
                 except:
-                    os.system("{0}/register.py reducted_image_list".format(TAT_env.path_of_code))
                     try:
-                        registed_images = np.loadtxt("registed_image_list", dtype = str)
+                        os.system("{0}/register.py reducted_image_list.txt".format(TAT_env.path_of_code))
+                        registed_images = np.loadtxt("registed_image_list.txt", dtype = str)
+                        temp_name_space = registed_images[1]
                     except:
                         failure = 1
+                        psf_register_fail.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                #--------------------------------------------------------------------------
+                # Get WCS and find targets on images
+                try:
+                    wcs_got_images = np.loadtxt(" wcs_gotten_images_list.txt")
+                except:
+                    try:
+                        os.system("{0}/starfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
+                        wcs_got_images = np.loadtxt("wcs_gotten_images_list.txt")
+                        if len(wcs_got_images) != len(registed_images) or len(wcs_got_images) == 0:
+                            not_all_wcs_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                    except:
+                        failure = 1
+                        not_all_wcs_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                #--------------------------------------------------------------------------
                 if failure:
                     failure_unpro_data = 1
                 os.chdir('..')
@@ -187,7 +221,7 @@ def check_arr_sub_div_image(unprocessed_data_list):
         # if redcution is OK, list the folder in success list.
         if not failure_unpro_data:
             success_unpro_data_list.append(unpro_data)
-    return success_unpro_data_list, darks_not_found, flats_not_found
+    return success_unpro_data_list, darks_not_found, flats_not_found, psf_register_fail, not_all_wcs_found
 
 #--------------------------------------------
 # main code
@@ -198,7 +232,6 @@ if __name__ == "__main__":
     # Initialize
     warnings.filterwarnings("ignore")
     site_list = TAT_env.site_list
-
     #---------------------------------------
     # Data reduction
     for site in site_list:

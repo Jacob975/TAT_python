@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # Save a list of images
     temp = "rm *subDARK.fits"
     os.system(temp)
-    temp = "ls *divFLAT.fits > reducted_image_list"
+    temp = "ls *divFLAT.fits > reducted_image_list.txt"
     os.system(temp)
     #---------------------------------------
     # Measure time
