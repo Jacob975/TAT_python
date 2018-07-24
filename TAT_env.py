@@ -39,7 +39,7 @@ path_of_image = "/home2/TAT_test"
 path_of_code = "/home/tat/TAT_programs/TAT_image_reduction"
 
 #--------------- Name of Folders---------------------
-catalog_dir = "tat_catalog"
+path_of_table = "/home2/TAT_test/tables"
 
 #--------------- Object list---------------------------------
 # every object recorded below will be read
@@ -55,12 +55,43 @@ object_list = [ {'RA':'21:53:24','DEC':'47:16:00','name':'IC5146'},
                 {'RA':'21:06:53.9','DEC':'38:44:57.9','name':'61Cygni'},
                 {'RA':'20:12:7', 'DEC':'38:21:18', 'name':'NGC6888'}]
 
-#--------------- band list-------------------------
+#--------------- Band list-------------------------
 band_list = ["A", "B", "C", "N", "R", "V" ]
-#--------------- site list-------------------------
+#--------------- Site list-------------------------
 site_list = ["TF", "KU"]
-#--------------- type list-------------------------
+#--------------- Type list-------------------------
 type_list = ["data", "dark", "flat"]
+#----------------Title for targets on Iraf table---
+titles_for_target_on_iraf_table = ['id', 'xcentroid', 'ycentroid', 'fwhm', 'sharpness', 'roundness', 'pa', 'npix', 'sky', 'peak', 'flux', 'mag']
+#----------------Title for targets on frame table--
+titles_for_target_on_frame_table = ['id',               # unique object identification number. 
+                                    'name', 
+                                    'flux',             #
+                                    'mag',              #
+                                    'RA',               
+                                    'DEC',              
+                                    'xcentroid',        # object centroid.
+                                    'ycentroid',        # object centroid.
+                                    'fwhm',             # full width of the half maximum.
+                                    'sharpness',        # object sharpness.
+                                    'roundness',        # object roundness based on marginal Gaussian fits.
+                                    'pa',               # polarization angle
+                                    'npix',             # number of pixels in the Gaussian kernel.
+                                    'sky',              # background sky.
+                                    'peak',             # the peak, sky-subtracted, pixel value of the object.
+                                    'filename', 
+                                    'filepath', 
+                                    'filter', 
+                                    'sitename', 
+                                    'exptime', 
+                                    'date-obs', 
+                                    'time-obs', 
+                                    'MJD', 
+                                    'airmass', 
+                                    'JD', 
+                                    'HJD', 
+                                    'BJD', 
+                                    ]
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.19 arcsec on TAT image.
 pix1 = 2.2

@@ -49,6 +49,7 @@ def subtract_images(image_list, dark_name):
     for name in image_list:
         imA = pyfits.getdata(name)
         imAh = pyfits.getheader(name)
+        imAh['SUBBED'] = 1
         imB = np.subtract(imA, dark)
         sub_name = name.split(".")[0] 
         new_name = "{0}_subDARK.fits".format(sub_name)
@@ -64,6 +65,7 @@ def divide_images(image_list, flat_name):
     for name in image_list:
         imA = pyfits.getdata(name)
         imAh = pyfits.getheader(name)
+        imAh['DIVED'] = 1
         imB = np.divide(imA, flat)
         sub_name = name.split(".")[0] 
         new_name = "{0}_divFLAT.fits".format(sub_name)
@@ -228,6 +230,8 @@ class header_editor():
         self.exptime = float(header["EXPTIME"])
         self.target = coord.SkyCoord(self.ra, self.dec, unit=(u.hourangle, u.deg), frame='icrs')
         return 
+    def mjd(self):
+        return self.jd - 2400000.5
     def bjd(self):
         self.ltt_bary = self.times.light_travel_time(self.target)
         bjd = self.times.utc + self.ltt_bary

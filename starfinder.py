@@ -3,6 +3,7 @@
 Program:
     This is a program to find stars with astrometry and IRAFstarfinder 
     And update the header with wcs
+    Then save a target on frames table
 Usage: 
     starfinder.py [image_name]
 Editor:
@@ -24,6 +25,7 @@ import numpy as np
 import time
 import os
 from sys import argv
+import TAT_env
 
 # find a star through iraf finder
 def starfinder(image_name):
@@ -51,16 +53,16 @@ def iraf_tbl2reg(iraf_table):
 
 def iraf_tbl_modifier(image_name, iraf_table):
     # Initialize Variables
-    column_names = ['id', 'xcentroid', 'ycentroid', 'fwhm', 'sharpness', 'roundness', 'pa', 'npix', 'sky', 'peak', 'flux', 'mag']
-    column_mod_names = ['id', 'Name', 'RA', 'DEC', 'xcentroid', 'ycentroid', 'fwhm', 'sharpness', 'roundness', 'pa', 'npix', 'sky', 'peak', 'flux', 'mag']
+    column_names = TAT_env.titles_for_target_on_iraf_table
+    column_mod_names = TAT_env.titles_for_target_on_frame_table 
     iraf_mod_table = []
     # Convert table into 2D np.array
-    for i, name in enumerate(column_names):
+    for name in column_names:
         iraf_mod_table.append(np.array(iraf_table[name]))
     iraf_mod_table = np.array(iraf_mod_table)
     iraf_mod_table = np.transpose(iraf_mod_table)
     # Get WCS infos with astrometry
-    failure, header_wcs = get_header_wcs(image_name)
+    failure, header_wcs = load_wcs()
     if failure:
         print "WCS not found"
         return 1, None, None
@@ -73,35 +75,61 @@ def iraf_tbl_modifier(image_name, iraf_table):
     # Insert RA and DEC into np.array
     iraf_mod_table = np.insert(iraf_mod_table, 1, world, axis=1)
     # Convert dtype to str for saveing conveniently
-    iraf_mod_table = np.array(iraf_mod_table, dtype = str)
-    # name this target with RA and DEC, and insert
-    target_names_list = np.array(["target_{0}_{1}".format(world[0,i], world[1,i]) for i in range(len(world[0]))]) 
+    iraf_mod_table = np.array(iraf_mod_table, dtype = object)
+    # Name targets with RA and DEC, and insert into table
+    table_length = len(world[0])
+    target_names_list = np.array(["target_{0}_{1}".format(world[0,i], world[1,i]) for i in range(table_length)]) 
     iraf_mod_table = np.insert(iraf_mod_table, 1, target_names_list, axis=1)
-    # inserting titles
+    # Move flux and mag to number 3 and 4.
+    iraf_mod_table = np.insert(iraf_mod_table, 2, np.array(iraf_table['flux']), axis = 1)
+    iraf_mod_table = np.insert(iraf_mod_table, 3, np.array(iraf_table['mag']), axis = 1)
+    # delete the duplicated column  on the back.
+    iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
+    iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
+    # Insert infos from images
+    header = pyfits.getheader(image_name) 
+    filename = np.repeat(image_name, table_length)
+    filepath = os.getcwd()
+    filepath = np.repeat(filepath, table_length)
+    filter_ = np.repeat(header['FILTER'], table_length)
+    try:
+        sitename = np.repeat(header['OBSERVAT'], table_length)
+    except:
+        sitename = np.repeat(header['LOCATION'], table_length)
+    exptime = np.repeat(header['EXPTIME'], table_length)
+    date_obs = np.repeat(header['DATE-OBS'], table_length)
+    time_obs = np.repeat(header['TIME-OBS'], table_length)
+    mjd = np.repeat(header['MJD-OBS'], table_length)
+    airmass = np.repeat(header['AIRMASS'], table_length)
+    jd = np.repeat(header['JD'], table_length)
+    hjd = np.repeat(header['HJD'], table_length)
+    bjd = np.repeat(header['BJD'], table_length)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, filename, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, filepath, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, filter_, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, sitename, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, exptime, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, date_obs, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, time_obs, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, mjd, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, airmass, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, jd, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, hjd, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, -1, bjd, 1)
+    iraf_mod_table = np.insert(iraf_mod_table, 14, iraf_mod_table[:,-1], 1)
+    iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
+    # Insert titles
     iraf_mod_table = np.insert(iraf_mod_table, 0, column_mod_names, axis=0)
     return 0, iraf_mod_table, column_names
 
-# Get WCS with astrometry programy
-def get_header_wcs(image_name):
+def load_wcs():
+    # Load the file
     try:
-        # Load if existing already.
-        header_wcs = pyfits.getheader("{0}.wcs".format(image_name[:-5]))
+        header_wcs = pyfits.getheader("stacked_image.wcs")
     except:
-        astrometry_program = "/opt/astrometry/bin/solve-field"
-        # Produce wcs header with astrometry
-        command = "{0} {1} --overwrite".format(astrometry_program, image_name)
-        os.system(command)
-        # Load the file
-        try:
-            header_wcs = pyfits.getheader("{0}.wcs".format(image_name[:-5]))
-        except:
-            print "solve-field fail, no wcs reference."
-            return 1, None
+        print "WCS not found" 
+        return 1, None
     return 0, header_wcs
-
-def clean_astrometry_product():
-    command = 'rm -f *.axy *.corr *.png *.xyls *.match *.rdls *.solved *.wcs'
-    os.system(command)
 
 #--------------------------------------------
 # main code
@@ -114,19 +142,17 @@ if __name__ == "__main__":
         print "Error! Wrong argument"
         print "Usage: starfinder.py [image_name]"
         exit()
-    image_name = argv[1]
+    name_image_list = argv[1]
+    image_list = np.loadtxt(name_image_list, dtype = str)
     #----------------------------------------
     # PSF register
-    iraf_table, infos = starfinder(image_name)
-    failure, iraf_mod_table, column_names = iraf_tbl_modifier(image_name, iraf_table)
-    region = iraf_tbl2reg(iraf_table)
-    command = 'mv {0}.new {0}_w.fits'.format(image_name[0:-5])
-    os.system(command)
-    # Save iraf table and region file
-    np.savetxt("{0}.dat".format(image_name[:-5]), iraf_mod_table, fmt="%s")
-    np.savetxt("{0}.reg".format(image_name[:-5]), region)
-    # Clean synthetic files
-    clean_astrometry_product()
+    for image_name in image_list:
+        iraf_table, infos = starfinder(image_name)
+        failure, iraf_mod_table, column_names = iraf_tbl_modifier(image_name, iraf_table)
+        region = iraf_tbl2reg(iraf_table)
+        # Save iraf table and region file
+        np.savetxt("{0}.dat".format(image_name[:-5]), iraf_mod_table, fmt="%s")
+        np.savetxt("{0}.reg".format(image_name[:-5]), region)
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

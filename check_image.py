@@ -61,16 +61,19 @@ def add_jd_airmass_info(name_image):
     header = pyfits.getheader(name_image)
     try:
         stu = header_editor(header)
+        jd = stu.jd
+        mjd = stu.mjd()
         hjd = stu.hjd()
         bjd = stu.bjd()
         air_mass = stu.air_mass().value
     except:
         print "Fail to update header with HJD, BJD, AIRMASS."
         return 1
+    header["JD"] = jd
+    header["MJD"] = mjd
     header["HJD"] = (hjd, "Heliocentric Julian Date")
     header["BJD"] = (bjd, "Barycentric, Julian Date")
     header["AIRMASS"] = (air_mass, "Air mass when a half of exposure.")
-    #print "HJD: {0}, BJD: {1}, AIRMASS: {2}".format(header["HJD"], header["BJD"], header["AIRMASS"])
     pyfits.writeto(name_image, data, header, overwrite = True)
     return 0
 

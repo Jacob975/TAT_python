@@ -29,14 +29,22 @@ if __name__ == "__main__":
         print "Wrong numbers of arguments"
         print "Usage: fix_header.py [imaage_name_list]"
         exit(1)
-    image_name_list = np.loadtxt(argv[1], dtype = str)
+    try:
+        image_name_list = np.loadtxt(argv[1], dtype = str)
+    except:
+        print "No images in {0}".format(argv[1])
+        exit(1)
     #---------------------------------------
     # Update filter infos in header 1 by 1
     for image_name in image_name_list:
-        print "{0}, ok".format(image_name)
         true_filter = image_name[0]
         data = pyfits.getdata(image_name)
         header = pyfits.getheader(image_name)
+        try:
+            original_filter = header['FILTER']
+        except:
+            original_filter = 'X'
+        print "{0}, {1} --- > {2}".format(image_name, original_filter, true_filter)
         header['FILTER'] = true_filter
         pyfits.writeto(image_name, data, header, overwrite = True)
     #---------------------------------------

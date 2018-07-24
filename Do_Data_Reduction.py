@@ -27,24 +27,24 @@ def data_reduction(site):
     path_of_data = "{0}/{1}/image".format(TAT_env.path_of_image, site)
     path_of_calibrate = "{0}/{1}/calibrate".format(TAT_env.path_of_image, site)
     path_of_log = "{0}/{1}/log".format(TAT_env.path_of_image, site)
+    # Load unprocessed data list
     processed_calibrate_list, unprocessed_calibrate_list = unprocessed_check(path_of_log, path_of_calibrate, type_ = "calibrate")
     processed_data_list, unprocessed_data_list = unprocessed_check(path_of_log, path_of_data, type_ = "data")
     
-    # Process calibration first
+    # Do reduction on calibration first
     failure = undo(unprocessed_calibrate_list)
     success_unpro_cal_list = check_cal(unprocessed_calibrate_list)
     cal_list = np.append(processed_calibrate_list, success_unpro_cal_list)
     np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), cal_list, fmt="%s")
-    # Then process data
+    # Then do on data
     failure = undo(unprocessed_data_list)
-    success_unpro_data_list, darks_not_found, flats_not_found, psf_register_fail, not_all_wcs_found = check_arr_sub_div_image(unprocessed_data_list)
+    success_unpro_data_list, darks_not_found, flats_not_found, psf_register_fail = check_arr_sub_div_image(unprocessed_data_list)
     data_list = np.append(processed_data_list, success_unpro_data_list)
     # save log infomations
     np.savetxt("{0}/data_reduction_log.txt".format(path_of_log), data_list, fmt="%s")
     np.savetxt("{0}/darks_not_found.txt".format(path_of_log), darks_not_found, fmt="%s")
     np.savetxt("{0}/flats_not_found.txt".format(path_of_log), flats_not_found, fmt="%s")
     np.savetxt("{0}/psf_register_fail.txt".format(path_of_log), psf_register_fail, fmt="%s")
-    np.savetxt("{0}/not_all_wcs_found.txt".format(path_of_log), not_all_wcs_found, fmt="%s")
     return failure
 
 # The def for checking which date is not processed.
@@ -73,12 +73,10 @@ def undo(unprocessed_list):
         os.system("{0}/undo_tat_reduction.py".format(TAT_env.path_of_code))
         '''
         # This part for fix headers with wrong filter
-        try:
-            os.system("ls *flat*.fit > flat_list.txt")
-            os.system("{0}/fix_header.py flat_list.txt".format(TAT_env.path_of_code))
-        except:
-            os.system("ls *Star*.fit > star_list.txt")
-            os.system("{0}/fix_header.py star_list.txt".format(TAT_env.path_of_code))
+        os.system("ls *flat*.fit > flat_list.txt")
+        os.system("{0}/fix_header.py flat_list.txt".format(TAT_env.path_of_code))
+        os.system("ls *Star*.fit > star_list.txt")
+        os.system("{0}/fix_header.py star_list.txt".format(TAT_env.path_of_code))
         '''
     os.system("cd")
     return 0
@@ -129,9 +127,9 @@ def check_arr_sub_div_image(unprocessed_data_list):
     darks_not_found = []
     flats_not_found = []
     psf_register_fail = []
-    not_all_wcs_found = []
     for unpro_data in unprocessed_data_list:
-        failure_unpro_data = 0
+        #failure_unpro_data = 0
+        failure_unpro_data = 1
         print "DIR: {0}".format(unpro_data)
         os.chdir(unpro_data)
         # Check
@@ -201,18 +199,11 @@ def check_arr_sub_div_image(unprocessed_data_list):
                         failure = 1
                         psf_register_fail.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
                 #--------------------------------------------------------------------------
-                # Get WCS and find targets on images
-                try:
-                    wcs_got_images = np.loadtxt(" wcs_gotten_images_list.txt")
-                except:
-                    try:
-                        os.system("{0}/starfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
-                        wcs_got_images = np.loadtxt("wcs_gotten_images_list.txt")
-                        if len(wcs_got_images) != len(registed_images) or len(wcs_got_images) == 0:
-                            not_all_wcs_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
-                    except:
-                        failure = 1
-                        not_all_wcs_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                # Get WCS 
+                os.system("{0}/wcsfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
+                #--------------------------------------------------------------------------
+                # Find targets on images
+                os.system("{0}/starfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
                 if failure:
                     failure_unpro_data = 1
@@ -221,7 +212,7 @@ def check_arr_sub_div_image(unprocessed_data_list):
         # if redcution is OK, list the folder in success list.
         if not failure_unpro_data:
             success_unpro_data_list.append(unpro_data)
-    return success_unpro_data_list, darks_not_found, flats_not_found, psf_register_fail, not_all_wcs_found
+    return success_unpro_data_list, darks_not_found, flats_not_found, psf_register_fail
 
 #--------------------------------------------
 # main code
