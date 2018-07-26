@@ -3,10 +3,6 @@
 Program:
     This is a easier way to test the completeness of CCDTEMP, EXPTIME, RA, and DEC.
     It also check if CCDTEMP < -29.5 deg.
-    then arrange your images, 
-    find proper dark, flat 
-    subtract images with dark
-    normalize the images with flat
 Usage: 
     check_image.py [type] [band] [exptime]
 Editor:

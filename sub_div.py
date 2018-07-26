@@ -4,15 +4,14 @@ Program:
     This is a program to
     1. subtract images by darks
     2. flatten images by flats
-    3. rotate images to true position. 
 Usage: 
-    sub_div_r_temp.py
+    sub_div.py
 Editor:
     Jacob975
 20170622
 #################################
 update log
-20180621 alaph 6
+20180621 alaph 1
     1. The code looks good
 '''
 import os 

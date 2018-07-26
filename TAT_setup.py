@@ -4,7 +4,7 @@ Program:
 This is a program to setup tat python code. 
 For Linux and macOS only
 Usage:
-1. tat_setup.py
+1. TAT_setup.py
 editor Jacob975
 20170809
 #################################

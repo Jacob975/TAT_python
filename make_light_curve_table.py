@@ -24,15 +24,15 @@ import re
 def match_names(target, tolerance):
     ra = float(target[4])
     dec = float(target[5])
-    target_table_list = glob.glob("*.dat")
-    for target_table in target_table_list:
-        name_list = target_table.split("_")
+    target_table_name_list = glob.glob("*.dat")
+    for target_table_name in target_table_name_list:
+        name_list = target_table_name.split("_")
         ref_ra = float(name_list[1])
-        subname_list = name_list[2].split(".")
+        subname_list = name_list[2].split(".dat")
         ref_dec = float(subname_list[0])
         # if the new observation locate within the tolarence, count it!
         if ref_ra - tolerance < ra and ref_ra + tolerance > ra and ref_dec - tolerance < dec and ref_dec + tolerance > dec:
-            return 0, target_table
+            return 0, target_table_name
     return 1, None
 
 # The def test if this observation is saved
@@ -40,18 +40,24 @@ def match_names(target, tolerance):
 # 1 means saved already.
 def check_duplicate(target, target_table_name):
     # Load table
-    print target_table_name
     target_table = np.loadtxt(target_table_name, dtype = object, skiprows = 1)
-    date = target[20]
-    location = np.where(target_table == date)
-    if len(location) == 0:
-        return 1
+    JD = target[-3]
+    try:
+        ref_JD = target_table[24]
+        if ref_JD == JD:
+            return 1
+    except:
+        ref_JD_list = target_table[:,24]
+        for ref_JD in ref_JD_list:
+            if ref_JD == JD:
+                return 1
     return 0
 
 # The def append all new observed data to target light curve list.
 def Make_light_curve_table(inp_table, tolerance):
     workdir = os.getcwd()
     os.chdir(TAT_env.path_of_table)
+    print "The number of targets in queue: {0}".format(len(inp_table))
     for target in inp_table:
         # Initialize
         failure = 0
@@ -65,15 +71,15 @@ def Make_light_curve_table(inp_table, tolerance):
             target_table_name = target[1]
             np.savetxt("{0}.dat".format(target_table_name), temp_new_table, fmt="%s")
         # IF this observation is saved.
-        failure = 0
-        failure = check_duplicate(target, "{0}.dat".format(target_table_name))
-        if failure:
-            continue
-        # append target observation into the target table.
         else:
-            target_table = np.loadtxt("{0}.dat".format(target_table_name), dtype = object)
-            target_table = np.insert(target_table, len(target_table), target, axis = 0)
-            np.savetxt("{0}.dat".format(target_table_name), target_table, fmt = '%s')
+            # Check if it is saved or not.
+            saved = 0
+            saved = check_duplicate(target, target_table_name)
+            if saved == 0:
+            # If not, append this observation into the target table.
+                target_table = np.loadtxt(target_table_name, dtype = object)
+                target_table = np.insert(target_table, len(target_table), target, axis = 0)
+                np.savetxt(target_table_name, target_table, fmt = '%s')
     os.chdir(workdir)
 
 #--------------------------------------------
@@ -92,6 +98,7 @@ if __name__ == "__main__":
     targets_on_frame_table = np.loadtxt(table_name, dtype = object, skiprows = 1)
     # Put data into light curve table
     error = TAT_env.pix1/3600.0 * 5.0
+    print "error = {0:.4f} arcsec".format(error)
     # Match sources
     Make_light_curve_table(targets_on_frame_table, tolerance = error)
     #---------------------------------------

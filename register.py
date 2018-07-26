@@ -1,7 +1,7 @@
 #!/usr/bin/python
 '''
 Program:
-    This is a program for doing psf register on images. 
+    This is a program for registering psf on images. 
 Usage: 
     register.py [list of names of images]
 Editor:

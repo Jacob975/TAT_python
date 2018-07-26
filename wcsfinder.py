@@ -3,7 +3,7 @@
 Program:
     This is a program for finding wcs coordinate.
 Usage: 
-    wcsfinder.py
+    wcsfinder.py [name of images list]
 Editor:
     Jacob975
 20180724

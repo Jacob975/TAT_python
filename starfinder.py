@@ -1,11 +1,10 @@
 #!/usr/bin/python
 '''
 Program:
-    This is a program to find stars with astrometry and IRAFstarfinder 
-    And update the header with wcs
+    This is a program to find stars with IRAFstarfinder 
     Then save a target on frames table
 Usage: 
-    starfinder.py [image_name]
+    starfinder.py [image_list_name]
 Editor:
     Jacob975
 20180626
@@ -35,7 +34,7 @@ def starfinder(image_name):
     sigma = infos.sigma
     iraffind = IRAFStarFinder(threshold = 5.0*std_bkg + mean_bkg, \
                             fwhm = sigma*gaussian_sigma_to_fwhm, \
-                            minsep_fwhm = 0.5, \
+                            minsep_fwhm = 2, \
                             roundhi = 1.0, \
                             roundlo = -1.0, \
                             sharplo = 0.5, \
@@ -140,7 +139,7 @@ if __name__ == "__main__":
     # Initialize
     if len(argv) != 2:
         print "Error! Wrong argument"
-        print "Usage: starfinder.py [image_name]"
+        print "Usage: starfinder.py [image_list_name]"
         exit()
     name_image_list = argv[1]
     image_list = np.loadtxt(name_image_list, dtype = str)
