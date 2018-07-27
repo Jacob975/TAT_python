@@ -11,6 +11,8 @@ Editor:
 update log
 20180625 version alpha 1:
     1. the code works
+20180727 version alpha 2:
+    1. Update processed list in each loop.
 '''
 import numpy as np
 from astropy.io import fits as pyfits
@@ -31,20 +33,12 @@ def data_reduction(site):
     processed_calibrate_list, unprocessed_calibrate_list = unprocessed_check(path_of_log, path_of_calibrate, type_ = "calibrate")
     processed_data_list, unprocessed_data_list = unprocessed_check(path_of_log, path_of_data, type_ = "data")
     
-    # Do reduction on calibration first
+    # Do reduction on calibration 
     failure = undo(unprocessed_calibrate_list)
-    success_unpro_cal_list = check_cal(unprocessed_calibrate_list)
-    cal_list = np.append(processed_calibrate_list, success_unpro_cal_list)
-    np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), cal_list, fmt="%s")
-    # Then do on data
+    failure = check_cal(unprocessed_calibrate_list, processed_calibrate_list, path_of_log)
+    # Do reduction on data
     failure = undo(unprocessed_data_list)
-    success_unpro_data_list, darks_not_found, flats_not_found, psf_register_fail = check_arr_sub_div_image(unprocessed_data_list)
-    data_list = np.append(processed_data_list, success_unpro_data_list)
-    # save log infomations
-    np.savetxt("{0}/data_reduction_log.txt".format(path_of_log), data_list, fmt="%s")
-    np.savetxt("{0}/darks_not_found.txt".format(path_of_log), darks_not_found, fmt="%s")
-    np.savetxt("{0}/flats_not_found.txt".format(path_of_log), flats_not_found, fmt="%s")
-    np.savetxt("{0}/psf_register_fail.txt".format(path_of_log), psf_register_fail, fmt="%s")
+    failure = check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_log)
     return failure
 
 # The def for checking which date is not processed.
@@ -71,22 +65,15 @@ def undo(unprocessed_list):
         print unpro
         os.chdir(unpro)
         os.system("{0}/undo_tat_reduction.py".format(TAT_env.path_of_code))
-        '''
-        # This part for fix headers with wrong filter
-        os.system("ls *flat*.fit > flat_list.txt")
-        os.system("{0}/fix_header.py flat_list.txt".format(TAT_env.path_of_code))
-        os.system("ls *Star*.fit > star_list.txt")
-        os.system("{0}/fix_header.py star_list.txt".format(TAT_env.path_of_code))
-        '''
     os.system("cd")
     return 0
 
 # The def for check header and quality of images in calibration.
-def check_cal(unprocessed_calibrate_list):
+def check_cal(unprocessed_calibrate_list, processed_calibrate_list, path_of_log):
     # check if input list is empty
     if len(unprocessed_calibrate_list) == 0:
         print "No unprocessed calibrate, check_cal stop"
-        return []
+        return 1
     success_unpro_cal_list = []
     band_list = TAT_env.band_list
     accumulated_exptime_list = []
@@ -110,18 +97,20 @@ def check_cal(unprocessed_calibrate_list):
                 os.system("{0}/check_image.py flat {1} {2}".format(TAT_env.path_of_code, band, exptime))
         # if redcution is OK, list the folder in success list.
         if True:
-            success_unpro_cal_list.append(unpro_cal)
-    return success_unpro_cal_list
+            processed_calibrate_list.append(unpro_cal)
+        np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), processed_calibrate_list, fmt="%s")
+    return 0
 
 # The def for checking header and quality of data,
 # Then arranging these data
 # Subtracted by dark
 # divided by flat
-def check_arr_sub_div_image(unprocessed_data_list):
+# save the list of processed data in the end of each loop.
+def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_log):
     # check if input list is empty
     if len(unprocessed_data_list) == 0:
         print "No unprocessed data, check_arr_sub_div_image stop"
-        return []
+        return 1
     band_list = TAT_env.band_list
     success_unpro_data_list = []
     darks_not_found = []
@@ -198,6 +187,10 @@ def check_arr_sub_div_image(unprocessed_data_list):
                     except:
                         failure = 1
                         psf_register_fail.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                # save log infomations
+                np.savetxt("{0}/darks_not_found.txt".format(path_of_log), darks_not_found, fmt="%s")
+                np.savetxt("{0}/flats_not_found.txt".format(path_of_log), flats_not_found, fmt="%s")
+                np.savetxt("{0}/psf_register_fail.txt".format(path_of_log), psf_register_fail, fmt="%s")
                 #--------------------------------------------------------------------------
                 # Get WCS 
                 os.system("{0}/wcsfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
@@ -205,14 +198,21 @@ def check_arr_sub_div_image(unprocessed_data_list):
                 # Find targets on images
                 os.system("{0}/starfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
+                # Update time series tables 
+                os.system("{0}/update_time_series_tables.py table_list".format(TAT_env.path_of_code))
+                #--------------------------------------------------------------------------
+                # Save results into path of result.
+                os.system("arrange_results.py")
+                #--------------------------------------------------------------------------
                 if failure:
                     failure_unpro_data = 1
                 os.chdir('..')
             os.chdir('..')
-        # if redcution is OK, list the folder in success list.
+            # if redcution is OK, list the folder in success list.
         if not failure_unpro_data:
-            success_unpro_data_list.append(unpro_data)
-    return success_unpro_data_list, darks_not_found, flats_not_found, psf_register_fail
+            processed_data_list.append(unpro_data)
+        np.savetxt("{0}/data_reduction_log.txt".format(path_of_log), processed_data_list, fmt="%s")
+    return 0 
 
 #--------------------------------------------
 # main code
