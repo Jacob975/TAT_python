@@ -4,7 +4,7 @@ Program:
     This is a program to find stars with IRAFstarfinder 
     Then save a target on frames table
 Usage: 
-    starfinder.py [image_list_name]
+    starfinder.py [image_list]
 Editor:
     Jacob975
 20180626
@@ -85,7 +85,9 @@ def iraf_tbl_modifier(image_name, iraf_table):
     # delete the duplicated column  on the back.
     iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
     iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
+    #------------------------------------------------------
     # Insert infos from images
+    # load infos from the header of the image
     header = pyfits.getheader(image_name) 
     filename = np.repeat(image_name, table_length)
     filepath = os.getcwd()
@@ -103,6 +105,7 @@ def iraf_tbl_modifier(image_name, iraf_table):
     jd = np.repeat(header['JD'], table_length)
     hjd = np.repeat(header['HJD'], table_length)
     bjd = np.repeat(header['BJD'], table_length)
+    # append those column into the table
     iraf_mod_table = np.insert(iraf_mod_table, -1, filename, 1)
     iraf_mod_table = np.insert(iraf_mod_table, -1, filepath, 1)
     iraf_mod_table = np.insert(iraf_mod_table, -1, filter_, 1)
@@ -114,7 +117,7 @@ def iraf_tbl_modifier(image_name, iraf_table):
     iraf_mod_table = np.insert(iraf_mod_table, -1, airmass, 1)
     iraf_mod_table = np.insert(iraf_mod_table, -1, jd, 1)
     iraf_mod_table = np.insert(iraf_mod_table, -1, hjd, 1)
-    iraf_mod_table = np.insert(iraf_mod_table, -1, bjd, 1)
+    iraf_mod_table = np.insert(iraf_mod_table,  2, bjd, 1)
     iraf_mod_table = np.insert(iraf_mod_table, 14, iraf_mod_table[:,-1], 1)
     iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
     # Insert titles
@@ -139,8 +142,8 @@ if __name__ == "__main__":
     # Initialize
     if len(argv) != 2:
         print "Error! Wrong argument"
-        print "Usage: starfinder.py [image_list_name]"
-        exit()
+        print "Usage: starfinder.py [images list]"
+        exit(1)
     name_image_list = argv[1]
     image_list = np.loadtxt(name_image_list, dtype = str)
     #----------------------------------------
@@ -152,6 +155,7 @@ if __name__ == "__main__":
         # Save iraf table and region file
         np.savetxt("{0}.dat".format(image_name[:-5]), iraf_mod_table, fmt="%s")
         np.savetxt("{0}.reg".format(image_name[:-5]), region)
+        os.system("ls *.dat > table_list")
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

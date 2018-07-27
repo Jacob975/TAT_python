@@ -35,13 +35,7 @@ if __name__ == "__main__":
     command = "rm -R -- */"
     os.system(command)
     # Remove synthesis files
-    command = "rm *_list*"
-    os.system(command)
-    command = "rm *.fits"
-    os.system(command)
-    command = "rm *.tar"
-    os.system(command)
-    command = "rm *.pro"
+    command = "rm *_list* *.fits *.tar *.pro *.dat *.reg *.wcs *.new"
     os.system(command)
     # Remove all denotation
     X_denotations = glob('X_*_X')

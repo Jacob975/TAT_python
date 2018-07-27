@@ -3,7 +3,7 @@
 Program:
     This is a program for finding wcs coordinate.
 Usage: 
-    wcsfinder.py [name of images list]
+    wcsfinder.py [a images list]
 Editor:
     Jacob975
 20180724
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # Load arguments
     if len(argv) != 2:
         print "Wrong numbers of arguments"
-        print "Usage: wcsfinder.py [name of images list]"
+        print "Usage: wcsfinder.py [a images list]"
         exit(1)
     name_of_image_list = argv[1]
     image_list = np.loadtxt(name_of_image_list, dtype = str)

@@ -39,7 +39,7 @@ path_of_image = "/home2/TAT_test/raw"
 path_of_code = "/home/tat/TAT_programs/TAT_image_reduction"
 
 #--------------- Name of Folders---------------------
-path_of_table = "/home2/TAT_test/reduction"
+path_of_result = "/home2/TAT_test/reduction"
 
 #--------------- Object list---------------------------------
 # every object recorded below will be read
@@ -66,7 +66,8 @@ titles_for_target_on_iraf_table = ['id', 'xcentroid', 'ycentroid', 'fwhm', 'shar
 #----------------Title for targets on frame table--
 titles_for_target_on_frame_table = ['id',               # unique object identification number. 
                                     'name', 
-                                    'flux',             #
+                                    'BJD',              # Barycentric Julian Time 
+                                    'flux',             # 
                                     'mag',              #
                                     'RA',               
                                     'DEC',              
@@ -90,7 +91,6 @@ titles_for_target_on_frame_table = ['id',               # unique object identifi
                                     'airmass', 
                                     'JD', 
                                     'HJD', 
-                                    'BJD', 
                                     ]
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.19 arcsec on TAT image.
