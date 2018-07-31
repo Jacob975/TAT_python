@@ -33,6 +33,7 @@ if __name__ == "__main__":
     os.system("mkdir -p {0}".format(destination))
     # Move registered images to destination.
     os.system("cp *_m.fits {0}".format(destination))
+    os.system("cp stacked_image.wcs {0}".format(destination))
     # Move tables of targets on each frame to destination.
     os.system("cp *_m.dat {0}".format(destination))
     # Rename files in destination

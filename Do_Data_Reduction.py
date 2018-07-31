@@ -149,6 +149,7 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
                     except:
                         failure = 1
                         darks_not_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                np.savetxt("{0}/darks_not_found.txt".format(path_of_log), darks_not_found, fmt="%s")
                 #--------------------------------------------------------------------------
                 # check if flat were found
                 try:
@@ -162,6 +163,7 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
                     except:
                         failure = 1
                         flats_not_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
+                np.savetxt("{0}/flats_not_found.txt".format(path_of_log), flats_not_found, fmt="%s")
                 #--------------------------------------------------------------------------
                 # Subtracted by dark and divided by flat
                 try:
@@ -188,8 +190,6 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
                         failure = 1
                         psf_register_fail.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
                 # save log infomations
-                np.savetxt("{0}/darks_not_found.txt".format(path_of_log), darks_not_found, fmt="%s")
-                np.savetxt("{0}/flats_not_found.txt".format(path_of_log), flats_not_found, fmt="%s")
                 np.savetxt("{0}/psf_register_fail.txt".format(path_of_log), psf_register_fail, fmt="%s")
                 #--------------------------------------------------------------------------
                 # Get WCS 
@@ -202,7 +202,7 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
                 os.system("{0}/update_time_series_tables.py table_list".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
                 # Save results into path of result.
-                os.system("arrange_results.py")
+                os.system("{0}/arrange_results.py".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
                 if failure:
                     failure_unpro_data = 1

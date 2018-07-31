@@ -77,7 +77,7 @@ def iraf_tbl_modifier(image_name, iraf_table):
     iraf_mod_table = np.array(iraf_mod_table, dtype = object)
     # Name targets with RA and DEC, and insert into table
     table_length = len(world[0])
-    target_names_list = np.array(["target_{0}_{1}".format(world[0,i], world[1,i]) for i in range(table_length)]) 
+    target_names_list = np.array(["target_{0:.4f}_{1:.4f}".format(world[0,i], world[1,i]) for i in range(table_length)]) 
     iraf_mod_table = np.insert(iraf_mod_table, 1, target_names_list, axis=1)
     # Move flux and mag to number 3 and 4.
     iraf_mod_table = np.insert(iraf_mod_table, 2, np.array(iraf_table['flux']), axis = 1)

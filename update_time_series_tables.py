@@ -57,7 +57,9 @@ def check_duplicate(target, target_table_name):
 # The def append all new observed data to target light curve list.
 def make_light_curve_table(inp_table, tolerance):
     workdir = os.getcwd()
-    os.chdir(TAT_env.path_of_result)
+    path_of_table = "{0}/time_series_table".format(TAT_env.path_of_result)
+    os.system("mkdir -p {0}".format(path_of_table))
+    os.chdir(path_of_table)
     print "The number of targets in queue: {0}".format(len(inp_table))
     for target in inp_table:
         # Initialize
