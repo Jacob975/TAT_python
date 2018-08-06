@@ -198,7 +198,7 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
                 # Find targets on images
                 os.system("{0}/starfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
-                # Update time series tables 
+                # Update time series tables
                 os.system("{0}/update_time_series_tables.py table_list".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
                 # Save results into path of result.
