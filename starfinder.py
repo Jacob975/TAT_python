@@ -20,6 +20,7 @@ from astropy.io import fits as pyfits
 from astropy import wcs
 from fit_lib import get_peak_filter, get_star, hist_gaussian_fitting
 from reduction_lib import image_info
+from correlate_mag import correlate_mag
 import numpy as np
 import time
 import os
@@ -120,6 +121,7 @@ def iraf_tbl_modifier(image_name, iraf_table):
     iraf_mod_table = np.insert(iraf_mod_table,  2, bjd, 1)
     iraf_mod_table = np.insert(iraf_mod_table, 14, iraf_mod_table[:,-1], 1)
     iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
+    failure, iraf_mod_table = correlate_mag(iraf_mod_table)
     # Insert titles
     iraf_mod_table = np.insert(iraf_mod_table, 0, column_mod_names, axis=0)
     return 0, iraf_mod_table, column_names

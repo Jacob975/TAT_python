@@ -23,8 +23,10 @@ import re
 
 # The def find the match name of target names.
 def match_names(target, tolerance):
-    ra = float(target[5])
-    dec = float(target[6])
+    index_RA = TAT_env.titles_for_target_on_frame_table.index("RA")
+    index_DEC = TAT_env.titles_for_target_on_frame_table.index("DEC")
+    ra = float(target[index_RA])
+    dec = float(target[index_DEC])
     time_series_table_name_list = glob.glob("*.dat")
     for target_table_name in time_series_table_name_list:
         name_list = target_table_name.split("_")
@@ -42,13 +44,14 @@ def match_names(target, tolerance):
 def check_duplicate(target, target_table_name):
     # Load table
     target_table = np.loadtxt(target_table_name, dtype = object, skiprows = 1)
-    JD = target[-3]
+    index_JD = TAT_env.titles_for_target_on_frame_table.index("JD")
+    JD = target[index_JD]
     try:
-        ref_JD = target_table[24]
+        ref_JD = target_table[index_JD]
         if ref_JD == JD:
             return 1
     except:
-        ref_JD_list = target_table[:,24]
+        ref_JD_list = target_table[:,index_JD]
         for ref_JD in ref_JD_list:
             if ref_JD == JD:
                 return 1
