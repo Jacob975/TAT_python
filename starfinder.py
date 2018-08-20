@@ -21,6 +21,7 @@ from astropy import wcs
 from fit_lib import get_peak_filter, get_star, hist_gaussian_fitting
 from reduction_lib import image_info
 from correlate_mag import correlate_mag
+from mysqlio_lib import save2sql
 import numpy as np
 import time
 import os
@@ -54,7 +55,6 @@ def iraf_tbl2reg(iraf_table):
 def iraf_tbl_modifier(image_name, iraf_table):
     # Initialize Variables
     column_names = TAT_env.titles_for_target_on_iraf_table
-    column_mod_names = TAT_env.titles_for_target_on_frame_table 
     iraf_mod_table = []
     # Convert table into 2D np.array
     for name in column_names:
@@ -122,9 +122,7 @@ def iraf_tbl_modifier(image_name, iraf_table):
     iraf_mod_table = np.insert(iraf_mod_table, 14, iraf_mod_table[:,-1], 1)
     iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
     failure, iraf_mod_table = correlate_mag(iraf_mod_table)
-    # Insert titles
-    iraf_mod_table = np.insert(iraf_mod_table, 0, column_mod_names, axis=0)
-    return 0, iraf_mod_table, column_names
+    return 0, iraf_mod_table
 
 def load_wcs():
     # Load the file
@@ -150,14 +148,20 @@ if __name__ == "__main__":
     image_list = np.loadtxt(name_image_list, dtype = str)
     #----------------------------------------
     # PSF register
+    success_table_list = []
     for image_name in image_list:
         iraf_table, infos = starfinder(image_name)
-        failure, iraf_mod_table, column_names = iraf_tbl_modifier(image_name, iraf_table)
+        failure, iraf_mod_table = iraf_tbl_modifier(image_name, iraf_table)
         region = iraf_tbl2reg(iraf_table)
         # Save iraf table and region file
+        db_name = TAT_env.frame_db_name
+        failure = save2sql(db_name, image_name[:22], iraf_mod_table)
+        if not failure:
+            success_table_list.append(image_name[:22])
         np.savetxt("{0}.dat".format(image_name[:-5]), iraf_mod_table, fmt="%s")
         np.savetxt("{0}.reg".format(image_name[:-5]), region)
-        os.system("ls *.dat > table_list")
+    success_table_array = np.array(success_table_list)
+    np.savetxt("table_list.txt", success_table_array, fmt = '%s')
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

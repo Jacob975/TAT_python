@@ -18,6 +18,8 @@ update log
     2. the path of source on zeus is moved from /brick to /mazu.
 20180625 version alpha 3:
     1. Path of result is removed
+20180820 version alpha 4:
+    1. Add a source DB format
 '''
 
 # Comment of what kinds of variables are saved here.
@@ -93,6 +95,70 @@ titles_for_target_on_frame_table = ['id',               # unique object identifi
                                     'JD', 
                                     'HJD', 
                                     ]
+#------------- parameters for mysql table -----------------
+
+time_series_db_name = 'time_series_data'
+frame_db_name = 'frame_data'
+
+table_titles = ['id',               # unique object identification number. 
+               'name', 
+               'BJD',              # Barycentric Julian Time 
+               'flux',             # 
+               'inst_mag',         # instrumental magnitude
+               'app_mag',          # apparent magnitude
+               'RA',               
+               '`DEC`',              
+               'xcentroid',        # object centroid.
+               'ycentroid',        # object centroid.
+               'fwhm',             # full width of the half maximum.
+               'sharpness',        # object sharpness.
+               'roundness',        # object roundness based on marginal Gaussian fits.
+               'pa',               # polarization angle
+               'npix',             # number of pixels in the Gaussian kernel.
+               'sky',              # background sky.
+               'peak',             # the peak, sky-subtracted, pixel value of the object.
+               'filename', 
+               'filepath', 
+               'filter', 
+               'sitename', 
+               'exptime', 
+               '`date-obs`', 
+               '`time-obs`', 
+               'MJD', 
+               'airmass', 
+               'JD', 
+               'HJD', 
+               ]
+
+source_db_format = ['id INT AUTO_INCREMENT PRIMARY KEY',
+                    'name VARCHAR(255)',
+                    'BJD DOUBLE',              # Barycentric Julian Time 
+                    'flux DOUBLE',             # 
+                    'inst_mag DOUBLE',         # instrumental magnitude
+                    'app_mag DOUBLE',          # apparent magnitude
+                    'RA DOUBLE',
+                    '`DEC` DOUBLE',             
+                    'xcentroid DOUBLE',        # object centroid.
+                    'ycentroid DOUBLE',        # object centroid.
+                    'fwhm DOUBLE',             # full width of the half maximum.
+                    'sharpness DOUBLE',        # object sharpness.
+                    'roundness DOUBLE',        # object roundness based on marginal Gaussian fits.
+                    'pa DOUBLE',               # polarization angle
+                    'npix DOUBLE',             # number of pixels in the Gaussian kernel.
+                    'sky DOUBLE',              # background sky.
+                    'peak DOUBLE',             # the peak, sky-subtracted, pixel value of the object.
+                    'filename VARCHAR(255)', 
+                    'filepath VARCHAR(255)', 
+                    'filter VARCHAR(16)', 
+                    'sitename VARCHAR(255)', 
+                    'exptime DOUBLE', 
+                    '`date-obs` VARCHAR(255)', 
+                    '`time-obs` VARCHAR(255)', 
+                    'MJD DOUBLE', 
+                    'airmass DOUBLE', 
+                    'JD DOUBLE', 
+                    'HJD DOUBLE',
+                    ]
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.19 arcsec on TAT image.
 pix1 = 2.2

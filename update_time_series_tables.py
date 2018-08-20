@@ -20,6 +20,7 @@ import time
 import TAT_env
 import glob
 import re
+from mysqlio_lib import load_from_sql
 
 # The def find the match name of target names.
 def match_names(target, tolerance):
@@ -101,16 +102,20 @@ if __name__ == "__main__":
         exit(1)
     list_name = argv[1]
     table_list = np.loadtxt(list_name, dtype = str)
+    frame_db_name = TAT_env.frame_db_name
     # setup the spacial tolerance
     tolerance = TAT_env.pix1/3600.0 * 5.0
     print "tolerance = {0:.4f} degree".format(tolerance)
     for table_name in table_list:
         # Load target_on_frame_table
-        targets_on_frame_table = np.loadtxt(table_name, dtype = object, skiprows = 1)
+        targets_on_frame_table = load_from_sql(frame_db_name, table_name)
+        #--------------------------------------------------------
+        # haven't updated to mysql
         # Put data into light curve table
         tolerance = TAT_env.pix1/3600.0 * 5.0
         # Match sources
         make_light_curve_table(targets_on_frame_table, tolerance)
+        #--------------------------------------------------------
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

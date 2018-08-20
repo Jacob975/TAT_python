@@ -31,14 +31,7 @@ if __name__ == "__main__":
                      'name VARCHAR(255)', 
                      'address VARCHAR(255)',
                      'PRIMARY KEY (id)']
-    ",".join(source_format )
     # Login mariadb as user 'TAT'@'localhost'
-    '''
-    cnx = mariadb.connect(  user = 'TAT',
-                            passwd = '1234',
-                            database = 'frame_data',
-                            host = 'localhost')
-    '''
     cnx = mariadb.connect(**authority)
     cursor = cnx.cursor()
     # Create a table in database, try to read and write.
