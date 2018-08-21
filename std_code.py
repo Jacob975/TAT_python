@@ -69,7 +69,7 @@ def bkg_info(name_image):
     return 0, mean_bkg, std_bkg
 
 #--------------------------------------------
-# main code
+# Main code
 if __name__ == "__main__":
     # Measure time
     start_time = time.time()

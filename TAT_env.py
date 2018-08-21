@@ -64,40 +64,51 @@ site_list = ["TF", "KU"]
 #--------------- Type list-------------------------
 type_list = ["data", "dark", "flat"]
 #----------------Title for targets on Iraf table---
-titles_for_target_on_iraf_table = ['id', 'xcentroid', 'ycentroid', 'fwhm', 'sharpness', 'roundness', 'pa', 'npix', 'sky', 'peak', 'flux', 'mag']
+titles_for_target_on_iraf_table = [ 'id', 
+                                    'xcentroid', 
+                                    'ycentroid', 
+                                    'fwhm', 
+                                    'sharpness', 
+                                    'roundness', 
+                                    'pa', 
+                                    'npix', 
+                                    'sky', 
+                                    'peak', 
+                                    'flux', 
+                                    'mag']
 #------------- parameters for mysql table -----------------
 
 time_series_db_name = 'time_series_data'
 frame_db_name = 'frame_data'
 
 table_titles = ['id',               # unique object identification number. 
-               'name', 
-               'BJD',              # Barycentric Julian Time 
-               'flux',             # 
-               'inst_mag',         # instrumental magnitude
-               'app_mag',          # apparent magnitude
-               'RA',               
-               '`DEC`',              
-               'xcentroid',        # object centroid.
-               'ycentroid',        # object centroid.
-               'fwhm',             # full width of the half maximum.
-               'sharpness',        # object sharpness.
-               'roundness',        # object roundness based on marginal Gaussian fits.
-               'pa',               # polarization angle
-               'npix',             # number of pixels in the Gaussian kernel.
-               'sky',              # background sky.
-               'peak',             # the peak, sky-subtracted, pixel value of the object.
-               'filename', 
-               'filepath', 
-               'filter', 
-               'sitename', 
-               'exptime', 
-               '`date-obs`', 
-               '`time-obs`', 
-               'MJD', 
-               'airmass', 
-               'JD', 
-               'HJD', 
+                'name', 
+                'BJD',              # Barycentric Julian Time 
+                'flux',             # 
+                'inst_mag',         # instrumental magnitude
+                'app_mag',          # apparent magnitude
+                'RA',               
+                '`DEC`',              
+                'xcentroid',        # object centroid.
+                'ycentroid',        # object centroid.
+                'fwhm',             # full width of the half maximum.
+                'sharpness',        # object sharpness.
+                'roundness',        # object roundness based on marginal Gaussian fits.
+                'pa',               # polarization angle
+                'npix',             # number of pixels in the Gaussian kernel.
+                'sky',              # background sky.
+                'peak',             # the peak, sky-subtracted, pixel value of the object.
+                'filename', 
+                'filepath', 
+                'filter', 
+                'sitename', 
+                'exptime', 
+                '`date-obs`', 
+                '`time-obs`', 
+                'MJD', 
+                'airmass', 
+                'JD', 
+                'HJD', 
                ]
 
 source_db_format = ['id INT AUTO_INCREMENT PRIMARY KEY',
