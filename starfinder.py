@@ -158,8 +158,6 @@ if __name__ == "__main__":
         failure = save2sql(db_name, image_name[:22], iraf_mod_table)
         if not failure:
             success_table_list.append(image_name[:22])
-        np.savetxt("{0}.dat".format(image_name[:-5]), iraf_mod_table, fmt="%s")
-        np.savetxt("{0}.reg".format(image_name[:-5]), region)
     success_table_array = np.array(success_table_list)
     np.savetxt("table_list.txt", success_table_array, fmt = '%s')
     #---------------------------------------

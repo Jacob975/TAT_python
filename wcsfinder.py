@@ -36,9 +36,17 @@ def get_wcs(image_name):
         header_wcs = pyfits.getheader("{0}.wcs".format(image_name[:-5]))
     except:
         astrometry_program = "/opt/astrometry/bin/solve-field"
-        # Produce wcs header with astrometry
         command = "{0} {1} --overwrite".format(astrometry_program, image_name)
         os.system(command)
+        '''
+        astrometry_program = "/opt/astrometry/bin/solve-field"
+        astrometry_engine = "/opt/astrometry/bin/astrometry-engine"
+        # Produce wcs header with astrometry
+        command = "{0} {1} --overwrite --just-augment".format(astrometry_program, image_name)
+        os.system(command)
+        command = "{0} -i /opt/astrometry/data_test/index-4207*.fits {0}.axy".format(astrometry_engine, image_name[:-5])
+        os.system(command)
+        '''
         # Load the file
         try:
             header_wcs = pyfits.getheader("{0}.wcs".format(image_name[:-5]))
@@ -73,7 +81,7 @@ if __name__ == "__main__":
         exit(1)
     # Save stacked image
     name_stacked_image = 'stacked_image.fits'
-    pyfits.writeto(name_stacked_image, stacked_image )
+    pyfits.writeto(name_stacked_image, stacked_image ,overwrite = True)
     # Find wcs for the stacked image
     failure, heaer_wcs = get_wcs(name_stacked_image)
     if failure:

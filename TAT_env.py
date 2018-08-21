@@ -33,15 +33,15 @@ path_of_python = "/usr/bin/python"
 #--------------- Setting source path ----------------
 # source path means where will you put your row image.
 # recommand: /home/username
-path_of_image = "/home2/TAT_test/raw"
+path_of_image = "/home2/TAT/data/raw"
 
 #--------------- Setting code path ------------------
 # code path means where do you install these code about tat.
 # recommand: /home/username/bin/tat_python
-path_of_code = "/home/tat/TAT_programs/TAT_image_reduction"
+path_of_code = "/home2/TAT/programs/TATIRP"
 
 #--------------- Name of Folders---------------------
-path_of_result = "/home2/TAT_test/reduction"
+path_of_result = "/home2/TAT/data/reduction"
 
 #--------------- Object list---------------------------------
 # every object recorded below will be read
@@ -65,36 +65,6 @@ site_list = ["TF", "KU"]
 type_list = ["data", "dark", "flat"]
 #----------------Title for targets on Iraf table---
 titles_for_target_on_iraf_table = ['id', 'xcentroid', 'ycentroid', 'fwhm', 'sharpness', 'roundness', 'pa', 'npix', 'sky', 'peak', 'flux', 'mag']
-#----------------Title for targets on frame table--
-titles_for_target_on_frame_table = ['id',               # unique object identification number. 
-                                    'name', 
-                                    'BJD',              # Barycentric Julian Time 
-                                    'flux',             # 
-                                    'inst_mag',         # instrumental magnitude
-                                    'app_mag',          # apparent magnitude
-                                    'RA',               
-                                    'DEC',              
-                                    'xcentroid',        # object centroid.
-                                    'ycentroid',        # object centroid.
-                                    'fwhm',             # full width of the half maximum.
-                                    'sharpness',        # object sharpness.
-                                    'roundness',        # object roundness based on marginal Gaussian fits.
-                                    'pa',               # polarization angle
-                                    'npix',             # number of pixels in the Gaussian kernel.
-                                    'sky',              # background sky.
-                                    'peak',             # the peak, sky-subtracted, pixel value of the object.
-                                    'filename', 
-                                    'filepath', 
-                                    'filter', 
-                                    'sitename', 
-                                    'exptime', 
-                                    'date-obs', 
-                                    'time-obs', 
-                                    'MJD', 
-                                    'airmass', 
-                                    'JD', 
-                                    'HJD', 
-                                    ]
 #------------- parameters for mysql table -----------------
 
 time_series_db_name = 'time_series_data'

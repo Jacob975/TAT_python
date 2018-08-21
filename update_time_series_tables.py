@@ -20,74 +20,33 @@ import time
 import TAT_env
 import glob
 import re
-from mysqlio_lib import load_from_sql
+from mysqlio_lib import save2sql, load_from_sql, show_tables
 
 # The def find the match name of target names.
-def match_names(target, tolerance):
-    index_RA = TAT_env.titles_for_target_on_frame_table.index("RA")
-    index_DEC = TAT_env.titles_for_target_on_frame_table.index("DEC")
+def match_names(target, tolerance, db_name):
+    index_RA = TAT_env.table_titles.index("RA")
+    index_DEC = TAT_env.table_titles.index("`DEC`")
     ra = float(target[index_RA])
     dec = float(target[index_DEC])
-    time_series_table_name_list = glob.glob("*.dat")
+    time_series_table_name_list = show_tables(db_name)
     for target_table_name in time_series_table_name_list:
         name_list = target_table_name.split("_")
-        ref_ra = float(name_list[1])
-        subname_list = name_list[2].split(".dat")
-        ref_dec = float(subname_list[0])
+        ref_ra  = float(name_list[1])
+        ref_dec = float(name_list[2])
         # if the new observation locate within the tolarence, count it!
         if ref_ra - tolerance < ra and ref_ra + tolerance > ra and ref_dec - tolerance < dec and ref_dec + tolerance > dec:
             return 0, target_table_name
     return 1, None
 
-# The def test if this observation is saved
-# 0 means not yet.
-# 1 means saved already.
-def check_duplicate(target, target_table_name):
-    # Load table
-    target_table = np.loadtxt(target_table_name, dtype = object, skiprows = 1)
-    index_JD = TAT_env.titles_for_target_on_frame_table.index("JD")
-    JD = target[index_JD]
-    try:
-        ref_JD = target_table[index_JD]
-        if ref_JD == JD:
-            return 1
-    except:
-        ref_JD_list = target_table[:,index_JD]
-        for ref_JD in ref_JD_list:
-            if ref_JD == JD:
-                return 1
-    return 0
-
 # The def append all new observed data to target light curve list.
 def make_light_curve_table(inp_table, tolerance):
-    workdir = os.getcwd()
-    path_of_table = "{0}/time_series_table".format(TAT_env.path_of_result)
-    os.system("mkdir -p {0}".format(path_of_table))
-    os.chdir(path_of_table)
     print "The number of targets in queue: {0}".format(len(inp_table))
+    time_series_db_name = TAT_env.time_series_db_name
     for target in inp_table:
-        # Initialize
-        failure = 0
-        target_table_name = None
-        # If the target is detected in the past, if not , creat a new one.
-        failure, target_table_name = match_names(target, tolerance) 
+        failure, target_table_name = match_names(target, tolerance, time_series_db_name) 
         if failure:
-            column_names = TAT_env.titles_for_target_on_frame_table
-            temp_new_table = np.array([target])
-            temp_new_table = np.insert(temp_new_table, 0, column_names, axis=0)
             target_table_name = target[1]
-            np.savetxt("{0}.dat".format(target_table_name), temp_new_table, fmt="%s")
-        # IF this observation is saved.
-        else:
-            # Check if it is saved or not.
-            saved = 0
-            saved = check_duplicate(target, target_table_name)
-            if saved == 0:
-            # If not, append this observation into the target table.
-                target_table = np.loadtxt(target_table_name, dtype = object)
-                target_table = np.insert(target_table, len(target_table), target, axis = 0)
-                np.savetxt(target_table_name, target_table, fmt = '%s')
-    os.chdir(workdir)
+        save2sql(time_series_db_name, target_table_name, [target], unique_jd = True)
 
 #--------------------------------------------
 # main code
@@ -109,13 +68,10 @@ if __name__ == "__main__":
     for table_name in table_list:
         # Load target_on_frame_table
         targets_on_frame_table = load_from_sql(frame_db_name, table_name)
-        #--------------------------------------------------------
-        # haven't updated to mysql
         # Put data into light curve table
         tolerance = TAT_env.pix1/3600.0 * 5.0
         # Match sources
         make_light_curve_table(targets_on_frame_table, tolerance)
-        #--------------------------------------------------------
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time
