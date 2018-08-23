@@ -21,7 +21,7 @@ from astropy import wcs
 from fit_lib import get_peak_filter, get_star, hist_gaussian_fitting
 from reduction_lib import image_info
 from correlate_mag import correlate_mag
-from mysqlio_lib import save2sql
+from mysqlio_lib import save2sql, load_src_name_from_db
 import numpy as np
 import time
 import os
@@ -124,6 +124,43 @@ def iraf_tbl_modifier(image_name, iraf_table):
     failure, iraf_mod_table = correlate_mag(iraf_mod_table)
     return 0, iraf_mod_table
 
+# check if there is new sources.
+def check_new_sources(iraf_mod_table):
+    # Initialize
+    new_source_list = []
+    new = False
+    src_name_list = load_src_name_from_db()
+    index_of_name = TAT_env.obs_data_titles.index('name')
+    tolerance = TAT_env.pix1/3600.0 * 5.0
+    # Match positions
+    if len(src_name_list) != 0:
+        for i in xrange(len(iraf_mod_table)):
+            failure, name = match_names(iraf_mod_table[i], src_name_list, tolerance)
+            if name != None:
+                iraf_mod_table[i, index_of_name] = name
+            elif name == None:
+                new_source_list.append(iraf_mod_table[i, index_of_name])
+    elif len(src_name_list) == 0:
+        new_source_list = iraf_mod_table[:,index_of_name]
+    if len(new_source_list) > 0:
+        new = True
+    return iraf_mod_table, new_source_list, new
+
+# The def find the match name of target names.
+def match_names(target, src_name_list, tolerance):
+    index_RA = TAT_env.obs_data_titles.index("RA")
+    index_DEC = TAT_env.obs_data_titles.index("`DEC`")
+    ra = float(target[index_RA])
+    dec = float(target[index_DEC])
+    for src_name in src_name_list:
+        name_list = src_name.split("_")
+        ref_ra  = float(name_list[1])
+        ref_dec = float(name_list[2])
+        # if the new observation locate within the tolarence, count it!
+        if ref_ra - tolerance < ra and ref_ra + tolerance > ra and ref_dec - tolerance < dec and ref_dec + tolerance > dec:
+            return 0, src_name
+    return 1, None
+
 def load_wcs():
     # Load the file
     try:
@@ -148,18 +185,12 @@ if __name__ == "__main__":
     image_list = np.loadtxt(name_image_list, dtype = str)
     #----------------------------------------
     # PSF register
-    success_table_list = []
     for image_name in image_list:
         iraf_table, infos = starfinder(image_name)
         failure, iraf_mod_table = iraf_tbl_modifier(image_name, iraf_table)
-        region = iraf_tbl2reg(iraf_table)
-        # Save iraf table and region file
-        db_name = TAT_env.frame_db_name
-        failure = save2sql(db_name, image_name[:22], iraf_mod_table)
-        if not failure:
-            success_table_list.append(image_name[:22])
-    success_table_array = np.array(success_table_list)
-    np.savetxt("table_list.txt", success_table_array, fmt = '%s')
+        iraf_mod_table, new_sources, new = check_new_sources(iraf_mod_table)
+        # Save iraf table in database
+        failure = save2sql(iraf_mod_table, new_sources, new)
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

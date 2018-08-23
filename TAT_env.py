@@ -78,40 +78,46 @@ titles_for_target_on_iraf_table = [ 'id',
                                     'mag']
 #------------- parameters for mysql table -----------------
 
-time_series_db_name = 'time_series_data'
-frame_db_name = 'frame_data'
+src_name_tb_name = 'source_name'
+obs_data_tb_name = 'observation_data'
 
-table_titles = ['id',               # unique object identification number. 
-                'name', 
-                'BJD',              # Barycentric Julian Time 
-                'flux',             # 
-                'inst_mag',         # instrumental magnitude
-                'app_mag',          # apparent magnitude
-                'RA',               
-                '`DEC`',              
-                'xcentroid',        # object centroid.
-                'ycentroid',        # object centroid.
-                'fwhm',             # full width of the half maximum.
-                'sharpness',        # object sharpness.
-                'roundness',        # object roundness based on marginal Gaussian fits.
-                'pa',               # polarization angle
-                'npix',             # number of pixels in the Gaussian kernel.
-                'sky',              # background sky.
-                'peak',             # the peak, sky-subtracted, pixel value of the object.
-                'filename', 
-                'filepath', 
-                'filter', 
-                'sitename', 
-                'exptime', 
-                '`date-obs`', 
-                '`time-obs`', 
-                'MJD', 
-                'airmass', 
-                'JD', 
-                'HJD', 
-               ]
+src_name_titles = [ 'id',
+                    'name' ]
+src_name_format = [ 'id INT AUTO_INCREMENT PRIMARY KEY',
+                    'name VARCHAR(255)'
+                    ]
 
-source_db_format = ['id INT AUTO_INCREMENT PRIMARY KEY',
+obs_data_titles = [ 'id',               # unique object identification number. 
+                    'name', 
+                    'BJD',              # Barycentric Julian Time 
+                    'flux',             # 
+                    'inst_mag',         # instrumental magnitude
+                    'app_mag',          # apparent magnitude
+                    'RA',               
+                    '`DEC`',              
+                    'xcentroid',        # object centroid.
+                    'ycentroid',        # object centroid.
+                    'fwhm',             # full width of the half maximum.
+                    'sharpness',        # object sharpness.
+                    'roundness',        # object roundness based on marginal Gaussian fits.
+                    'pa',               # polarization angle
+                    'npix',             # number of pixels in the Gaussian kernel.
+                    'sky',              # background sky.
+                    'peak',             # the peak, sky-subtracted, pixel value of the object.
+                    'filename', 
+                    'filepath', 
+                    'filter', 
+                    'sitename', 
+                    'exptime', 
+                    '`date-obs`', 
+                    '`time-obs`', 
+                    'MJD', 
+                    'airmass', 
+                    'JD', 
+                    'HJD', 
+                    ]
+
+obs_data_format = [ 'id INT AUTO_INCREMENT PRIMARY KEY',
                     'name VARCHAR(255)',
                     'BJD DOUBLE',              # Barycentric Julian Time 
                     'flux DOUBLE',             # 

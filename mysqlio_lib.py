@@ -12,70 +12,64 @@ Editor:
 update log
 20180820 version alpha 1
     1. The code works.
+20180822 version alpha 2
+    1. update some names of variables
 '''
 import mysql.connector as mariadb
 import time
 import numpy as np
-from TAT_env import source_db_format
-from TAT_env import table_titles 
+from TAT_env import src_name_tb_name, src_name_titles, src_name_format, obs_data_tb_name, obs_data_titles, obs_data_format 
 from sys import argv
 
-def TAT_auth(db_name):
+def TAT_auth():
     # Login mariadb as user 'TAT'@'localhost'
     authority = {   'user':'TAT',         
                     'password':'1234',        
-                    'database':db_name, 
+                    'database':'TAT', 
                     'host':'localhost'
                 }
     cnx = mariadb.connect(**authority)
     return cnx
 
 # save or append data to sql database.
-def save2sql(db_name, table_name, data, unique_jd = False):    
-    cnx = TAT_auth(db_name)
+def save2sql(data, new_sources = None, new = None):    
+    cnx = TAT_auth()
     cursor = cnx.cursor()
-    # Create a table in database
-    sql = 'create table if not exists `{0}` ({1})'.format(table_name, ', '.join(source_db_format))
-    cursor.execute(sql)
+    # create data base if not exist
+    create_TAT_tables()
     # Save data into the table in the database.
-    if unique_jd:
-        for source in data:
-            # load a list of julian date
-            cursor.execute("select JD from `{0}`".format(table_name))
-            new_jd = float(source[-2])
-            jd_array = np.array(cursor.fetchall(), dtype = float).flatten()
-            # if julian date are not duplicated, save the new detection.
-            index_repeat_jd = np.where(jd_array == new_jd)
-            if len(index_repeat_jd[0]) == 0:
-                cursor.execute("insert into `{0}` ({1}) values ({2})".format( table_name, ', '.join(table_titles[1:]), ', '.join(['%s'] * len(table_titles[1:]))), tuple(source[1:]))
-    if not unique_jd:
-        for source in data:
-            cursor.execute("insert into `{0}` ({1}) values ({2})".format( table_name, ', '.join(table_titles[1:]), ', '.join(['%s'] * len(table_titles[1:]))), tuple(source[1:]))
+    for source in data:
+        cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:]))
+    if new != None:
+        for source in new_sources:
+            cursor.execute("insert into {0} ( `name` ) values ( %s )".format( src_name_tb_name), source)
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()
     cnx.close()
     return 0
 
+def create_TAT_tables():
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    # create table `observation_data` and `source_name`
+    sql = 'create table if not exists `{0}` ({1})'.format(obs_data_tb_name, ', '.join(obs_data_format))
+    cursor.execute(sql)
+    sql = 'create table if not exists `{0}` ({1})'.format(src_name_tb_name, ', '.join(src_name_format))
+    cursor.execute(sql)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return 0
+
 # Load a table from sql database
-def load_from_sql(db_name, table_name):
-    cnx = TAT_auth(db_name)
+def load_src_name_from_db():
+    cnx = TAT_auth()
     cursor = cnx.cursor()
     # Load data from table
-    cursor.execute('select * from `{0}`'.format(table_name))
+    cursor.execute('select name from {0}'.format(src_name_tb_name))
     data = cursor.fetchall()
-    data = np.array(data)
+    data = np.array(data).flatten()
     cursor.close()
     cnx.close()
     return data
-
-# This is a func for showing the name of tables in the database.
-def show_tables(db_name):
-    cnx = TAT_auth(db_name)
-    cursor = cnx.cursor()
-    cursor.execute('show tables')
-    table_list = cursor.fetchall()
-    table_array = np.array(table_list, dtype = str).flatten()
-    cursor.close()
-    cnx.close()
-    return table_array
