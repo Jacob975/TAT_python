@@ -42,7 +42,7 @@ def save2sql(data, new_sources = None, new = None):
         cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:]))
     if new != None:
         for source in new_sources:
-            cursor.execute("insert into {0} ( `name` ) values ( %s )".format( src_name_tb_name), source)
+            cursor.execute("insert into {0} ( `name` ) values ( '{1}' )".format( src_name_tb_name, source))
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()
