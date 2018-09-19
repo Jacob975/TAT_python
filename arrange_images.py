@@ -34,7 +34,7 @@ def check_sources_info(name_image):
     for source in sources_list:
         source_RA = source['RA'].split(":")
         source_DEC = source['DEC'].split(":")
-        if (RA[0] == source_RA[0]) & (DEC[0] == source_DEC[0]):
+        if (float(RA[0]) == float(source_RA[0])) & (float(DEC[0]) == float(source_DEC[0])):
             return 0, source['name']
     print "In {0}, source not found".format(name_image)
     return 1, ""

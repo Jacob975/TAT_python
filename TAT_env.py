@@ -10,10 +10,8 @@ editor Jacob975
 20171114
 #################################
 update log
-
 20171114 version alpha 1:
     1. The first sight of table of environment table
-
 20171130 version alpha 2:
     2. the path of source on zeus is moved from /brick to /mazu.
 20180625 version alpha 3:
@@ -33,7 +31,7 @@ path_of_python = "/usr/bin/python"
 #--------------- Setting source path ----------------
 # source path means where will you put your row image.
 # recommand: /home/username
-path_of_image = "/home2/TAT/data/raw"
+path_of_image = "/home2/TAT_test/raw"
 
 #--------------- Setting code path ------------------
 # code path means where do you install these code about tat.
@@ -41,7 +39,7 @@ path_of_image = "/home2/TAT/data/raw"
 path_of_code = "/home2/TAT/programs/TATIRP"
 
 #--------------- Name of Folders---------------------
-path_of_result = "/home2/TAT/data/reduction"
+path_of_result = "/home2/TAT_test/reduction"
 
 #--------------- Object list---------------------------------
 # every object recorded below will be read
@@ -55,7 +53,9 @@ object_list = [ {'RA':'21:53:24','DEC':'47:16:00','name':'IC5146'},
                 {'RA':'20:06:15', 'DEC':'44:27:24', 'name': 'KIC8462852'},
                 {'RA':'21:29:58.42','DEC':'51:03:59.8','name':'PN'},
                 {'RA':'21:06:53.9','DEC':'38:44:57.9','name':'61Cygni'},
-                {'RA':'20:12:7', 'DEC':'38:21:18', 'name':'NGC6888'}]
+                {'RA':'20:12:7', 'DEC':'38:21:18', 'name':'NGC6888'},
+                # Kepler star
+                {'RA':'21:00:06.19', 'DEC':'-05:05:39.85', 'name':'WASP-69b'}]
 
 #--------------- Band list-------------------------
 band_list = ["A", "B", "C", "N", "R", "V" ]
@@ -82,19 +82,20 @@ src_name_tb_name = 'source_name'
 obs_data_tb_name = 'observation_data'
 
 src_name_titles = [ 'id',
-                    'name' ]
+                    'name',]
 src_name_format = [ 'id INT AUTO_INCREMENT PRIMARY KEY',
-                    'name VARCHAR(255)'
-                    ]
+                    '`name` VARCHAR(255)']
 
 obs_data_titles = [ 'id',               # unique object identification number. 
-                    'name', 
+                    'name',
+                    'alias', 
                     'BJD',              # Barycentric Julian Time 
-                    'flux',             # 
+                    'flux',             
                     'inst_mag',         # instrumental magnitude
-                    'app_mag',          # apparent magnitude
+                    'cata_mag',         # apparent magnitude
                     'RA',               
                     '`DEC`',              
+                    'Sp',               # Spectral tyep
                     'xcentroid',        # object centroid.
                     'ycentroid',        # object centroid.
                     'fwhm',             # full width of the half maximum.
@@ -119,12 +120,14 @@ obs_data_titles = [ 'id',               # unique object identification number.
 
 obs_data_format = [ 'id INT AUTO_INCREMENT PRIMARY KEY',
                     'name VARCHAR(255)',
+                    'alias VARCHAR(255)',
                     'BJD DOUBLE',              # Barycentric Julian Time 
-                    'flux DOUBLE',             # 
+                    'flux DOUBLE',             
                     'inst_mag DOUBLE',         # instrumental magnitude
-                    'app_mag DOUBLE',          # apparent magnitude
+                    'cata_mag DOUBLE',         # apparent magnitude from catalog I/329 in Vizier
                     'RA DOUBLE',
                     '`DEC` DOUBLE',             
+                    'Sp VARCHAR(255)',         # Spectral type
                     'xcentroid DOUBLE',        # object centroid.
                     'ycentroid DOUBLE',        # object centroid.
                     'fwhm DOUBLE',             # full width of the half maximum.
@@ -149,3 +152,41 @@ obs_data_format = [ 'id INT AUTO_INCREMENT PRIMARY KEY',
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.19 arcsec on TAT image.
 pix1 = 2.2
+
+#--------------- URAT 1 --------------------------
+URAT_1 = ['URAT1', 
+          'RAJ2000', 
+          'DEJ2000', 
+          'Epoch', 
+          'f.mag', 
+          'e_f.mag', 
+          'pmRA', 
+          'pmDE', 
+          'Jmag', 
+          'Hmag', 
+          'Kmag', 
+          'Bmag', 
+          'Vmag', 
+          'gmag', 
+          'rmag', 
+          'imag']
+
+index_URAT_1 = 'I/329'
+#--------------- HIP -----------------------------
+# Catalog I/196, a.k.a. Hipparcos Input Catalogue(HIC)
+HIC =  ['HIC',
+        'Comp',
+        'RAJ2000', 
+        'DEJ2000', 
+        'Epoch', 
+        'pmRA', 
+        'pmDE', 
+        'Hp',
+        'Var',
+        'Vmag',
+        'B-V',
+        'Sp',
+        'Notes', 
+        'HIP']
+
+index_HIC = 'I/196'

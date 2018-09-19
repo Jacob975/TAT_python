@@ -39,6 +39,7 @@ def save2sql(data, new_sources = None, new = None):
     create_TAT_tables()
     # Save data into the table in the database.
     for source in data:
+        print "insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:])
         cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:]))
     if new != None:
         for source in new_sources:
@@ -56,6 +57,19 @@ def create_TAT_tables():
     sql = 'create table if not exists `{0}` ({1})'.format(obs_data_tb_name, ', '.join(obs_data_format))
     cursor.execute(sql)
     sql = 'create table if not exists `{0}` ({1})'.format(src_name_tb_name, ', '.join(src_name_format))
+    cursor.execute(sql)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return 0
+
+def remove_TAT_tables():
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    # remove table `observation_data` and `source_name`
+    sql = 'drop table {0}'.format(obs_data_tb_name)
+    cursor.execute(sql)
+    sql = 'drop table {0}'.format(src_name_tb_name)
     cursor.execute(sql)
     cnx.commit()
     cursor.close()

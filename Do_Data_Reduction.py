@@ -195,7 +195,9 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
                 # Get WCS 
                 os.system("{0}/wcsfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
-                # Find targets on images, update to database.
+                # Find targets on images
+                # Do ensemble photometry and correlation to catalog I/329
+                # And update to database.
                 os.system("{0}/starfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
                 # Save results into path of result.

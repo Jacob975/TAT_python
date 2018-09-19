@@ -28,10 +28,11 @@ class register:
         if len(iraf_table) < 3:
             print "Too few stars for registration in {0}".format(infos.name_image)
             return 1, 0, 0
-        # Take first 10 only
+        # Don't take sources near the edge of images. 
         iraf_table = iraf_table[np.argsort(iraf_table[:, -2])]
         iraf_table = iraf_table[(iraf_table[:,1] > 50) & (iraf_table[:,1] < 980)]
         iraf_table = iraf_table[(iraf_table[:,2] > 50) & (iraf_table[:,2] < 980)]
+        # Take first 10 only
         try:
             iraf_table = iraf_table[-10:]
             print "Pick 10 first star only from {0}".format(infos.name_image)

@@ -3,7 +3,7 @@
 Program:
     This is a program for correlating instrument magnitude and apparent magnitude in catalog  
 Usage: 
-    correlate_mag.py [table list]
+    cataio_lib.py [table list]
 Editor:
     Jacob975
 20180805
@@ -11,34 +11,23 @@ Editor:
 update log
 20180805 version alpha 1
     1. The code works
+20180918 version alpha 2
+    1. Name is changed. correlate_mag ---> cataio_lib, means catalog I/O library.
+20180919 version alpha 3
+    1. Rename a Def, correlate_mag ---> ensemble_photometry
 '''
 import numpy as np
 import time
 from sys import argv
 from astropy import coordinates, units as u
+from astropy.coordinates import SkyCoord
 from astroquery.vizier import Vizier
 from register_lib import get_rid_of_exotic 
 import TAT_env
+from joblib import Parallel, delayed
 
 # Get catalog with Vizier
-def get_catalog(targets):
-    # initialize
-    column_names = ['URAT1', 
-                    'RAJ2000', 
-                    'DEJ2000', 
-                    'Epoch', 
-                    'f.mag', 
-                    'e_f.mag', 
-                    'pmRA', 
-                    'pmDE', 
-                    'Jmag', 
-                    'Hmag', 
-                    'Kmag', 
-                    'Bmag', 
-                    'Vmag', 
-                    'gmag', 
-                    'rmag', 
-                    'imag']
+def get_catalog(targets, column_names, catalog_index):
     RA = float(targets[5])
     DEC = float(targets[6])
     # Match stars with catalog I/329
@@ -46,12 +35,12 @@ def get_catalog(targets):
         print "send a query to Vizier..."
         result = Vizier.query_region(coordinates.SkyCoord(ra=RA, dec=DEC, unit=('deg','deg'), frame='icrs'), 
                                     radius="10s", 
-                                    catalog=["I/329"])[0]
+                                    catalog=[catalog_index])[0]
         print "query finished"
     except:
         print "empty table"
         return 1, None
-    distance_list = get_distance(result, RA, DEC)
+    distance_list = get_distance(result, column_names, RA, DEC)
     # Convert tuple to numpy array
     result_table = []
     for name in column_names:
@@ -65,11 +54,16 @@ def get_catalog(targets):
     return 0, result_table_with_distance[0]
 
 # The program calculate the distance of match stars and our sources.
-def get_distance(match_stars, RA, DEC):
+def get_distance(match_stars, column_names, RA, DEC):
     distance_list = [] 
     for star in match_stars:
-        match_ra = float(star[1])
-        match_dec = float(star[2])
+        try:
+            match_ra = float(star[column_names.index('RAJ2000')])
+            match_dec = float(star[column_names.index('DEJ2000')])
+        except:
+            c = SkyCoord(star[column_names.index('RAJ2000')], star[column_names.index('DEJ2000')], unit=(u.hourangle, u.deg))
+            match_ra = c.ra.degree
+            match_dec = c.dec.degree
         d_ra = abs(match_ra - RA)
         d_dec = abs(match_dec - DEC)
         distance = np.sqrt(np.power(d_ra, 2) + np.power(d_dec, 2))
@@ -107,9 +101,9 @@ def get_app_mag(match_star, filter_):
         return 0, Bmag
     else:
         return 1, None
-
-# the def is used to correlate the magnitude with catalog
-def correlate_mag(table):
+   
+# Actually, this is not a classical ensemble photometry, described in Honeycutt (1992). 
+def ensemble_photometry(table):
     print "### start to correlate the inst mag to apparent mag in catalog I/329"
     # If filter is A or C, skip them
     filter_ = table[0,18]
@@ -123,8 +117,9 @@ def correlate_mag(table):
     flux_order_table = table[flux.argsort()]
     mag_delta_list = []
     for index in np.arange(-10, 0, 1):
-        # Find the info of the source on the catalog
-        failure, match_star = get_catalog(flux_order_table[index]) 
+        #-------------------------------------------------
+        # Find the info of the source from catalog I/329
+        failure, match_star = get_catalog(flux_order_table[index], TAT_env.URAT_1, TAT_env.index_URAT_1) 
         if failure:
             continue
         # Find the apparent magnitude to the found source
@@ -148,14 +143,37 @@ def correlate_mag(table):
     # remove np.nan
     mag_delta_array = np.array(mag_delta_list)
     mag_delta_array = mag_delta_array[~np.isnan(mag_delta_array)]
-    # Find the medina of magnitude delta, and apply the result on all sources.
+    # Find the median of the delta of the magnitude, and apply the result on all sources.
     median_mag_delta = np.median(mag_delta_array)
     inst_mag_array = np.array(table[:, 4], dtype = float)
     app_mag_array = inst_mag_array + median_mag_delta
     app_mag_array = np.array(app_mag_array, dtype = object)
+    # Save to the table
     table = np.insert(table, 5, app_mag_array, axis = 1)
     return 0, table
 
+# Find the alias, and spectral type of sources.
+def find_alias_and_spectral_type(table):
+    # Initialize
+    alias_list = []
+    spectral_type_list = []
+    for source in table:    
+        #-------------------------------------------------
+        # Find the info of the source from HIC
+        failure, match_star = get_catalog(source, TAT_env.HIC, TAT_env.index_HIC) 
+        if failure:
+            alias = ""
+            spectral_type = ""
+        # Add alias and spectral type to the found source
+        else:
+            alias = 'HIC{0}'.format(match_star[0])
+            spectral_type = match_star[TAT_env.HIC.index('Sp')]
+        alias_list.append(alias)
+        spectral_type_list.append(spectral_type)
+    # Save to the table
+    table = np.insert(table, 2, alias_list, axis = 1)
+    table = np.insert(table, 9, spectral_type_list, axis = 1)
+    return 0, table
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
@@ -165,7 +183,7 @@ if __name__ == "__main__":
     # Load argv
     if len(argv) != 2:
         print "Wrong number of arguments"
-        print "Usage: correlate_mag.py [table list]"
+        print "Usage:  cataio_lib.py [table list]"
         exit(1)
     table_name_list_name = argv[1]
     #----------------------------------------
@@ -175,7 +193,7 @@ if __name__ == "__main__":
         # Load table
         print "### Load a table ###"
         table = np.loadtxt(table_name, dtype = object, skiprows = 1)
-        failure, table = correlate_mag(table)
+        failure, table = ensemble_photometry(table)
         if failure: 
             print "correlating fail"
             continue

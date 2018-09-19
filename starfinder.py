@@ -20,7 +20,7 @@ from astropy.io import fits as pyfits
 from astropy import wcs
 from fit_lib import get_peak_filter, get_star, hist_gaussian_fitting
 from reduction_lib import image_info
-from correlate_mag import correlate_mag
+from cataio_lib import ensemble_photometry, find_alias_and_spectral_type
 from mysqlio_lib import save2sql, load_src_name_from_db
 import numpy as np
 import time
@@ -88,7 +88,7 @@ def iraf_tbl_modifier(image_name, iraf_table):
     iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
     #------------------------------------------------------
     # Insert infos from images
-    # load infos from the header of the image
+    # Load infos from the header of the image
     header = pyfits.getheader(image_name) 
     filename = np.repeat(image_name, table_length)
     filepath = os.getcwd()
@@ -106,7 +106,7 @@ def iraf_tbl_modifier(image_name, iraf_table):
     jd = np.repeat(header['JD'], table_length)
     hjd = np.repeat(header['HJD'], table_length)
     bjd = np.repeat(header['BJD'], table_length)
-    # append those column into the table
+    # Append those column into the table
     iraf_mod_table = np.insert(iraf_mod_table, -1, filename, 1)
     iraf_mod_table = np.insert(iraf_mod_table, -1, filepath, 1)
     iraf_mod_table = np.insert(iraf_mod_table, -1, filter_, 1)
@@ -121,7 +121,12 @@ def iraf_tbl_modifier(image_name, iraf_table):
     iraf_mod_table = np.insert(iraf_mod_table,  2, bjd, 1)
     iraf_mod_table = np.insert(iraf_mod_table, 14, iraf_mod_table[:,-1], 1)
     iraf_mod_table = np.delete(iraf_mod_table, -1, 1)
-    failure, iraf_mod_table = correlate_mag(iraf_mod_table)
+    #-----------------------------------------------------
+    # Insert correlated information to database.
+    # Start ensemble photometry
+    failure, iraf_mod_table = ensemble_photometry(iraf_mod_table)
+    # Add alias and spectral type. 
+    failure, iraf_mod_table = find_alias_and_spectral_type(iraf_mod_table)
     return 0, iraf_mod_table
 
 # check if there is new sources.

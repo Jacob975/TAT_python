@@ -105,7 +105,7 @@ if __name__ == "__main__":
     # get a list of all items in calibrate
     date_list = os.listdir(path_of_calibrate)
     #flat_exptime = find_flat_exptime(date_list, band)
-    flat_exptime = 20 
+    flat_exptime = 10 
     # find the nearest date reference to original date.
     nearest_date = match_date(date, date_list)
     # defind the dir of median dark, if it doesn't exist , create it
