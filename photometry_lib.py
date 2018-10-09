@@ -23,25 +23,63 @@ from scipy import optimize
 from cataio_lib import get_catalog
 from uncertainties import ufloat, unumpy
 
+# Follow the steps described in Honeycutt (1992)
 class ensemble_photometry():
     # The demo of data structure.
-    #   A target = [[ t1, flux1],
-    #               [ t2, flux2]
-    #               [ t3, flux3],
+    #   A target = [[ t1, flux1, err1],
+    #               [ t2, flux2, err2]
+    #               [ t3, flux3, err3],
     #               ...
     #              ]
     #   auxilary_stars = [star1, star2, star3 ....]
-    #   auxiliary_star = [[ t1, flux1],
-    #                     [ t2, flux2]
-    #                     [ t3, flux3],
+    #   auxiliary_star = [[ t1, flux1, err1],
+    #                     [ t2, flux2, err2]
+    #                     [ t3, flux3, err3],
     #                     ...
     #                    ]
-    def __init__(self, target, auxiliary_stars):
+    def __init__(self, target, comparison_stars):
         self.target = target
-        self.comparison_star = comparison_star
-        self.auxiliary_stars = auxiliary_stars
+        self.comparison_stars = comparison_stars
     def do(self):
-        pass
+        # Load data
+        all_stars = np.append(comparison_stars, np.array([all_stars]), axis = 0)
+        # Get the signal and weight 
+        num_eps = len(all_stars[-1])
+        num_stars = len(all_stars)
+        weight_tns_shape = (num_stars, num_eps)
+        weights_tns = np.zeros(weight_tns_shape)
+        weights_tns = np.divide(1, np.power(all_stars[:,:,2], 2))
+        weights_tns_filter = np.where(all_stars[:,:,1] == 0.0)
+        # m_tns(s, e)
+        signals_tns = all_stars[:, :, 1]
+        # w_tns(s, e)
+        weights_tns[weights_tns_filter] = 0.0
+        # m(e, s)
+        signals = np.transpose(signals_tns)
+        # w(e, s)
+        weights = np.transpose(weights_tns)
+        # Create a Matrix M  for saving the weight information.
+        M_shape = (num_eps + num_stars, num_eps + num_stars)
+        M = np.zeros(M_shape)
+        M[num_eps:num_eps + num_stars, 0:num_eps] = weights_tns
+        M[0:num_eps, num_eps:num_eps + num_stars] = weights
+        for index in xrange(num_eps + num_stars):
+            if index < num_eps:
+                M[index, index] = np.sum(weights[index])
+            else:
+                M[index, index] = np.sum(weights[:,index - num_eps]) 
+        # Create a vector b for saving the observed magnitude information.
+        for index in xrange(num_eps + num_stars):
+            if index < num_eps:
+                b[index] = np.sum(np.multiply(weights[index], signals[index]))
+            else:
+                b[index] = np.sum(np.multiply(weights[:,index - num_eps], signals[:, index - num_eps]))
+        # Let M * a = b, find a
+        answers = np.linalg.solve(M, b)
+        ems = answers[:num_eqs]
+        m0s = answers[num_eqs:]
+        # Calculate the error of all answers.
+        return ems, m0s
 
 def catalog_photometry(source):
     # If filter is A or C, skip them
@@ -65,56 +103,9 @@ def catalog_photometry(source):
 def parabola(x, a, b, c):
     return a * np.power(x-b, 2) + c 
 
-class IDP():
-    # The demo of data structure.
-    #   A target = [[ t1, flux1],
-    #               [ t2, flux2]
-    #               [ t3, flux3],
-    #               ...
-    #              ]
-    #   comparison_star = [[ t1, flux1],
-    #                      [ t2, flux2]
-    #                      [ t3, flux3],
-    #                      ...
-    #                     ]
-    #   auxilary_stars = [star1, star2, star3 ....]
-    #   auxiliary_star = [[ t1, flux1],
-    #                     [ t2, flux2]
-    #                     [ t3, flux3],
-    #                     ...
-    #                    ]
-    def __init__(self, target, comparison_star, auxiliary_stars):
-        self.target = target
-        self.comparison_star = comparison_star
-        self.auxiliary_stars = auxiliary_stars
-    def do(self):
-        #-----------------------------------
-        # Fit airmass of the comparison star
-        comparison_airmass = self.fit_airmass(self.comparison_star)
-        #-----------------------------------
-        aux_stars_aml = []
-        # All auxiliary_stars are divided by themself airmass function.
-        for i in range(len(self.auxiliary_stars)):
-            aux_airmass = self.fit_airmass(self.auxiliary_stars[i])
-            aux_star_aml = np.transpose([self.auxiliary_stars[i,:,0], self.auxiliary_stars[i,:,1]/aux_airmass[:,1]])
-            aux_stars_aml.append(aux_star_aml)
-        # mean the flux of auxiliary_stars_aml
-        aux_stars_aml = np.array(aux_stars_aml)
-        mean_aux = np.mean(aux_stars_aml, axis = 0)
-        #----------------------------------------------
-        # divide the target with airmass of comparison_star and the mean of auiliary_stars_aml
-        target_idp = np.transpose([self.target[:,0], np.divide(self.target[:,1], comparison_airmass[:,1])])
-        target_idp = np.transpose([target_idp[:,0], np.divide(target_idp[:,1], mean_aux[:,1])])
-        return target_idp, comparison_airmass, mean_aux 
-    # Assume airmass is a 2d parabola curve, fit the data with this function.
-    def fit_airmass(self, source):
-        paras, cov = optimize.curve_fit(parabola, source[:,0], source[:,1])
-        airmass = paras[0] * np.power(source[:,0] - paras[1], 2) + paras[2]
-        airmass_curve = np.transpose([source[:,0], airmass])
-        return airmass_curve
-
 # The improve differential photometry with error consideration.
-class IDP_w_stdev():
+# Follow the steps described in FERNÁNDEZ FERNÁNDEZ et al (2012).
+class IDP():
     # The demo of data structure.
     #   A target = [[ t1, flux1, stdev],
     #               [ t2, flux2, stdev]
