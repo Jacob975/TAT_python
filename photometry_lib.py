@@ -23,26 +23,27 @@ from scipy import optimize
 from cataio_lib import get_catalog
 from uncertainties import ufloat, unumpy
 
+# Ensemble Photometry
 # Follow the steps described in Honeycutt (1992)
-class ensemble_photometry():
+class EP(): 
     # The demo of data structure.
-    #   A target = [[ t1, flux1, err1],
-    #               [ t2, flux2, err2]
-    #               [ t3, flux3, err3],
+    #   A target = [[ t1, mag1, err1],
+    #               [ t2, mag2, err2]
+    #               [ t3, mag3, err3],
     #               ...
     #              ]
-    #   auxilary_stars = [star1, star2, star3 ....]
-    #   auxiliary_star = [[ t1, flux1, err1],
-    #                     [ t2, flux2, err2]
-    #                     [ t3, flux3, err3],
-    #                     ...
-    #                    ]
+    #   comparison_stars = [star1, star2, star3 ....]
+    #   comparison_star = [[ t1, mag1, err1],
+    #                      [ t2, mag2, err2]
+    #                      [ t3, mag3, err3],
+    #                      ...
+    #                     ]
     def __init__(self, target, comparison_stars):
         self.target = target
         self.comparison_stars = comparison_stars
-    def do(self):
+    def make_airmass_model(self):
         # Load data
-        all_stars = np.append(comparison_stars, np.array([all_stars]), axis = 0)
+        all_stars = self.comparison_stars
         # Get the signal and weight 
         num_eps = len(all_stars[-1])
         num_stars = len(all_stars)
@@ -59,27 +60,61 @@ class ensemble_photometry():
         # w(e, s)
         weights = np.transpose(weights_tns)
         # Create a Matrix M  for saving the weight information.
+        # To minimize the unknowns, let ems(1) = 0
         M_shape = (num_eps + num_stars, num_eps + num_stars)
         M = np.zeros(M_shape)
-        M[num_eps:num_eps + num_stars, 0:num_eps] = weights_tns
-        M[0:num_eps, num_eps:num_eps + num_stars] = weights
+        M[num_eps:num_eps + num_stars, :num_eps] = weights_tns
+        M[:num_eps, num_eps:num_eps + num_stars] = weights
         for index in xrange(num_eps + num_stars):
             if index < num_eps:
                 M[index, index] = np.sum(weights[index])
             else:
                 M[index, index] = np.sum(weights[:,index - num_eps]) 
         # Create a vector b for saving the observed magnitude information.
+        b = np.zeros(num_eps + num_stars)
         for index in xrange(num_eps + num_stars):
             if index < num_eps:
                 b[index] = np.sum(np.multiply(weights[index], signals[index]))
             else:
                 b[index] = np.sum(np.multiply(weights[:,index - num_eps], signals[:, index - num_eps]))
         # Let M * a = b, find a
+        # To minimize the unknowns, let ems(1) = 0
         answers = np.linalg.solve(M, b)
-        ems = answers[:num_eqs]
-        m0s = answers[num_eqs:]
-        # Calculate the error of all answers.
-        return ems, m0s
+        ems = answers[:num_eps]
+        shifted_ems = ems - ems[0]
+        m0s = answers[num_eps:]
+        shifted_m0s = m0s + ems[0]
+        # Calculate the uncertainties of all answers.
+        var_m0s = np.zeros(num_stars)
+        for s in xrange(num_stars):
+            top = np.sum(np.power(signals[:,s] - ems - m0s[s], 2) * weights[:, s])
+            bottom = np.multiply(np.sum(weights[:,s]), float(num_eps - 1))
+            var_m0s[s] = top/bottom
+        var_ems = np.zeros(num_eps)
+        for e in xrange(num_eps):
+            top = np.sum(np.power(signals[e] - ems[e] - m0s, 2) * weights[e])
+            bottom = np.multiply(np.sum(weights[e]), float(num_stars - 1))
+            var_ems[e] = top/bottom
+        # Upload to class
+        self.ems = ems
+        self.var_ems = var_ems
+        self.m0s = m0s
+        self.var_m0s = var_m0s
+        return shifted_ems, var_ems, shifted_m0s, var_m0s
+    # Do photometry on target source
+    def phot(self):
+        # Load data
+        target = self.target
+        ems = self.ems
+        var_ems = self.var_ems
+        utarget = unumpy.uarray(target[:,1], target[:,2])
+        uems = unumpy.uarray(ems, var_ems)
+        # Get the intrinsic magnitude.
+        uintrinsic_target = utarget - uems
+        intrinsic_signal = np.array(unumpy.nominal_values(uintrinsic_target))
+        intrinsic_error  = np.array(unumpy.std_devs(uintrinsic_target))
+        intrinsic_target = np.transpose([intrinsic_signal, intrinsic_error])
+        return intrinsic_target 
 
 def catalog_photometry(source):
     # If filter is A or C, skip them
@@ -103,8 +138,8 @@ def catalog_photometry(source):
 def parabola(x, a, b, c):
     return a * np.power(x-b, 2) + c 
 
-# The improve differential photometry with error consideration.
-# Follow the steps described in FERNÁNDEZ FERNÁNDEZ et al (2012).
+# Improve Differential Photometry
+# Follow the steps described in FERNANDEZ FERNANDEZ et al (2012).
 class IDP():
     # The demo of data structure.
     #   A target = [[ t1, flux1, stdev],
