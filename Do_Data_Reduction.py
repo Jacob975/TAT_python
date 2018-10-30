@@ -20,7 +20,6 @@ import time
 import glob
 import TAT_env
 import os
-import subprocess
 import warnings
 from starfinder import starfinder, iraf_tbl2reg
 
@@ -69,7 +68,7 @@ def undo(unprocessed_list):
     return 0
 
 # The def for check header and quality of images in calibration.
-def check_cal(unprocessed_calibrate_list, processed_calibrate_list, path_of_log):
+def check_cal(unprocessed_calibrate_list, processed_calibrate_list, path_of_log, save_log = True):
     # check if input list is empty
     if len(unprocessed_calibrate_list) == 0:
         print "No unprocessed calibrate, check_cal stop"
@@ -98,7 +97,8 @@ def check_cal(unprocessed_calibrate_list, processed_calibrate_list, path_of_log)
         # if redcution is OK, list the folder in success list.
         if True:
             processed_calibrate_list.append(unpro_cal)
-        np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), processed_calibrate_list, fmt="%s")
+        if save_log:
+            np.savetxt("{0}/calibrate_reduction_log.txt".format(path_of_log), processed_calibrate_list, fmt="%s")
     return 0
 
 # The def for checking header and quality of data,
@@ -199,6 +199,10 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
                 # Do ensemble photometry and correlation to catalog I/329
                 # And update to database.
                 os.system("{0}/starfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
+                #--------------------------------------------------------------------------
+                # Query basic imformation from given catalog.
+                #--------------------------------------------------------------------------
+                # Do more accurate photometry.
                 #--------------------------------------------------------------------------
                 # Save results into path of result.
                 os.system("{0}/arrange_results.py".format(TAT_env.path_of_code))

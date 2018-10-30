@@ -12,7 +12,7 @@ update log
 '''
 import numpy as np
 import time
-from photometry_lib import parabola, IDP, IDP_w_stdev
+from photometry_lib import parabola, IDP
 import matplotlib.pyplot as plt
 
 #--------------------------------------------
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     auxiliary_star3 = np.transpose([t, flux_3, np.sqrt(flux_3)])
     
     auxiliary_stars = np.array([auxiliary_star1, auxiliary_star2, auxiliary_star3])
-    student = IDP_w_stdev(target, comparison_star, auxiliary_stars)
+    student = IDP(target, comparison_star, auxiliary_stars)
     correlated_target, comparison_airmass, mean_aml = student.do() 
     #----------------------------------------
     # Plot the answers

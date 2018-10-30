@@ -152,28 +152,65 @@ def ensemble_photometry(table):
     table = np.insert(table, 5, app_mag_array, axis = 1)
     return 0, table
 
+def catalog_photometry(source):
+    # If filter is A or C, skip them
+    filter_ = source[18]
+    print "filter = {0}".format(filter_)
+    if filter_ == "A" or filter_ == "C":
+        print "No corresponding band on catalog I/329"
+        source[5]  = ''
+        return 1, source
+    # Choose the 10 brightest stars
+    flux = float(source[3])
+    #-------------------------------------------------
+    # Find the info of the source from catalog I/329
+    failure, match_star = get_catalog(source, TAT_env.URAT_1, TAT_env.index_URAT_1) 
+    # Find the apparent magnitude to the found source
+    failure, app_mag = get_app_mag(match_star, filter_)
+    source[5] = app_mag
+    return 0, source
+
+# served as a fitting function.
+def parabola(x, a, b, c):
+    return a * np.power(x-b, 2) + c 
+
+class IDP():
+    # The demo of data structure.
+    #   A target = [[ t1, flux1],
+    #               [ t2, flux2]
+    #               [ t3, flux3],
+    #               ...
+    #              ]
+    def _init_(target, auxiliary_stars, comparison_star):
+        self.target = target
+        self.auxiliary_stars = auxiliary_stars
+        self.comparison_star = comparison_star
+        return 0
+    def do():
+        return     
+    def fit_airmass(self, source):
+        paras, cov = optimize.curve_fit(parabola, source[:,0], source[:,1], p0 = moments)
+        print paras, cov
+        return airmass_curve
+    
+
 # Find the alias, and spectral type of sources.
-def find_alias_and_spectral_type(table):
-    # Initialize
-    alias_list = []
-    spectral_type_list = []
-    for source in table:    
-        #-------------------------------------------------
-        # Find the info of the source from HIC
-        failure, match_star = get_catalog(source, TAT_env.HIC, TAT_env.index_HIC) 
-        if failure:
-            alias = ""
-            spectral_type = ""
-        # Add alias and spectral type to the found source
-        else:
-            alias = 'HIC{0}'.format(match_star[0])
-            spectral_type = match_star[TAT_env.HIC.index('Sp')]
-        alias_list.append(alias)
-        spectral_type_list.append(spectral_type)
-    # Save to the table
-    table = np.insert(table, 2, alias_list, axis = 1)
-    table = np.insert(table, 9, spectral_type_list, axis = 1)
-    return 0, table
+def find_alias_and_spectral_type(source):
+    #-------------------------------------------------
+    # Find the info of the source from HIC
+    failure, match_star = get_catalog(source, TAT_env.HIC, TAT_env.index_HIC) 
+    if failure:
+        print "No corresponding band on catalog HIP" 
+        source[2] = ''
+        source[9] = ''
+        return 1, source
+    # Add alias and spectral type to the found source
+    else:
+        alias = 'HIC{0}'.format(match_star[0])
+        spectral_type = match_star[TAT_env.HIC.index('Sp')]
+    source[2] = alias
+    source[9] = spectral_tyep
+    return 0, source
 #--------------------------------------------
 # main code
 if __name__ == "__main__":

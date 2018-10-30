@@ -39,9 +39,9 @@ def save2sql(data, new_sources = None, new = None):
     create_TAT_tables()
     # Save data into the table in the database.
     for source in data:
-        print "insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:])
+        #print "insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:])
         cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:]))
-    if new != None:
+    if new:
         for source in new_sources:
             cursor.execute("insert into {0} ( `name` ) values ( '{1}' )".format( src_name_tb_name, source))
     # Make sure data is committed to the database.
@@ -87,3 +87,14 @@ def load_src_name_from_db():
     cursor.close()
     cnx.close()
     return data
+
+def find_fileID(file_name):
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    cursor.execute("select ID from TAT.data_file where FILENAME='{0}'".format(file_name))
+    data = cursor.fetchall()
+    data = np.array(data, dtype = int).flatten()
+    ans = data[0]
+    cursor.close()
+    cnx.close()
+    return ans

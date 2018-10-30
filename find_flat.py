@@ -21,7 +21,7 @@ import time
 import fnmatch
 import TAT_env
 import datetime
-from find_dark import match_date, stack_mdn_method
+from find_dark import match_date
 from reduction_lib import subtract_images
 from datetime import datetime, timedelta
 
@@ -146,8 +146,13 @@ if __name__ == "__main__":
         exit(1)
     subdark_flat_list = subtract_images(flat_list, dark_name)
     # median and normalize on all flats
-    median_subdark_flat = stack_mdn_method(subdark_flat_list) 
-    norm_median_subdark_flat = np.divide(median_subdark_flat, np.mean(median_subdark_flat))
+    norm_flat_list = []
+    for name in subdark_flat_list:
+        data = pyfits.getdata(name)
+        norm_member = np.divide(data, np.mean(data))
+        norm_flat_list.append(norm_member)
+    norm_flat_array = np.array(norm_flat_list)
+    norm_median_subdark_flat = np.median(norm_flat_array, axis = 0)
     #-----------------------------------------
     # Give it a name, save, and export
     Median_flat_name="Median_flat_{0}_{1}.fits".format(date, flat_exptime)

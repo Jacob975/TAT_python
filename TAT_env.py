@@ -64,90 +64,80 @@ site_list = ["TF", "KU"]
 #--------------- Type list-------------------------
 type_list = ["data", "dark", "flat"]
 #----------------Title for targets on Iraf table---
-titles_for_target_on_iraf_table = [ 'id', 
-                                    'xcentroid', 
-                                    'ycentroid', 
-                                    'fwhm', 
-                                    'sharpness', 
-                                    'roundness', 
-                                    'pa', 
-                                    'npix', 
-                                    'sky', 
-                                    'peak', 
-                                    'flux', 
-                                    'mag']
+iraf_table_titles=[['id',         0 ],
+                   ['xcentroid', 12 ],
+                   ['ycentroid', 13 ],
+                   ['fwhm',      14 ],
+                   ['sharpness', 15 ],
+                   ['roundness', 16 ],
+                   ['pa',        17 ],
+                   ['npix',      18 ],
+                   ['sky',       19 ],
+                   ['peak',      20 ],
+                   ['flux',       4 ],
+                   ['mag',        5 ]]
 #------------- parameters for mysql table -----------------
 
 src_name_tb_name = 'source_name'
 obs_data_tb_name = 'observation_data'
 
-src_name_titles = [ 'id',
-                    'name',]
-src_name_format = [ 'id INT AUTO_INCREMENT PRIMARY KEY',
-                    '`name` VARCHAR(255)']
+src_name_titles = [ 'ID',
+                    'NAME',]
+src_name_format = [ 'ID INT AUTO_INCREMENT PRIMARY KEY',
+                    '`NAME` VARCHAR(255)']
 
-obs_data_titles = [ 'id',               # unique object identification number. 
-                    'name',
-                    'alias', 
+obs_data_titles = [ 'ID',               # unique object identification number. 
+                    'NAME',
+                    'ALIAS', 
                     'BJD',              # Barycentric Julian Time 
-                    'flux',             
-                    'inst_mag',         # instrumental magnitude
-                    'cata_mag',         # apparent magnitude
+                    'FLUX',             
+                    'INST_MAG',         # instrumental magnitude
+                    'CATA_MAG',         # apparent magnitude copy from catalogu.e
+                    'EP_MAG',           # apparent magnitude made by catalogue and Ensemble Photometry.
+                    'IDP_MAG',          # apparent magnitdue made by catalogue and Improved method for Differenctial Photometry.
                     'RA',               
                     '`DEC`',              
-                    'Sp',               # Spectral tyep
-                    'xcentroid',        # object centroid.
-                    'ycentroid',        # object centroid.
-                    'fwhm',             # full width of the half maximum.
-                    'sharpness',        # object sharpness.
-                    'roundness',        # object roundness based on marginal Gaussian fits.
-                    'pa',               # polarization angle
-                    'npix',             # number of pixels in the Gaussian kernel.
-                    'sky',              # background sky.
-                    'peak',             # the peak, sky-subtracted, pixel value of the object.
-                    'filename', 
-                    'filepath', 
-                    'filter', 
-                    'sitename', 
-                    'exptime', 
-                    '`date-obs`', 
-                    '`time-obs`', 
+                    'SP',               # Spectral tyep
+                    'XCENTROID',        # object centroid.
+                    'YCENTROID',        # object centroid.
+                    'FWHM',             # full width of the half maximum.
+                    'SHARPNESS',        # object sharpness.
+                    'ROUNDNESS',        # object roundness based on marginal Gaussian fits.
+                    'PA',               # polarization angle
+                    'NPIX',             # number of pixels in the Gaussian kernel.
+                    'SKY',              # background sky.
+                    'PEAK',             # the peak, sky-subtracted, pixel value of the object.
                     'MJD', 
-                    'airmass', 
                     'JD', 
-                    'HJD', 
+                    'HJD',
+                    'FILEID', 
                     ]
 
-obs_data_format = [ 'id INT AUTO_INCREMENT PRIMARY KEY',
-                    'name VARCHAR(255)',
-                    'alias VARCHAR(255)',
+obs_data_format = [ 'ID INT AUTO_INCREMENT PRIMARY KEY',
+                    'NAME VARCHAR(255)',
+                    'ALIAS VARCHAR(255)',
                     'BJD DOUBLE',              # Barycentric Julian Time 
-                    'flux DOUBLE',             
-                    'inst_mag DOUBLE',         # instrumental magnitude
-                    'cata_mag DOUBLE',         # apparent magnitude from catalog I/329 in Vizier
+                    'FLUX DOUBLE',             
+                    'INST_MAG DOUBLE',         # instrumental magnitude
+                    'CATA_MAG DOUBLE',         # apparent magnitude copy from catalogu.e
+                    'EP_MAG DOUBLE',           # apparent magnitude made by catalogue and Ensemble Photometry.
+                    'IDP_MAG DOUBLE',          # apparent magnitdue made by catalogue and Improved method for Differenctial Photometry.
                     'RA DOUBLE',
                     '`DEC` DOUBLE',             
-                    'Sp VARCHAR(255)',         # Spectral type
-                    'xcentroid DOUBLE',        # object centroid.
-                    'ycentroid DOUBLE',        # object centroid.
-                    'fwhm DOUBLE',             # full width of the half maximum.
-                    'sharpness DOUBLE',        # object sharpness.
-                    'roundness DOUBLE',        # object roundness based on marginal Gaussian fits.
-                    'pa DOUBLE',               # polarization angle
-                    'npix DOUBLE',             # number of pixels in the Gaussian kernel.
-                    'sky DOUBLE',              # background sky.
-                    'peak DOUBLE',             # the peak, sky-subtracted, pixel value of the object.
-                    'filename VARCHAR(255)', 
-                    'filepath VARCHAR(255)', 
-                    'filter VARCHAR(16)', 
-                    'sitename VARCHAR(255)', 
-                    'exptime DOUBLE', 
-                    '`date-obs` VARCHAR(255)', 
-                    '`time-obs` VARCHAR(255)', 
+                    'SP VARCHAR(255)',         # Spectral type
+                    'XCENTROID DOUBLE',        # object centroid.
+                    'YCENTROID DOUBLE',        # object centroid.
+                    'FWHM DOUBLE',             # full width of the half maximum.
+                    'SHARPNESS DOUBLE',        # object sharpness.
+                    'ROUNDNESS DOUBLE',        # object roundness based on marginal Gaussian fits.
+                    'PA DOUBLE',               # polarization angle
+                    'NPIX DOUBLE',             # number of pixels in the Gaussian kernel.
+                    'SKY DOUBLE',              # background sky.
+                    'PEAK DOUBLE',             # the peak, sky-subtracted, pixel value of the object.
                     'MJD DOUBLE', 
-                    'airmass DOUBLE', 
                     'JD DOUBLE', 
                     'HJD DOUBLE',
+                    'FILEID INT',
                     ]
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.19 arcsec on TAT image.
