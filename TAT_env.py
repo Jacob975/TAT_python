@@ -76,6 +76,26 @@ iraf_table_titles=[['id',         0 ],
                    ['peak',      20 ],
                    ['flux',       4 ],
                    ['mag',        5 ]]
+
+star_table_titles = [[  'id',           0],
+                     [  'flux',         4],
+                     [  'e_flux',       5],
+                     [  'amplitude',    6],
+                     [  'e_amplitude',  7],
+                     [  'xcenter',      8],
+                     [  'e_xcenter',    9],
+                     [  'ycenter',     10],
+                     [  'e_ycenter',   11],
+                     [  'xsigma',      12],
+                     [  'e_xsigma',    13],
+                     [  'ysigma',      14],
+                     [  'e_ysigma',    15],
+                     [  'rot',         16],
+                     [  'e_rot',       17],
+                     [  'bkg',         18],
+                     [  'e_bkg',       19],
+                     [  'npix',        20]]
+
 #------------- parameters for mysql table -----------------
 
 src_name_tb_name = 'source_name'

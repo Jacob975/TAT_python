@@ -222,47 +222,6 @@ def get_half_width(data, data_mean, data_std, pos):
             half_width = half_width + 2
     return half_width
 
-def get_star_title(detailed = False):
-    # detailed means including errors.
-    answer = np.array([])
-    if detailed:
-        answer = np.array([ 'amplitude', 'e_amplitude', 
-                            'xcenter', 'e_xcenter', 
-                            'ycenter', 'e_ycenter', 
-                            'xsigma', 'e_xsigma', 
-                            'ysigma', 'e_ysigma', 
-                            'rot', 'e_rot', 
-                            'bkg', 'e_bkg'])
-    else :
-        answer = np.array([ 'amplitude', 
-                            'xcenter', 
-                            'ycenter', 
-                            'xsigma', 
-                            'ysigma', 
-                            'rot', 
-                            'bkg'])
-    return answer
-
-def get_star_unit(detailed = False):
-    # detailed means including errors.
-    if detailed:
-        answer = np.array([ 'count', 'count', 
-                            'pixel', 'pixel', 
-                            'pixel','pixel',
-                            'pixel','pixel',
-                            'pixel','pixel',
-                            'degree','degree',
-                            'count','count'])
-    else:
-        answer = np.array([ 'count', 
-                            'pixel', 
-                            'pixel', 
-                            'pixel', 
-                            'pixel',
-                            'degree',
-                            'count'])
-    return answer
-
 def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detailed = False, VERBOSE = 0):
     star_list = []
     # find data mean and data std
@@ -321,13 +280,21 @@ def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detai
         star_list.append(temp)
     if detailed:
         star_list = np.array(star_list, \
-                    dtype =[('amplitude', float), ('e_amplitude', float), 
-                            ('xcenter', float), ('e_xcenter', float), 
-                            ('ycenter', float), ('e_ycenter', float), 
-                            ('xsigma', float), ('e_xsigma', float), 
-                            ('ysigma', float), ('e_ysigma', float), 
-                            ('rot', float), ('e_rot', float), 
-                            ('bkg', float), ('e_bkg', float)])
+                    dtype =[('amplitude', float), 
+                            ('e_amplitude', float), 
+                            ('xcenter', float), 
+                            ('e_xcenter', float), 
+                            ('ycenter', float), 
+                            ('e_ycenter', float), 
+                            ('xsigma', float), 
+                            ('e_xsigma', float), 
+                            ('ysigma', float), 
+                            ('e_ysigma', float), 
+                            ('rot', float), 
+                            ('e_rot', float), 
+                            ('bkg', float), 
+                            ('e_bkg', float),
+                            ])
     else:
         star_list = np.array(star_list, \
                     dtype =[('amplitude', float), 
@@ -338,6 +305,8 @@ def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detai
                             ('rot', float), 
                             ('bkg', float)])
     return star_list
+
+def phot(star_list):
 
 #---------------------------------------------------------------------
 # Take noise and effective exptime from a list of image

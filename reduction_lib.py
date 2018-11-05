@@ -114,7 +114,7 @@ class image_info:
         sigma = np.average([x_sigma, y_sigma], axis = None)
         return sigma
     # find coordinate and flux of a star by aperture photometry.
-    def proper_sigma(self, star_list, pos_xsigma, pos_ysigma):
+    def proper_sigma(self, star_list, ind_xsigma, ind_ysigma):
         # take out all inproper value
         # for example inf and nan
         nosigular_star_list = []
@@ -125,10 +125,10 @@ class image_info:
                 continue
             nosigular_star_list.append(column)
         # in x direction
-        x_sigma = [column[pos_xsigma] for column in nosigular_star_list]
+        x_sigma = [column[ind_xsigma] for column in nosigular_star_list]
         proper_x_sigma, proper_star_list = get_rid_of_exotic_vector(x_sigma, nosigular_star_list, 3)
         # in y direction
-        y_sigma = [column[pos_ysigma] for column in proper_star_list]
+        y_sigma = [column[ind_ysigma] for column in proper_star_list]
         proper_y_sigma, proper_star_list = get_rid_of_exotic_vector(y_sigma, proper_star_list, 3)
         return proper_star_list
     # get property of images from path
