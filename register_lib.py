@@ -13,22 +13,21 @@ update log
     1. Remove some 
 '''
 import numpy as np
-import math
 
 # calculate the inner product and error of two side, from star_1 to star_2 and from star_1 to star_3.
 def inner_product(star_1, star_2, star_3, sigma):
     try:
         inner_prod = (star_2[1] - star_1[1])*(star_3[1] - star_1[1]) + (star_2[2] - star_1[2])*(star_3[2] - star_1[2])
-        x_part_1 = math.pow(star_1[1] - star_2[1], 2)
-        x_error_1 = (2 * math.pow(sigma, 2))/x_part_1
-        x_part_2 = math.pow(star_1[1] - star_3[1], 2)
-        x_error_2 = (2 * math.pow(sigma, 2))/x_part_2
-        y_part_1 = math.pow(star_1[2] - star_2[2], 2)
-        y_error_1 = (2 * math.pow(sigma, 2))/y_part_1
-        y_part_2 = math.pow(star_1[2] - star_3[2], 2)
-        y_error_2 = (2 * math.pow(sigma, 2))/y_part_2
+        x_part_1 = np.power(star_1[1] - star_2[1], 2)
+        x_error_1 = (2 * np.power(sigma, 2))/x_part_1
+        x_part_2 = np.power(star_1[1] - star_3[1], 2)
+        x_error_2 = (2 * np.power(sigma, 2))/x_part_2
+        y_part_1 = np.power(star_1[2] - star_2[2], 2)
+        y_error_1 = (2 * np.power(sigma, 2))/y_part_1
+        y_part_2 = np.power(star_1[2] - star_3[2], 2)
+        y_error_2 = (2 * np.power(sigma, 2))/y_part_2
         var = x_part_1*x_part_2*(x_error_1 + x_error_2) + y_part_1*y_part_2*(y_error_1 + y_error_2)
-        error = math.pow(var, 0.5)
+        error = np.power(var, 0.5)
     except : 
         return 0, 0
     else:

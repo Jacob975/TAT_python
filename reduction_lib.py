@@ -92,8 +92,9 @@ class image_info:
         self.data = pyfits.getdata(name_image)
         self.sigma = self.get_sigma()
         paras, cov = hist_gaussian_fitting('default', self.data)
-        self.bkg = paras[0]
-        self.std = paras[1]
+        self.amp = paras[0]
+        self.bkg = paras[1]
+        self.std = paras[2]
         self.observator_property()
         return
     # This def is used to find the average sigma of a star

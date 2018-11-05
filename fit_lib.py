@@ -11,20 +11,22 @@ Editor:
 update log
 20180625 version alpha 1
     1. Remove some 
+20181105 version alpha 2
+    1. Revise and fix some problem on gaussian fitting 
+    2. remove alternative way to fit 2D gaussian because I rarely use it
 '''
 import numpy as np
 import scipy
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
-import math
 from astropy.io import fits as pyfits
 from scipy import optimize
 
-def gaussian(x, mu, sig, height):
-    return np.power(2 * np.pi , -0.5)*np.exp(-np.power(x - mu , 2.) / (2 * np.power(sig, 2.)))/sig+height
+def gaussian(x, amp, mu, sig, const):
+    return amp * np.exp(-np.power(x - mu , 2.) / (2 * np.power(sig, 2.)))/sig + const
 
-def hist_gaussian(x, mu, sig):
-    return np.power(2 * np.pi , -0.5)*np.exp(-np.power(x - mu , 2.) / (2 * np.power(sig, 2.)))/sig
+def nonC_gaussian(x, amp, mu, sig):
+    return amp * np.exp(-np.power(x - mu , 2.) / (2 * np.power(sig, 2.)))/sig
 
 def gaussian_fitting(entries):
     entries = np.array(entries)
@@ -46,7 +48,7 @@ def hist_gaussian_fitting(name, data, half_width = 20, shift = 0, VERBOSE = 0):
     flatten_data = flatten_data[flatten_data < 100000.0]
     flatten_data = flatten_data[flatten_data > -10000.0]
     data_mean = np.mean(flatten_data)
-    if math.isnan(data_mean):
+    if np.isnan(data_mean):
         data_mean = 0.0
     # number is the number of star with this value
     # bin_edges is left edge position of each point on histagram.
@@ -56,13 +58,13 @@ def hist_gaussian_fitting(name, data, half_width = 20, shift = 0, VERBOSE = 0):
     index_max = bin_edges[index_max]
     bin_middles = 0.5*(bin_edges[1:] + bin_edges[:-1])
     # initial paras
-    if math.isnan(np.std(flatten_data)):
+    if np.isnan(np.std(flatten_data)):
         std = 1.0
     else :
         std = np.std(flatten_data)
     moments = (data_mean, std)
     # fit 
-    paras, cov = optimize.curve_fit(hist_gaussian, bin_middles, numbers, p0 = moments)
+    paras, cov = optimize.curve_fit(nonC_gaussian, bin_middles, numbers, p0 = moments)
     return paras, cov
 
 #---------------------------------------------------------------------
@@ -109,52 +111,7 @@ def moments2D(inpData):
     rot= np.rad2deg(pa)
     return amplitude,xcenter,ycenter,xsigma,ysigma, rot,bkg
 
-def Gaussian2D_leastsq(amplitude, xcenter, ycenter, xsigma, ysigma, rot,bkg):
-    # Returns a 2D Gaussian function with input parameters. rotation input rot should be in degress 
-    rot=np.deg2rad(rot)  #Converting to radians
-    Xc=xcenter*np.cos(rot) - ycenter*np.sin(rot)  #Centers in rotated coordinates
-    Yc=xcenter*np.sin(rot) + ycenter*np.cos(rot)
-    #Now lets define the 2D gaussian function
-    def Gauss2D(x,y) :
-        # Returns the values of the defined 2d gaussian at x,y 
-        xr=x * np.cos(rot) - y * np.sin(rot)  #X position in rotated coordinates
-        yr=x * np.sin(rot) + y * np.cos(rot)
-        return amplitude*np.exp(-(((xr-Xc)/xsigma)**2 +((yr-Yc)/ysigma)**2)/2) +bkg
-
-    return Gauss2D
-
-def FitGauss2D_leastsq(Data,ip=None):
-    """ 
-    Fits 2D gaussian to Data with optional Initial conditions ip=(amplitude, xcenter, ycenter, xsigma, ysigma, rot, bkg)
-    Example:
-    >>> X,Y=np.indices((40,40),dtype=np.float)
-    >>> Data=np.exp(-(((X-25)/5)**2 +((Y-15)/10)**2)/2) + 1
-    >>> FitGauss2D(Data)
-    (array([  1.00000000e+00,   2.50000000e+01,   1.50000000e+01, 5.00000000e+00,   1.00000000e+01,   2.09859373e-07, 1]), 2)
-    
-                 amplitude          xcenter         ycenter          xsigma            ysigma              rot      bkg   success=1,2,3,4
-    """
-    if ip is None:   #Estimate the initial parameters form moments and also set rot angle to be 0
-        ip=moments2D(Data) 
-    if ip == 0:
-        return 0, 100
-    Xcoords,Ycoords= np.indices(Data.shape)
-    def errfun(ip):
-        dXcoords= Xcoords-ip[1]
-        dYcoords= Ycoords-ip[2]
-        Weights=np.sqrt(np.square(dXcoords)+np.square(dYcoords)) # Taking radius as the weights for least square fitting
-        return np.ravel((Gaussian2D_leastsq(*ip)(*np.indices(Data.shape)) - Data)/np.sqrt(Weights))  
-        #Taking a sqrt(weight) here so that while scipy takes square of this array it will become 1/r weight.
-
-    p, success = scipy.optimize.leastsq(errfun, ip)
-
-    return p,success
-
-#----------------------------------------------------------------
-# This is 2D gaussian fitting program with curve_fit method
-# moments is shared with leastsq method
-
-def FitGaussian_curve_fit((x, y), amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+def gaussian_2d((x, y), amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
     xo = float(xo)
     yo = float(yo)
     a = (np.cos(theta)**2)/(2.0*sigma_x**2) + (np.sin(theta)**2)/(2.0*sigma_y**2)
@@ -175,7 +132,7 @@ def FitGauss2D_curve_fit(data, ip = None):
     paras = []
     cov = []
     try:
-        paras , cov = optimize.curve_fit(FitGaussian_curve_fit, xdata, ydata, p0 = ip)
+        paras , cov = optimize.curve_fit(gaussian_2d, xdata, ydata, p0 = ip)
     except:
         return 0, 0, 0
     else:
@@ -183,28 +140,15 @@ def FitGauss2D_curve_fit(data, ip = None):
 
 #---------------------------------------------------------------------
 # star matching program
-# include how to find the peak of a image
-# and how to find the center and brightness of a gaussian star.
-
-# This is a code for finding stdev and mean of a image.
-# The way in concept: find stdev and mean for all image.
-# Then wipe out whose larger than 3 times of stdev.
-# Find stdev and mean again, the 2nd result will be return.
-''' Currently it is useless, because histogram method is much more accurate.'''
-def get_mean_std(data, times = 3):
-    temp_data = data[:,:]
-    # sometimes we will deal with np.nan, we need the skip nan and go on.
-    temp_data = temp_data[~np.isnan(temp_data)]
-    collector = temp_data[np.where(temp_data < np.mean(temp_data) + times*np.std(temp_data))]
-    fits_mean = np.mean(collector)
-    fits_stdev = np.std(collector)
-    return fits_mean, fits_stdev
+# include finding the peaks in images
+# and finding the center and brightness as gaussian star.
 
 def get_peak_filter(data, tall_limit = 10, size = 5, VERBOSE = 0):
     # get mean and noise by histgram.
     paras, cov = hist_gaussian_fitting('default', data)
-    data_mean = paras[0]
-    data_std = paras[1]
+    data_amp = paras[0]
+    data_mean = paras[1]
+    data_std = paras[2]
     # create a maximum filter and minimum filter.
     data_max = filters.maximum_filter(data, size)
     maxima = (data == data_max)
@@ -237,8 +181,9 @@ def get_peak_title():
 def get_peak(data, tall_limit = 10, VERBOSE = 0):
     # get property about data distriution
     paras, cov = hist_gaussian_fitting('default', data)
-    data_mean = paras[0]
-    data_std = paras[1]
+    data_amp = paras[0]
+    data_mean = paras[1]
+    data_std = paras[2]
     if VERBOSE>0 : print "mean:", data_mean, "std:", data_std
     is_tall = np.where(data >= data_mean + tall_limit  * data_std)
     is_tall = zip(is_tall[0], is_tall[1])
@@ -278,72 +223,120 @@ def get_half_width(data, data_mean, data_std, pos):
     return half_width
 
 def get_star_title(detailed = False):
+    # detailed means including errors.
     answer = np.array([])
     if detailed:
-        answer = np.array(['amplitude', 'e_amplitude', 'xcenter', 'e_xcenter', 'ycenter', 'e_ycenter', 'xsigma', 'e_xsigma', 'ysigma', 'e_ysigma', 'rot', 'e_rot', 'bkg', 'e_bkg'])
+        answer = np.array([ 'amplitude', 'e_amplitude', 
+                            'xcenter', 'e_xcenter', 
+                            'ycenter', 'e_ycenter', 
+                            'xsigma', 'e_xsigma', 
+                            'ysigma', 'e_ysigma', 
+                            'rot', 'e_rot', 
+                            'bkg', 'e_bkg'])
     else :
-        answer = np.array(['amplitude', 'xcenter', 'ycenter', 'xsigma', 'ysigma', 'rot', 'bkg'])
+        answer = np.array([ 'amplitude', 
+                            'xcenter', 
+                            'ycenter', 
+                            'xsigma', 
+                            'ysigma', 
+                            'rot', 
+                            'bkg'])
     return answer
 
 def get_star_unit(detailed = False):
+    # detailed means including errors.
     if detailed:
-        answer = np.array(['count', 'count', 'pixel', 'pixel', 'pixel','pixel','pixel','pixel','pixel','pixel','degree','degree','count','count'])
+        answer = np.array([ 'count', 'count', 
+                            'pixel', 'pixel', 
+                            'pixel','pixel',
+                            'pixel','pixel',
+                            'pixel','pixel',
+                            'degree','degree',
+                            'count','count'])
     else:
-        answer = np.array(['count', 'pixel', 'pixel', 'pixel', 'pixel','degree','count'])
+        answer = np.array([ 'count', 
+                            'pixel', 
+                            'pixel', 
+                            'pixel', 
+                            'pixel',
+                            'degree',
+                            'count'])
     return answer
 
 def get_star(data, coor, margin = 4, half_width_lmt = 4, eccentricity = 1, detailed = False, VERBOSE = 0):
     star_list = []
     # find data mean and data std
     paras_hist, cov_hist = hist_gaussian_fitting('default', data)
-    data_mean = paras_hist[0]
-    data_std = paras_hist[1]
+    data_amp = paras_hist[0]
+    data_mean = paras_hist[1]
+    data_std = paras_hist[2]
     for i in xrange(len(coor)):
         half_width = get_half_width(data, data_mean, data_std, coor[i])
-        # check the point is big enough.
+        # Check if the point is big enough.
         if half_width < half_width_lmt:
             continue
-        # take the rectangle around some star.
-        imA = data[ coor[i][0]-half_width-margin:coor[i][0]+half_width+margin, coor[i][1]-half_width-margin:coor[i][1]+half_width+margin ]
+        # Take the rectangle around some star.
+        imA = data[ coor[i][0]-half_width-margin : coor[i][0]+half_width+margin, 
+                    coor[i][1]-half_width-margin : coor[i][1]+half_width+margin ]
         params, cov, success = FitGauss2D_curve_fit(imA)
         if VERBOSE>1:
             print "star_{2}: {0}, {1}".format(coor[i][0], coor[i][1], i)
             print params, cov, success
-        # check the position is valid or not
+        # Check if the position is valid or not
         if success == 0:
             continue
         if params[1] < 0 or params[2] < 0 :
             continue
-        if params[1] > 1023 or params[2] > 1023:
+        if params[1] > data.shape[0] or params[2] > data.shape[1]:
             continue
+        # Check if the count is valid.
         if params[0] > 65535 or params[0] < 0:
             continue
-
         # This part is used to check whether the eccentricity is proper or not, the default is less than 0.9
         # If you cannot match img successfully, I recommand you to annotate or unannotate below script.
         if eccentricity < 1 and eccentricity >= 0:
             if params[3] > params[4]:
-                long_axis = params[3]
-                short_axis = params[4]
+                maj_axis = params[3]
+                min_axis = params[4]
             else:
-                long_axis = params[4]
-                short_axis = params[3]
+                maj_axis = params[4]
+                min_axis = params[3]
             # check the excentricity
-            if (math.pow(long_axis, 2.0)-math.pow(short_axis, 2.0))/long_axis > eccentricity :
+            if (np.power(maj_axis, 2.0) - np.power(min_axis, 2.0)) / maj_axis > eccentricity :
                 continue
         # Turn local coord into image coor.
         params[1] = coor[i][0]+params[1]-half_width-margin
         params[2] = coor[i][1]+params[2]-half_width-margin
         if detailed:
             error = np.sqrt(cov)
-            temp = (params[0], error[0,0], params[1], error[1,1], params[2], error[2,2], params[3], error[3,3], params[4], error[4,4], params[5], error[5,5], params[6], error[6,6])
+            temp = (params[0], error[0,0], 
+                    params[1], error[1,1], 
+                    params[2], error[2,2], 
+                    params[3], error[3,3], 
+                    params[4], error[4,4], 
+                    params[5], error[5,5], 
+                    params[6], error[6,6])
         else:
             temp = tuple(params)
         star_list.append(temp)
     if detailed:
-        star_list = np.array(star_list, dtype = [('amplitude', float), ('e_amplitude', float), ('xcenter', float), ('e_xcenter', float), ('ycenter', float), ('e_ycenter', float), ('xsigma', float), ('e_xsigma', float), ('ysigma', float), ('e_ysigma', float), ('rot', float), ('e_rot', float), ('bkg', float), ('e_bkg', float)])
+        star_list = np.array(star_list, \
+                    dtype =[('amplitude', float), ('e_amplitude', float), 
+                            ('xcenter', float), ('e_xcenter', float), 
+                            ('ycenter', float), ('e_ycenter', float), 
+                            ('xsigma', float), ('e_xsigma', float), 
+                            ('ysigma', float), ('e_ysigma', float), 
+                            ('rot', float), ('e_rot', float), 
+                            ('bkg', float), ('e_bkg', float)])
     else:
-        star_list = np.array(star_list, dtype = [('amplitude', float), ('xcenter', float), ('ycenter', float), ('xsigma', float), ('ysigma', float), ('rot', float), ('bkg', float)])
+        star_list = np.array(star_list, \
+                    dtype =[('amplitude', float), 
+                            ('xcenter', float), 
+                            ('ycenter', float), 
+                            ('xsigma', float), 
+                            ('ysigma', float), 
+                            ('rot', float), 
+                            ('bkg', float)])
     return star_list
 
 #---------------------------------------------------------------------
@@ -363,7 +356,7 @@ def get_noise_median_method(fits_list, VERBOSE = 0):
             data_list = np.append(data_list, [data], axis = 0)
     sum_fits = np.median(data_list, axis = 0)
     paras, cov = hist_gaussian_fitting("Untitle", sum_fits, shift = -7)
-    data_std = paras[1]/exptime
+    data_std = paras[2]/exptime
     return exptime*len(fits_list), data_std
 
 def get_noise_mean_method(fits_list, VERBOSE = 0):
@@ -379,6 +372,6 @@ def get_noise_mean_method(fits_list, VERBOSE = 0):
             sum_fits = np.add(sum_fits, data)
     div_fits = np.divide(sum_fits, len(fits_list))
     paras, cov = hist_gaussian_fitting("Untitle", div_fits, shift = -7)
-    data_std = paras[1]/exptime
+    data_std = paras[2]/exptime
     return exptime*len(fits_list), data_std
 

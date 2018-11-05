@@ -39,8 +39,8 @@ class EP():
     #                      ...
     #                     ]
     def __init__(self, target, comparison_stars):
-        self.target = target
-        self.comparison_stars = comparison_stars
+        self.target = np.array(target)
+        self.comparison_stars = np.array(comparison_stars)
     def make_airmass_model(self):
         # Load data
         all_stars = self.comparison_stars
