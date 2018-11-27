@@ -19,10 +19,12 @@ from sys import argv
 import numpy as np
 import time
 import photometry_lib
-from mysqlio_lib import TAT_auth
+from mysqlio_lib import TAT_auth, save2sql_EP
 import TAT_env
 from astropy.time import Time
 import matplotlib.pyplot as plt
+from test_EP import flux2mag
+import collections
 
 def EP_process(start_jd, end_jd):
     #----------------------------------------
@@ -33,16 +35,19 @@ def EP_process(start_jd, end_jd):
     data = cursor.fetchall()
     data = np.array(data)
     #----------------------------------------
+    # Save the index of some parameters 
+    bjd_index = TAT_env.obs_data_titles.index('BJD')
+    inst_mag_index = TAT_env.obs_data_titles.index('INST_MAG')
+    e_inst_mag_index = TAT_env.obs_data_titles.index('E_INST_MAG')
+    target_name_index = TAT_env.obs_data_titles.index('NAME')
+    fileID_index = TAT_env.obs_data_titles.index("FILEID")
     # Pick 10 brightest stars from each frame (They have to be the same star in diff. frames.)
     # Take all the data in the first frame
-    bjd_index = TAT_env.obs_data_titles.index('BJD')
     first_bjd = data[0, bjd_index]
     index_data_in_first_frame = np.where(data[:,bjd_index] == first_bjd)
     first_frame_data = data[index_data_in_first_frame]
     # Take 10 brightest stars from first frame
-    inst_mag_index = TAT_env.obs_data_titles.index('INST_MAG')
     index_10Bstar = np.argsort(first_frame_data[:,inst_mag_index])
-    target_name_index = TAT_env.obs_data_titles.index('NAME')
     Bstar_10_name_list = first_frame_data[index_10Bstar[:10], target_name_index]
     # Take the data of 10B star from all frames.
     Bstar_jndex = np.where(data[:,target_name_index] == Bstar_10_name_list[0])
@@ -50,11 +55,13 @@ def EP_process(start_jd, end_jd):
     fileIDs = data[Bstar_jndex, fileID_index] 
     source_fileID_list = []
     interception_fileID = None
+    # Find the common file ID for 10 bright sources.
     for i in range(len(Bstar_10_name_list)):
         Bstar_jndex = np.where(data[:, target_name_index] == Bstar_10_name_list[i])
         data2 = data[Bstar_jndex]
         found_jndex = np.isin(data2[:,fileID_index], fileIDs)
         current_fileIDs = data2[found_jndex, fileID_index]
+        # Find the common file ID compare to the previous one.
         if i == 0:
             interception_fileID = current_fileIDs 
         else:
@@ -62,30 +69,58 @@ def EP_process(start_jd, end_jd):
         source_fileID_list.append(current_fileIDs)
     # Remove the frame misses one or more stars.
     source_data_list = []
+    # Get the data of 10 bright sources.
     for i in range(len(source_fileID_list)):
+        # Get the rows contain a Bright star.
         Bstar_jndex = np.where(data[:, target_name_index] == Bstar_10_name_list[i])
         data2 = data[Bstar_jndex]
-        current_fileIDs = np.isin(source_fileID_list[i], interception_fileID)
-        found_jndex = np.isin(data2[:,fileID_index], source_fileID_list[i][current_fileIDs])
+        # Check if the number is repeated?
+        # If repeat, that means the source is confusing, so I abandan the source.
+        repeat_numbers = [item for item, count in collections.Counter(source_fileID_list[i]).items() if count > 1]
+        if len(repeat_numbers) != 0:
+            continue
+        # Take the common frames only
+        index_fileIDs = np.isin(source_fileID_list[i], interception_fileID)
+        found_jndex = np.isin(data2[:,fileID_index], source_fileID_list[i][index_fileIDs])
         time_array = data2[found_jndex, bjd_index]
         mag_array  = data2[found_jndex, inst_mag_index]
-        err_mag_array = np.ones(len(data2[found_jndex]))
-        source_data = np.transpose(np.array([time_array, mag_array, err_mag_array]))
+        err_mag_array = data2[found_jndex, e_inst_mag_index] 
+        source_data = np.transpose(np.array([time_array, mag_array, err_mag_array], dtype = float))
         source_data_list.append(source_data)
     #----------------------------------------
     # Do photometry on 10BS only, save the result.
-    stu = photometry_lib.EP(source_data_list[0], source_data_list[1:])
+    source_data_array = np.array(source_data_list)
+    stu = photometry_lib.EP(source_data_array[0], source_data_array)
     ems, var_ems, m0s, var_m0s = stu.make_airmass_model()
-    correlated_target = stu.phot()
-    fig1, axes = plt.subplots(2, 1, figsize = (12, 8))
-    axes = axes.ravel()
-    axes[0].set_title("Before EP")
-    axes[0].scatter(source_data_list[0][:,0], source_data_list[0][:,1])
-    axes[1].set_title("After EP")
-    axes[1].scatter(source_data_list[0][:,0], correlated_target[:,0])
-    plt.show()
     #----------------------------------------
     # Pick a target star, we make a photometry on it.
+    for source in first_frame_data:
+        # Take the name of the source
+        source_name = source[target_name_index]
+        # Get all the data of the source
+        data2 = data[np.isin(data[:,target_name_index], source_name)]
+        # Take time, magnitude, and error of magnitude.
+        observation_data_ID = data2[:,0]
+        time_array = data2[:,bjd_index]
+        mag_array  = data2[:, inst_mag_index]
+        err_mag_array = data2[:, e_inst_mag_index] 
+        # Combine and do EP phot.
+        source_data = np.transpose(np.array([time_array, mag_array, err_mag_array]))
+        failure, correlated_target, matched = stu.phot(source_data)
+        if failure:
+            continue
+        observation_data_ID = observation_data_ID[matched]
+        '''
+        # plot the result
+        fig1, axes = plt.subplots(2, 1, figsize = (12, 8))
+        axes = axes.ravel()
+        axes[0].set_title("Before EP")
+        axes[0].scatter(source_data[:,0], source_data[:,1])
+        axes[1].set_title("After EP")
+        axes[1].scatter(correlated_target[:,0], correlated_target[:,1])
+        plt.show()
+        '''
+        save2sql_EP(correlated_target, observation_data_ID)
     #----------------------------------------
     # Do photometry on 10BS + target, save the result for the target only, and so on.
     cursor.close()

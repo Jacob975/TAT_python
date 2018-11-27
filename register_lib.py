@@ -48,7 +48,7 @@ def num_relation_lister(ref_star, star, error):
 def get_inner_product(iraf_table, infos):
     inner_prod_star_list = []
     inner_prod_error_list = []
-    sigma = infos.sigma
+    sigma = infos.u_sigma.n
     # choose a star, named A
     for i in xrange(len(iraf_table)):
         inner_prod_star = np.array([])

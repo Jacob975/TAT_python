@@ -164,7 +164,7 @@ if __name__ == "__main__":
     # Pick one as reference image
     print "--- ref: {0} ---".format(image_list[len(image_list)/2])
     ref_iraf_table, ref_infos = starfinder(image_list[len(image_list)/2])
-    print "number of found stars: {0}\nsigma = {1}".format(len(ref_iraf_table), ref_infos.sigma)
+    print "number of found stars: {0}\nsigma = {1}".format(len(ref_iraf_table), ref_infos.u_sigma)
     ref_iraf_table = np.array([x for t in ref_iraf_table for x in t]) 
     ref_iraf_table = np.reshape(ref_iraf_table, (-1, 12))
     find_offset = register(ref_iraf_table, ref_infos)
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     for i in xrange(len(image_list)):
         print "--- {0} ---".format(image_list[i])
         iraf_table, infos = starfinder(image_list[i])
-        print "number of found stars: {0}\nsigma = {1}".format(len(iraf_table), infos.sigma)
+        print "number of found stars: {0}\nsigma = {1}".format(len(iraf_table), infos.u_sigma)
         iraf_table = np.array([x for t in iraf_table for x in t]) 
         iraf_table = np.reshape(iraf_table, (-1, 12))
         failure, offset_xm, offset_ym = find_offset.offset(np.array(iraf_table), infos)

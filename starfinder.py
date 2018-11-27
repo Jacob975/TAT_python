@@ -23,22 +23,27 @@ from astropy.io import fits as pyfits
 from astropy import wcs
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+from fit_lib import get_star, get_flux
 from reduction_lib import image_info
-from mysqlio_lib import save2sql, find_fileID, load_src_name_from_db
+from mysqlio_lib import save2sql, find_fileID, find_source_match_coords
+import matplotlib.pyplot as plt
 import numpy as np
 import time
 import os
 from sys import argv
 import TAT_env
+from test_EP import flux2mag
 
 # find a star through iraf finder
 def starfinder(image_name):
     infos = image_info(image_name)
     mean_bkg = infos.bkg
     std_bkg = infos.std
-    sigma = infos.sigma
+    u_sigma = infos.u_sigma
+    sigma = u_sigma.n
     iraffind = IRAFStarFinder(threshold = 5.0*std_bkg + mean_bkg, \
-                            fwhm = sigma*gaussian_sigma_to_fwhm, \
+                            # fwhm = sigma*gaussian_sigma_to_fwhm, \
+                            fwhm = 2.2, \
                             minsep_fwhm = 2, \
                             roundhi = 1.0, \
                             roundlo = -1.0, \
@@ -47,13 +52,21 @@ def starfinder(image_name):
     iraf_table = iraffind.find_stars(infos.data)
     return iraf_table, infos
 
-def iraf_tbl_modifier(image_name, iraf_table):
+def star_phot(image_name, iraf_table, infos):
     # Initialize Variables
-    iraf_mod_table = np.full((len(iraf_table), len(TAT_env.obs_data_titles)), None, dtype = object)
     iraf_table_titles = TAT_env.iraf_table_titles
-    # Convert table into 2D np.array
-    for infos in iraf_table_titles:
-        iraf_mod_table[:,infos[1]] = np.array(iraf_table[infos[0]])
+    extend_star_table_titles = TAT_env.extend_star_table_titles
+    coord = np.array([np.array(iraf_table['ycentroid']), np.array(iraf_table['xcentroid'])], dtype = int)
+    coord = np.transpose(coord)
+    #------------------------------------------------------------
+    # Redo the flux measurements.
+    image = pyfits.getdata(image_name)
+    star_array = get_flux(image, coord, infos.u_sigma_x, infos.u_sigma_y)
+    # Replace all inf value by -999
+    star_array[np.isinf(star_array)] = -999
+    extend_star_array = np.full((len(star_array), len(extend_star_table_titles)), None, dtype = object)
+    #------------------------------------------------------------
+    # Add infomations into the extend star array
     # Get WCS infos with astrometry
     try:
         header_wcs = pyfits.getheader("stacked_image.wcs")
@@ -62,59 +75,101 @@ def iraf_tbl_modifier(image_name, iraf_table):
         return 1, None, None
     w = wcs.WCS(header_wcs)
     # Convert pixel coord to RA and DEC
-    pixcrd = np.array([np.array(iraf_table['xcentroid']), np.array(iraf_table['ycentroid'])])
-    pixcrd = np.transpose(pixcrd)
+    pixcrd = np.transpose(np.array([star_array[:,4], star_array[:,6]]))
     world = w.wcs_pix2world(pixcrd, 1)
-    iraf_mod_table[:,9] = world[:,0]
-    iraf_mod_table[:,10] = world[:,1]
+    # RA and DEC
+    extend_star_array[:,14] = world[:,0]
+    extend_star_array[:,15] = world[:,1]
     # Name targets with RA and DEC, and insert into table
     table_length = len(world)
     target_names_list = np.array(["target_{0:.4f}_{1:.4f}".format(world[i,0], world[i,1]) for i in range(table_length)]) 
-    iraf_mod_table[:,1] = target_names_list
-    #------------------------------------------------------
-    # Insert infos from images
+    # NAME
+    extend_star_array[:,1] = target_names_list
+    # FLUX
+    extend_star_array[:,4] = star_array[:,0]
+    extend_star_array[:,5] = star_array[:,1]
+    # INST MAG
+    mag, err_mag = flux2mag(star_array[:,0], star_array[:,1])
+    extend_star_array[:,6] = mag
+    extend_star_array[:,7] = err_mag
+    # AMP
+    extend_star_array[:,17] = star_array[:,2]
+    extend_star_array[:,18] = star_array[:,3]
+    # CENTER
+    extend_star_array[:,19] = star_array[:,4]
+    extend_star_array[:,20] = star_array[:,6]
+    # SIGMA
+    extend_star_array[:,21] = star_array[:,8]
+    extend_star_array[:,22] = star_array[:,9]
+    extend_star_array[:,23] = star_array[:,10]
+    extend_star_array[:,24] = star_array[:,11]
+    # PA
+    extend_star_array[:,25] = star_array[:,12]
+    extend_star_array[:,26] = star_array[:,13]
+    # SKY
+    extend_star_array[:,27] = star_array[:,14]
+    extend_star_array[:,28] = star_array[:,15]
+    # NPIX
+    extend_star_array[:,29] = star_array[:,16]
     # Load infos from the header of the image
     header = pyfits.getheader(image_name) 
     # get the fileID from mysql.
     fileID = find_fileID(image_name)
-    iraf_mod_table[:, 24] = fileID
-    iraf_mod_table[:, 21] = header['MJD-OBS']
-    iraf_mod_table[:, 22] = header['JD']
-    iraf_mod_table[:, 23] = header['HJD']
-    iraf_mod_table[:,  3] = header['BJD']
-    return 0, iraf_mod_table
+    # The else
+    extend_star_array[:,  3] = header['BJD']
+    extend_star_array[:, 30] = header['JD']
+    extend_star_array[:, 31] = header['MJD-OBS']
+    extend_star_array[:, 32] = header['HJD']
+    extend_star_array[:, 33] = fileID
+    return 0, extend_star_array
 
 # check if there is new sources.
-def check_new_sources(iraf_mod_table):
+def check_new_sources(extend_star_array):
     # Initialize
     new_source_list = []
     new = False
-    src_name_list = load_src_name_from_db()
     index_of_name = TAT_env.obs_data_titles.index('NAME')
+    index_of_ra   = TAT_env.obs_data_titles.index('RA')
+    index_of_dec  = TAT_env.obs_data_titles.index('`DEC`')
+    # Setup the spatial tolerance.
     tolerance = TAT_env.pix1/3600.0 * 3.0
-    src_coord_list = make_coord(src_name_list)
-    stu = find_sources(src_coord_list, tolerance)
     # Match positions
-    if len(src_name_list) != 0:
-        for i in xrange(len(iraf_mod_table)):
-            failure, min_distance, jndex = stu.find([iraf_mod_table[i,9], iraf_mod_table[i,10]])
-            if not failure:
-                iraf_mod_table[i, index_of_name] = src_name_list[jndex]
-            else :
-                new_source_list.append(iraf_mod_table[i, index_of_name])
-    elif len(src_name_list) == 0:
-        new_source_list = iraf_mod_table[:,index_of_name]
-    # Test if we find new sources or not in this observation..
+    for i in xrange(len(extend_star_array)):
+        src_coord_list = find_source_match_coords(  extend_star_array[i, index_of_ra],
+                                                    extend_star_array[i, index_of_dec], 
+                                                    tolerance)
+        src_coord_array = np.asarray(src_coord_list)
+        if src_coord_list == None:
+            continue
+        # No nearby sources found in databases imply that's a new source.
+        if len(src_coord_list) == 0:
+            new_source_list.append([extend_star_array[i, index_of_name],
+                                    extend_star_array[i, index_of_ra],
+                                    extend_star_array[i, index_of_dec]])
+            continue
+        
+        stu = find_sources(src_coord_array, tolerance)
+        failure, min_distance, jndex = stu.find([extend_star_array[i,index_of_ra], 
+                                                extend_star_array[i,index_of_dec]]) 
+        # Update the name if we found a existed observation from database.
+        if not failure:
+            extend_star_array[i, index_of_name] = src_coord_array[jndex, index_of_name]
+        # Update the database if we don't.
+        else :
+            new_source_list.append([extend_star_array[i, index_of_name], 
+                                    extend_star_array[i, index_of_ra],
+                                    extend_star_array[i, index_of_dec]]) 
+    # Check if we find new sources or not in this observations.
     if len(new_source_list) > 0:
         new = True
-    return iraf_mod_table, new_source_list, new
+    return extend_star_array, new_source_list, new
 
 # This is a class for match the coordinates efficiently.
 class find_sources():
     def __init__(self, coord_table, tolerance = 0.0):
         self.coord_table = coord_table
         self.tolerance = tolerance
-        self.ref_coords = SkyCoord(self.coord_table[:,0], self.coord_table[:,1], unit = 'deg')
+        self.ref_coords = SkyCoord(self.coord_table[:,2], self.coord_table[:,3], unit = 'deg')
         return
     def find(self, coord):
         source_coord = SkyCoord(coord[0], coord[1], unit = 'deg') 
@@ -130,17 +185,11 @@ class find_sources():
             return True, 0.0, 0
 
 # The def find the match name of target names.
-def make_coord(src_name_list):
-    index_RA = TAT_env.obs_data_titles.index("RA")
-    index_DEC = TAT_env.obs_data_titles.index("`DEC`")
-    ra_list = [None for i in src_name_list]
-    dec_list = [None for i in src_name_list]
-    for i, src_name in enumerate(src_name_list):
-        name_list = src_name.split("_")
-        ra_list[i]  = float(name_list[1])
-        dec_list[i] = float(name_list[2])
-    ra_array = np.array(ra_list)
-    dec_array= np.array(dec_list)
+def make_coord(src_list):
+    index_RA = TAT_env.src_titles.index("RA")
+    index_DEC = TAT_env.src_titles.index("`DEC`")
+    ra_array = src_list[index_RA]
+    dec_array= src_list[index_DEC]
     ans_array = np.transpose([ra_array, dec_array])
     return ans_array
 
@@ -161,13 +210,16 @@ if __name__ == "__main__":
     # PSF register
     for image_name in image_list:
         # Find all stars with IRAFstarfinder
+        print ('--- starfinder ---')
         iraf_table, infos = starfinder(image_name)
-        # Add extra infos
-        failure, iraf_mod_table = iraf_tbl_modifier(image_name, iraf_table)
+        # Add more infos
+        print ('--- star phot ---')
+        failure, extend_star_array = star_phot(image_name, iraf_table, infos)
         # Rename if source is already named in previous observations.
-        iraf_mod_table, new_sources, new = check_new_sources(iraf_mod_table)
+        print ('--- repeatness check ---')
+        extend_star_array, new_sources, new = check_new_sources(extend_star_array)
         # Save and upload the result
-        save2sql(iraf_mod_table, new_sources, new)
+        save2sql(extend_star_array, new_sources, new)
         print ("{0}, done.".format(image_name))
     #---------------------------------------
     # Measure time

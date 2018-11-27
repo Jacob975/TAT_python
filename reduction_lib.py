@@ -17,6 +17,7 @@ from fit_lib import hist_gaussian_fitting, get_peak_filter, get_star
 import numpy as np
 from astropy import coordinates as coord, units as u
 from astropy import time as astrotime
+from uncertainties import unumpy, ufloat
 
 #---------------------------------------------------------------------
 # basic fits processing
@@ -81,21 +82,19 @@ class image_info:
     data = None
     bkg = 0.0
     std = 0.0
-    sigma = 0.0
-    date = ""
-    time = ""
-    site = ""
-    band = ""
+    u_sigma = None
+    u_sigma_x = None
+    u_sigma_y = None
     exptime = 0.0
     def __init__(self, name_image):
         self.name_image = name_image
         self.data = pyfits.getdata(name_image)
-        self.sigma = self.get_sigma()
+        self.u_sigma_x, self.u_sigma_y = self.get_sigma()
+        self.u_sigma = (self.u_sigma_x + self.u_sigma_y)/2
         paras, cov = hist_gaussian_fitting('default', self.data)
         self.amp = paras[0]
         self.bkg = paras[1]
         self.std = paras[2]
-        self.observator_property()
         return
     # This def is used to find the average sigma of a star
     def get_sigma(self):
@@ -103,56 +102,43 @@ class image_info:
         # peak list is a list contain elements with position tuple.
         sz = 30
         tl = 5
-        peak_list = get_peak_filter(data, tall_limit = tl,  size = sz)
+        peak_list = get_peak_filter(data, tall_limit = tl, size = sz)
         # star list is a list contain elements with star in this fits
         hwl = 4
-        ecc = 1
-        star_list = get_star(data, peak_list, half_width_lmt = hwl, eccentricity = ecc)
-        proper_star_list = self.proper_sigma(star_list, 3, 4)
-        x_sigma = np.array([column[3] for column in proper_star_list])
-        y_sigma = np.array([column[4] for column in proper_star_list])
-        sigma = np.average([x_sigma, y_sigma], axis = None)
-        return sigma
+        star_array = get_star(data, peak_list, half_width_lmt = hwl)
+        if len(star_array) == 0:
+            print 'No star found'
+            return None, None
+        # sort by the amplitude
+        star_array = star_array[star_array[:,0].argsort()]
+        # Take the top ten brightest stars
+        if len(star_array) > 10:
+            star_array = star_array[-10:]
+        proper_star_list = self.proper_sigma(star_array, 6, 8)
+        u_sigma_x_array = unumpy.uarray(proper_star_list[:,6], proper_star_list[:,7])
+        u_sigma_y_array = unumpy.uarray(proper_star_list[:,8], proper_star_list[:,9])
+        u_sigma_x = u_sigma_x_array.mean()
+        u_sigma_y = u_sigma_y_array.mean()
+        return u_sigma_x, u_sigma_y
     # find coordinate and flux of a star by aperture photometry.
-    def proper_sigma(self, star_list, ind_xsigma, ind_ysigma):
+    def proper_sigma(self, star_array, ind_xsigma, ind_ysigma):
         # take out all inproper value
         # for example inf and nan
         nosigular_star_list = []
-        for column in star_list:
+        for column in star_array:
             if np.inf in column:
                 continue
             elif np.nan in column:
                 continue
             nosigular_star_list.append(column)
+        nosigular_star_array = np.array(nosigular_star_list)
         # in x direction
-        x_sigma = [column[ind_xsigma] for column in nosigular_star_list]
-        proper_x_sigma, proper_star_list = get_rid_of_exotic_vector(x_sigma, nosigular_star_list, 3)
+        x_sigma = nosigular_star_array[:,ind_xsigma]
+        proper_x_sigma, proper_star_list = get_rid_of_exotic_vector(x_sigma, nosigular_star_array, 3)
         # in y direction
-        y_sigma = [column[ind_ysigma] for column in proper_star_list]
+        y_sigma = nosigular_star_array[:,ind_ysigma]
         proper_y_sigma, proper_star_list = get_rid_of_exotic_vector(y_sigma, proper_star_list, 3)
-        return proper_star_list
-    # get property of images from path
-    def observator_property(self):
-        # get info from header
-        imAh = pyfits.getheader(self.name_image)
-        self.exptime = float(imAh["EXPTIME"])
-        try:
-            self.site = imAh["OBSERVAT"]
-        except:
-            self.site = ""
-        try:
-            self.date = imAh["DATE-OBS"]
-        except:
-            self.date = ""
-        try:
-            self.time = imAh["TIME-OBS"]
-        except:
-            self.time = ""
-        try:
-            self.band = imAh["FILTER"] 
-        except:
-            self.band = ""
-        return
+        return np.array(proper_star_list)
 
 #--------------------------------------------------------------------
 # This is a func to wipe out exotic number in a list

@@ -18,7 +18,7 @@ update log
 import mysql.connector as mariadb
 import time
 import numpy as np
-from TAT_env import src_name_tb_name, src_name_titles, src_name_format, obs_data_tb_name, obs_data_titles, obs_data_format 
+from TAT_env import src_tb_name, src_titles, src_format, obs_data_tb_name, obs_data_titles, obs_data_format 
 from sys import argv
 
 def TAT_auth():
@@ -39,11 +39,30 @@ def save2sql(data, new_sources = None, new = None):
     create_TAT_tables()
     # Save data into the table in the database.
     for source in data:
-        #print "insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:])
-        cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name, ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), tuple(source[1:]))
+        cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name,  
+                    ', '.join(obs_data_titles[1:]), ', '.join(['%s'] * len(obs_data_titles[1:]))), 
+                    tuple(source[1:]))
     if new:
         for source in new_sources:
-            cursor.execute("insert into {0} ( `name` ) values ( '{1}' )".format( src_name_tb_name, source))
+            cursor.execute("insert into {0} ( {1} ) values ({2})".format( src_tb_name, 
+                        ', '.join(src_titles[1:]), ', '.join(['%s'] * len(src_titles[1:]))), 
+                        tuple(source))
+    # Make sure data is committed to the database.
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return 0
+
+# save or append data to sql database.
+def save2sql_EP(correlated_data, ID):
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    # create data base if not exist
+    create_TAT_tables()
+    # Save data into the table in the database.
+    for i in range(len(correlated_data)):
+        cursor.execute("UPDATE `{0}` SET `EP_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,1], ID[i]))
+        cursor.execute("UPDATE `{0}` SET `E_EP_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,2], ID[i]))
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()
@@ -56,7 +75,7 @@ def create_TAT_tables():
     # create table `observation_data` and `source_name`
     sql = 'create table if not exists `{0}` ({1})'.format(obs_data_tb_name, ', '.join(obs_data_format))
     cursor.execute(sql)
-    sql = 'create table if not exists `{0}` ({1})'.format(src_name_tb_name, ', '.join(src_name_format))
+    sql = 'create table if not exists `{0}` ({1})'.format(src_tb_name, ', '.join(src_format))
     cursor.execute(sql)
     cnx.commit()
     cursor.close()
@@ -69,21 +88,29 @@ def remove_TAT_tables():
     # remove table `observation_data` and `source_name`
     sql = 'drop table {0}'.format(obs_data_tb_name)
     cursor.execute(sql)
-    sql = 'drop table {0}'.format(src_name_tb_name)
+    sql = 'drop table {0}'.format(src_tb_name)
     cursor.execute(sql)
     cnx.commit()
     cursor.close()
     cnx.close()
     return 0
 
-# Load a table from sql database
-def load_src_name_from_db():
+def find_source_match_coords(ra = np.nan, dec = np.nan, margin = 0.0):
+    # Check the validation of the ra and dec
+    if np.isnan(ra) or np.isnan(dec):
+        print ("please specifiy the ra and dec.")
+        return None
     cnx = TAT_auth()
     cursor = cnx.cursor()
     # Load data from table
-    cursor.execute('select name from {0}'.format(src_name_tb_name))
+    cursor.execute('select * from TAT.{0} \
+                    where ((RA between {1} and {2}) or (RA between {3} and {4}) or (RA between {5} and {6})) \
+                    and (`DEC` between {7} and {8})'.format(src_tb_name, 
+                                                            ra - margin, ra + margin, 
+                                                            ra - 360 - margin, ra - 360 + margin,
+                                                            ra + 360 - margin, ra + 360 + margin,
+                                                            dec - margin, dec + margin))
     data = cursor.fetchall()
-    data = np.array(data).flatten()
     cursor.close()
     cnx.close()
     return data

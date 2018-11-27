@@ -19,10 +19,18 @@ from uncertainties import unumpy, umath
 
 # Convert flux to magnitude
 def flux2mag(flux, err_flux):
-    uflux = unumpy.uarray(flux, err_flux)
+    # select the value without problem
+    index_proper_value = (err_flux > 0) & (flux > 0)
+    # find the mag in proper values.
+    uflux = unumpy.uarray(flux[index_proper_value], err_flux[index_proper_value])
     umag = -2.5 * unumpy.log(uflux, 10)
-    mag = unumpy.nominal_values(umag)
-    err_mag = unumpy.std_devs(umag)
+    proper_mag = unumpy.nominal_values(umag)
+    proper_err_mag = unumpy.std_devs(umag)
+    # fill up the rest with -999
+    mag = np.full(len(flux), -999.0)
+    err_mag = np.full(len(flux), -999.0)
+    mag[index_proper_value] = proper_mag
+    err_mag[index_proper_value] = proper_err_mag
     return mag, err_mag
 
 # Convert magnitude to flux

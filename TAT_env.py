@@ -77,88 +77,148 @@ iraf_table_titles=[['id',         0 ],
                    ['flux',       4 ],
                    ['mag',        5 ]]
 
-star_table_titles = [[  'id',           0],
-                     [  'flux',         4],
-                     [  'e_flux',       5],
-                     [  'amplitude',    6],
-                     [  'e_amplitude',  7],
-                     [  'xcenter',      8],
-                     [  'e_xcenter',    9],
-                     [  'ycenter',     10],
-                     [  'e_ycenter',   11],
-                     [  'xsigma',      12],
-                     [  'e_xsigma',    13],
-                     [  'ysigma',      14],
-                     [  'e_ysigma',    15],
-                     [  'rot',         16],
-                     [  'e_rot',       17],
-                     [  'bkg',         18],
-                     [  'e_bkg',       19],
-                     [  'npix',        20]]
+star_table_titles = \
+                    [[  'FLUX',         4],
+                     [  'E_FLUX',       5],
+                     [  'AMP',         17],
+                     [  'E_AMP',       18],
+                     [  'XCENTER',     19],
+                     [  'E_XCENTER',   -1],
+                     [  'YCENTER',     20],
+                     [  'E_YCENTER',   -1],
+                     [  'XSIGMA',      21],
+                     [  'E_XSIGMA',    22],
+                     [  'YSIGMA',      23],
+                     [  'E_YSIGMA',    24],
+                     [  'PA',          25],
+                     [  'E_PA',        26],
+                     [  'SKY',         27],
+                     [  'E_SKY',       28],
+                     [  'NPIX',        29]]
+
+extend_star_table_titles = \
+                    [[  'ID',           0],
+                     [  'NAME',         1],
+                     [  'ALIAS',        2],
+                     [  'BJD',          3],
+                     [  'FLUX',         4],
+                     [  'E_FLUX',       5],
+                     [  'INST_MAG',     6],
+                     [  'E_INST_MAG',   7],
+                     [  'CATA_MAG',     8],
+                     [  'E_CATA_MAG',   9],
+                     [  'EP_MAG',      10],
+                     [  'E_EP_MAG',    11],
+                     [  'IDP_MAG',     12],
+                     [  'E_IDP_MAG',   13],
+                     [  'RA',          14],
+                     [  'DEC',         15],
+                     [  'SP',          16],
+                     [  'AMP',         17],
+                     [  'E_AMP',       18],
+                     [  'XCENTER',     19],
+                     [  'YCENTER',     20],
+                     [  'XSIGMA',      21],
+                     [  'E_XSIGMA',    22],
+                     [  'YSIGMA',      23],
+                     [  'E_YSIGMA',    24],
+                     [  'PA',          25],
+                     [  'E_PA',        26],
+                     [  'SKY',         27],
+                     [  'E_SKY',       28],
+                     [  'NPIX',        29],
+                     [  'JD',          30],
+                     [  'MJD',         31],
+                     [  'HJD',         32],
+                     [  'FILEID',      33]]
 
 #------------- parameters for mysql table -----------------
 
-src_name_tb_name = 'source_name'
+src_tb_name = 'source'
 obs_data_tb_name = 'observation_data'
 
-src_name_titles = [ 'ID',
-                    'NAME',]
-src_name_format = [ 'ID INT AUTO_INCREMENT PRIMARY KEY',
-                    '`NAME` VARCHAR(255)']
+src_titles = [ 'ID',
+               'NAME',
+               'RA',                # The right accension when the first time it shows up.
+               '`DEC`']               # The declination when the first time it shows up.
 
-obs_data_titles = [ 'ID',               # unique object identification number. 
-                    'NAME',
-                    'ALIAS', 
-                    'BJD',              # Barycentric Julian Time 
-                    'FLUX',             
-                    'INST_MAG',         # instrumental magnitude
-                    'CATA_MAG',         # apparent magnitude copy from catalogu.e
-                    'EP_MAG',           # apparent magnitude made by catalogue and Ensemble Photometry.
-                    'IDP_MAG',          # apparent magnitdue made by catalogue and Improved method for Differenctial Photometry.
-                    'RA',               
-                    '`DEC`',              
-                    'SP',               # Spectral tyep
-                    'XCENTROID',        # object centroid.
-                    'YCENTROID',        # object centroid.
-                    'FWHM',             # full width of the half maximum.
-                    'SHARPNESS',        # object sharpness.
-                    'ROUNDNESS',        # object roundness based on marginal Gaussian fits.
-                    'PA',               # polarization angle
-                    'NPIX',             # number of pixels in the Gaussian kernel.
-                    'SKY',              # background sky.
-                    'PEAK',             # the peak, sky-subtracted, pixel value of the object.
-                    'MJD', 
-                    'JD', 
-                    'HJD',
-                    'FILEID', 
-                    ]
+src_format = [ 'ID INT AUTO_INCREMENT PRIMARY KEY',
+               '`NAME` VARCHAR(255)',
+               'RA DOUBLE',         # The right accension when the first time it shows up.
+               '`DEC` DOUBLE']      # The declination when the first time it shows up.
 
-obs_data_format = [ 'ID INT AUTO_INCREMENT PRIMARY KEY',
-                    'NAME VARCHAR(255)',
-                    'ALIAS VARCHAR(255)',
-                    'BJD DOUBLE',              # Barycentric Julian Time 
-                    'FLUX DOUBLE',             
-                    'INST_MAG DOUBLE',         # instrumental magnitude
-                    'CATA_MAG DOUBLE',         # apparent magnitude copy from catalogu.e
-                    'EP_MAG DOUBLE',           # apparent magnitude made by catalogue and Ensemble Photometry.
-                    'IDP_MAG DOUBLE',          # apparent magnitdue made by catalogue and Improved method for Differenctial Photometry.
-                    'RA DOUBLE',
-                    '`DEC` DOUBLE',             
-                    'SP VARCHAR(255)',         # Spectral type
-                    'XCENTROID DOUBLE',        # object centroid.
-                    'YCENTROID DOUBLE',        # object centroid.
-                    'FWHM DOUBLE',             # full width of the half maximum.
-                    'SHARPNESS DOUBLE',        # object sharpness.
-                    'ROUNDNESS DOUBLE',        # object roundness based on marginal Gaussian fits.
-                    'PA DOUBLE',               # polarization angle
-                    'NPIX DOUBLE',             # number of pixels in the Gaussian kernel.
-                    'SKY DOUBLE',              # background sky.
-                    'PEAK DOUBLE',             # the peak, sky-subtracted, pixel value of the object.
-                    'MJD DOUBLE', 
-                    'JD DOUBLE', 
-                    'HJD DOUBLE',
-                    'FILEID INT',
-                    ]
+obs_data_titles = \
+                    [  'ID',        # unique object identification number. 
+                       'NAME',      
+                       'ALIAS',     
+                       'BJD',       # Barycentric Julian Time
+                       'FLUX',      
+                       'E_FLUX',    
+                       'INST_MAG',  # instrumental magnitude
+                       'E_INST_MAG',
+                       'CATA_MAG',  # apparent magnitude copy from catalogue
+                       'E_CATA_MAG',
+                       'EP_MAG',    # apparent magnitude made by catalogue and Ensemble Photometry.
+                       'E_EP_MAG',  
+                       'IDP_MAG',   # apparent magnitdue made by catalogue and Improved method for Differenctial Photometry.
+                       'E_IDP_MAG', 
+                       'RA',        
+                       '`DEC`',       
+                       'SP',        # Spectral type
+                       'AMP',       # the peak, sky-subtracted, pixel value of the object.
+                       'E_AMP',     
+                       'XCENTER',   # object centroid.
+                       'YCENTER',   # object centroid.
+                       'XSIGMA',    
+                       'E_XSIGMA',  
+                       'YSIGMA',    
+                       'E_YSIGMA',  
+                       'PA',        
+                       'E_PA',      
+                       'SKY',       
+                       'E_SKY',     
+                       'NPIX',      # number of pixels in the Gaussian kernel.
+                       'JD',        
+                       'MJD',       
+                       'HJD',       
+                       'FILEID',]    
+
+obs_data_format = \
+                    [  'ID INT AUTO_INCREMENT PRIMARY KEY',        # unique object identification number. 
+                       'NAME VARCHAR(255)',      
+                       'ALIAS VARCHAR(255)',     
+                       'BJD DOUBLE',       # Barycentric Julian Time
+                       'FLUX DOUBLE',      
+                       'E_FLUX DOUBLE',    
+                       'INST_MAG DOUBLE',  # instrumental magnitude
+                       'E_INST_MAG DOUBLE',
+                       'CATA_MAG DOUBLE',  # apparent magnitude copy from catalogue
+                       'E_CATA_MAG DOUBLE',
+                       'EP_MAG DOUBLE',    # apparent magnitude made by catalogue and Ensemble Photometry.
+                       'E_EP_MAG DOUBLE',  
+                       'IDP_MAG DOUBLE',   # apparent magnitdue made by catalogue and Improved method for Differenctial Photometry.
+                       'E_IDP_MAG DOUBLE', 
+                       'RA DOUBLE',        
+                       '`DEC` DOUBLE',       
+                       'SP DOUBLE',        # Spectral type
+                       'AMP DOUBLE',       # the peak, sky-subtracted, pixel value of the object.
+                       'E_AMP DOUBLE',     
+                       'XCENTER DOUBLE',   # object centroid.
+                       'YCENTER DOUBLE',   # object centroid.
+                       'XSIGMA DOUBLE',    
+                       'E_XSIGMA DOUBLE',  
+                       'YSIGMA DOUBLE',    
+                       'E_YSIGMA DOUBLE',  
+                       'PA DOUBLE',        
+                       'E_PA DOUBLE',      
+                       'SKY DOUBLE',       
+                       'E_SKY DOUBLE',     
+                       'NPIX DOUBLE',      # number of pixels in the Gaussian kernel.
+                       'JD DOUBLE',        
+                       'MJD DOUBLE',       
+                       'HJD DOUBLE',       
+                       'FILEID INT',]    
+
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.19 arcsec on TAT image.
 pix1 = 2.2

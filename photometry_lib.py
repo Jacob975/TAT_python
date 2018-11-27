@@ -40,6 +40,7 @@ class EP():
     #                     ]
     def __init__(self, target, comparison_stars):
         self.target = np.array(target)
+        self.t_series = target[:,0]
         self.comparison_stars = np.array(comparison_stars)
     def make_airmass_model(self):
         # Load data
@@ -102,19 +103,28 @@ class EP():
         self.var_m0s = var_m0s
         return shifted_ems, var_ems, shifted_m0s, var_m0s
     # Do photometry on target source
-    def phot(self):
+    def phot(self, target = []):
+        if target == []:
+            target = self.target
         # Load data
-        target = self.target
-        ems = self.ems
-        var_ems = self.var_ems
-        utarget = unumpy.uarray(target[:,1], target[:,2])
+        t_series = np.around(np.array(target[:,0], dtype = float), decimals = 8)
+        ref_t_series = np.around(np.array(self.t_series, dtype = float), decimals = 8)
+        matched = np.isin(t_series, ref_t_series)
+        match_timing = t_series[matched]
+        # Only pick the data which match the time.
+        ems = self.ems[np.isin(ref_t_series, t_series)]
+        var_ems = self.var_ems[np.isin(ref_t_series, t_series)]
+        proper_target = target[np.isin(t_series, ref_t_series)]
+        utarget = unumpy.uarray(proper_target[:,1], proper_target[:,2])
         uems = unumpy.uarray(ems, var_ems)
+        if len(uems) != len(utarget):
+            return True, None, None
         # Get the intrinsic magnitude.
         uintrinsic_target = utarget - uems
         intrinsic_signal = np.array(unumpy.nominal_values(uintrinsic_target))
         intrinsic_error  = np.array(unumpy.std_devs(uintrinsic_target))
-        intrinsic_target = np.transpose([intrinsic_signal, intrinsic_error])
-        return intrinsic_target 
+        intrinsic_target = np.transpose([match_timing, intrinsic_signal, intrinsic_error])
+        return False, intrinsic_target, matched 
 
 def catalog_photometry(source):
     # If filter is A or C, skip them
