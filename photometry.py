@@ -46,18 +46,19 @@ def EP_process(start_jd, end_jd):
     first_bjd = data[0, bjd_index]
     index_data_in_first_frame = np.where(data[:,bjd_index] == first_bjd)
     first_frame_data = data[index_data_in_first_frame]
-    # Take 10 brightest stars from first frame
-    index_10Bstar = np.argsort(first_frame_data[:,inst_mag_index])
-    Bstar_10_name_list = first_frame_data[index_10Bstar[:10], target_name_index]
+    # Take 15 brightest stars from first frame
+    index_Bstar = np.argsort(first_frame_data[:,inst_mag_index])
+    Bstar_name_list = first_frame_data[index_Bstar[:15], target_name_index]
+    Bstar_name_list = Bstar_name_list[ Bstar_name_list != 'target_315.0266_-5.0953']
     # Take the data of 10B star from all frames.
-    Bstar_jndex = np.where(data[:,target_name_index] == Bstar_10_name_list[0])
+    Bstar_jndex = np.where(data[:,target_name_index] == Bstar_name_list[0])
     fileID_index = TAT_env.obs_data_titles.index("FILEID")
     fileIDs = data[Bstar_jndex, fileID_index] 
     source_fileID_list = []
     interception_fileID = None
     # Find the common file ID for 10 bright sources.
-    for i in range(len(Bstar_10_name_list)):
-        Bstar_jndex = np.where(data[:, target_name_index] == Bstar_10_name_list[i])
+    for i in range(len(Bstar_name_list)):
+        Bstar_jndex = np.where(data[:, target_name_index] == Bstar_name_list[i])
         data2 = data[Bstar_jndex]
         found_jndex = np.isin(data2[:,fileID_index], fileIDs)
         current_fileIDs = data2[found_jndex, fileID_index]
@@ -72,7 +73,7 @@ def EP_process(start_jd, end_jd):
     # Get the data of 10 bright sources.
     for i in range(len(source_fileID_list)):
         # Get the rows contain a Bright star.
-        Bstar_jndex = np.where(data[:, target_name_index] == Bstar_10_name_list[i])
+        Bstar_jndex = np.where(data[:, target_name_index] == Bstar_name_list[i])
         data2 = data[Bstar_jndex]
         # Check if the number is repeated?
         # If repeat, that means the source is confusing, so I abandan the source.

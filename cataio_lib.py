@@ -15,6 +15,8 @@ update log
     1. Name is changed. correlate_mag ---> cataio_lib, means catalog I/O library.
 20180919 version alpha 3
     1. Rename a Def, correlate_mag ---> ensemble_photometry
+20181204 version alpha 4
+    1. Remove all photometries, and move to photometry_lib.py
 '''
 import numpy as np
 import time
@@ -28,8 +30,10 @@ from joblib import Parallel, delayed
 
 # Get catalog with Vizier
 def get_catalog(targets, column_names, catalog_index):
-    RA = float(targets[5])
-    DEC = float(targets[6])
+    index_RA = TAT_env.obs_data_titles.index('RA')
+    index_DEC = TAT_env.obs_data_titles.index('`DEC`')
+    RA = float(targets[index_RA])
+    DEC = float(targets[index_DEC])
     # Match stars with catalog I/329
     try:
         print "send a query to Vizier..."
@@ -101,98 +105,6 @@ def get_app_mag(match_star, filter_):
         return 0, Bmag
     else:
         return 1, None
-   
-# Actually, this is not a classical ensemble photometry, described in Honeycutt (1992). 
-def ensemble_photometry(table):
-    print "### start to correlate the inst mag to apparent mag in catalog I/329"
-    # If filter is A or C, skip them
-    filter_ = table[0,18]
-    print "filter = {0}".format(filter_)
-    if filter_ == "A" or filter_ == "C":
-        print "No corresponding band on catalog I/329"
-        table = np.insert(table, 5, 0.0, axis = 1)
-        return 1, table
-    # Choose the 10 brightest stars
-    flux = np.array(table[:,3], dtype = float)
-    flux_order_table = table[flux.argsort()]
-    mag_delta_list = []
-    for index in np.arange(-10, 0, 1):
-        #-------------------------------------------------
-        # Find the info of the source from catalog I/329
-        failure, match_star = get_catalog(flux_order_table[index], TAT_env.URAT_1, TAT_env.index_URAT_1) 
-        if failure:
-            continue
-        # Find the apparent magnitude to the found source
-        failure, app_mag = get_app_mag(match_star, filter_)
-        if failure:
-            continue
-        inst_mag = float(flux_order_table[index, 4])
-        mag_delta = app_mag - inst_mag
-        print "inst_mag = {0}, app_mag = {1}, delta = {2}".format(inst_mag, app_mag, mag_delta)
-        mag_delta_list.append(mag_delta)
-    # Check if the number of source is enough or not.
-    if len(mag_delta_list) == 0:
-        print "No enough source found in catalogue for comparison"
-        table = np.insert(table, 5, 0.0, axis = 1)
-        return 1, table
-    mag_delta_list = get_rid_of_exotic(mag_delta_list)
-    if len(mag_delta_list) < 3:
-        print "No enough source found in catalogue for comparison"
-        table = np.insert(table, 5, 0.0, axis = 1)
-        return 1, table
-    # remove np.nan
-    mag_delta_array = np.array(mag_delta_list)
-    mag_delta_array = mag_delta_array[~np.isnan(mag_delta_array)]
-    # Find the median of the delta of the magnitude, and apply the result on all sources.
-    median_mag_delta = np.median(mag_delta_array)
-    inst_mag_array = np.array(table[:, 4], dtype = float)
-    app_mag_array = inst_mag_array + median_mag_delta
-    app_mag_array = np.array(app_mag_array, dtype = object)
-    # Save to the table
-    table = np.insert(table, 5, app_mag_array, axis = 1)
-    return 0, table
-
-def catalog_photometry(source):
-    # If filter is A or C, skip them
-    filter_ = source[18]
-    print "filter = {0}".format(filter_)
-    if filter_ == "A" or filter_ == "C":
-        print "No corresponding band on catalog I/329"
-        source[5]  = ''
-        return 1, source
-    # Choose the 10 brightest stars
-    flux = float(source[3])
-    #-------------------------------------------------
-    # Find the info of the source from catalog I/329
-    failure, match_star = get_catalog(source, TAT_env.URAT_1, TAT_env.index_URAT_1) 
-    # Find the apparent magnitude to the found source
-    failure, app_mag = get_app_mag(match_star, filter_)
-    source[5] = app_mag
-    return 0, source
-
-# served as a fitting function.
-def parabola(x, a, b, c):
-    return a * np.power(x-b, 2) + c 
-
-class IDP():
-    # The demo of data structure.
-    #   A target = [[ t1, flux1],
-    #               [ t2, flux2]
-    #               [ t3, flux3],
-    #               ...
-    #              ]
-    def _init_(target, auxiliary_stars, comparison_star):
-        self.target = target
-        self.auxiliary_stars = auxiliary_stars
-        self.comparison_star = comparison_star
-        return 0
-    def do():
-        return     
-    def fit_airmass(self, source):
-        paras, cov = optimize.curve_fit(parabola, source[:,0], source[:,1], p0 = moments)
-        print paras, cov
-        return airmass_curve
-    
 
 # Find the alias, and spectral type of sources.
 def find_alias_and_spectral_type(source):

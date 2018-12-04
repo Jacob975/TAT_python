@@ -75,7 +75,7 @@ def star_phot(image_name, iraf_table, infos):
         return 1, None, None
     w = wcs.WCS(header_wcs)
     # Convert pixel coord to RA and DEC
-    pixcrd = np.transpose(np.array([star_array[:,4], star_array[:,6]]))
+    pixcrd = np.transpose(np.array([star_array[:,6], star_array[:,4]]))
     world = w.wcs_pix2world(pixcrd, 1)
     # RA and DEC
     extend_star_array[:,14] = world[:,0]
@@ -96,13 +96,13 @@ def star_phot(image_name, iraf_table, infos):
     extend_star_array[:,17] = star_array[:,2]
     extend_star_array[:,18] = star_array[:,3]
     # CENTER
-    extend_star_array[:,19] = star_array[:,4]
-    extend_star_array[:,20] = star_array[:,6]
+    extend_star_array[:,19] = star_array[:,6]
+    extend_star_array[:,20] = star_array[:,4]
     # SIGMA
-    extend_star_array[:,21] = star_array[:,8]
-    extend_star_array[:,22] = star_array[:,9]
-    extend_star_array[:,23] = star_array[:,10]
-    extend_star_array[:,24] = star_array[:,11]
+    extend_star_array[:,21] = star_array[:,10]
+    extend_star_array[:,22] = star_array[:,11]
+    extend_star_array[:,23] = star_array[:,8]
+    extend_star_array[:,24] = star_array[:,9]
     # PA
     extend_star_array[:,25] = star_array[:,12]
     extend_star_array[:,26] = star_array[:,13]
@@ -121,6 +121,7 @@ def star_phot(image_name, iraf_table, infos):
     extend_star_array[:, 31] = header['MJD-OBS']
     extend_star_array[:, 32] = header['HJD']
     extend_star_array[:, 33] = fileID
+    np.savetxt('wcs_coord.txt', world)
     return 0, extend_star_array
 
 # check if there is new sources.

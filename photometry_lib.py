@@ -22,6 +22,7 @@ import time
 from scipy import optimize
 from cataio_lib import get_catalog
 from uncertainties import ufloat, unumpy
+from mysqlio_lib import TAT_auth
 
 # Ensemble Photometry
 # Follow the steps described in Honeycutt (1992)
@@ -84,7 +85,7 @@ class EP():
         ems = answers[:num_eps]
         shifted_ems = ems - ems[0]
         m0s = answers[num_eps:]
-        shifted_m0s = m0s + ems[0]
+        shifted_m0s = m0s
         # Calculate the uncertainties of all answers.
         var_m0s = np.zeros(num_stars)
         for s in xrange(num_stars):
@@ -97,9 +98,9 @@ class EP():
             bottom = np.multiply(np.sum(weights[e]), float(num_stars - 1))
             var_ems[e] = top/bottom
         # Upload to class
-        self.ems = ems
+        self.ems = shifted_ems
         self.var_ems = var_ems
-        self.m0s = m0s
+        self.m0s = shifted_m0s
         self.var_m0s = var_m0s
         return shifted_ems, var_ems, shifted_m0s, var_m0s
     # Do photometry on target source
@@ -126,23 +127,62 @@ class EP():
         intrinsic_target = np.transpose([match_timing, intrinsic_signal, intrinsic_error])
         return False, intrinsic_target, matched 
 
-def catalog_photometry(source):
-    # If filter is A or C, skip them
-    filter_ = source[18]
-    print "filter = {0}".format(filter_)
-    if filter_ == "A" or filter_ == "C":
-        print "No corresponding band on catalog I/329"
-        source[5]  = ''
-        return 1, source
-    # Choose the 10 brightest stars
-    flux = float(source[3])
-    #-------------------------------------------------
-    # Find the info of the source from catalog I/329
-    failure, match_star = get_catalog(source, TAT_env.URAT_1, TAT_env.index_URAT_1) 
-    # Find the apparent magnitude to the found source
-    failure, app_mag = get_app_mag(match_star, filter_)
-    source[5] = app_mag
-    return 0, source
+# Catalogue photometry.
+class CATA():
+    # The demo of data structure.
+    #   stars are all rows in `observation_data` database.
+    #   filter means the filter we take for observations.
+    #   Only available for Johnson bands.
+    def __init__(self, stars, filter_):
+        self.stars = stars
+        self.filter_ = filter_
+        print "filter = {0}".format(filter_)
+    # Making the model
+    def make_airmass_model(self):
+        print "### start to correlate the inst mag to apparent mag in catalog I/329"
+        filter_ = self.filter_
+        if filter_ != 'V' and filter_ != 'B' and filter_ != 'R':
+            print "This photometry doesn't this filter."
+            return 1
+        # Choose the 10 brightest stars
+        self.index_INST_MAG = TAT_env.obs_data_titles.index('INST_MAG')
+        inst_mag_array = np.array(self.stars[:,self.index_INST_MAG], dtype = float)
+        mag_order_stars = self.stars[inst_mag_array.argsort()]
+        mag_order_stars = mag_order_stars[:10] 
+        mag_delta_list = []
+        for star in mag_order_stars: 
+            #-------------------------------------------------
+            # Find the info of the source from catalog I/329
+            failure, match_star = get_catalog(star, TAT_env.URAT_1, TAT_env.index_URAT_1) 
+            if failure:
+                continue
+            # Find the apparent magnitude to the found source
+            failure, app_mag = get_app_mag(match_star, filter_)
+            if failure:
+                continue
+            inst_mag = float(star[self.index_INST_MAG])
+            mag_delta = app_mag - inst_mag
+            print "inst_mag = {0}, app_mag = {1}, delta = {2}".format(inst_mag, app_mag, mag_delta)
+            mag_delta_list.append(mag_delta)
+        # Check if the number of source is enough or not.
+        if len(mag_delta_list) == 0:
+            print "No enough source found in catalogue for comparison"
+            return 1
+        mag_delta_list = get_rid_of_exotic(mag_delta_list)
+        if len(mag_delta_list) < 3:
+            print "No enough source found in catalogue for comparison"
+            return 1
+        # remove np.nan
+        mag_delta_array = np.array(mag_delta_list)
+        mag_delta_array = mag_delta_array[~np.isnan(mag_delta_array)]
+        # Find the median of the delta of the magnitude, and apply the result on all sources.
+        self.median_mag_delta = np.median(mag_delta_array)
+        return 0
+    def phot(self):
+        inst_mag_array = np.array(self.stars[:, self.index_INST_MAG], dtype = float)
+        mag_array = inst_mag_array + self.median_mag_delta
+        err_mag_array = np.array(self.stars[:, self.index_E_INST_MAG], dtype = float)
+        return mag_array, err_mag_array
 
 # served as a fitting function.
 def parabola(x, a, b, c):

@@ -247,8 +247,7 @@ def get_flux(image, coor, u_sigma_x, u_sigma_y, VERBOSE = 0):
             fig = plt.figure()
             plt.imshow(imA)
             plt.scatter(margin, margin)
-            fig.show()
-            raw_input()
+            plt.show()
         # Check if the position is valid or not
         if success == 0:
             continue
