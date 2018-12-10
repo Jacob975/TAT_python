@@ -20,9 +20,11 @@ update log
 import numpy as np
 import time
 from scipy import optimize
-from cataio_lib import get_catalog
 from uncertainties import ufloat, unumpy
+from cataio_lib import get_catalog, get_app_mag
 from mysqlio_lib import TAT_auth
+from reduction_lib import get_rid_of_exotic
+import TAT_env
 
 # Ensemble Photometry
 # Follow the steps described in Honeycutt (1992)
@@ -119,6 +121,7 @@ class EP():
         utarget = unumpy.uarray(proper_target[:,1], proper_target[:,2])
         uems = unumpy.uarray(ems, var_ems)
         if len(uems) != len(utarget):
+            print "Confusing source spotted."
             return True, None, None
         # Get the intrinsic magnitude.
         uintrinsic_target = utarget - uems
@@ -146,6 +149,7 @@ class CATA():
             return 1
         # Choose the 10 brightest stars
         self.index_INST_MAG = TAT_env.obs_data_titles.index('INST_MAG')
+        self.index_E_INST_MAG = TAT_env.obs_data_titles.index('E_INST_MAG')
         inst_mag_array = np.array(self.stars[:,self.index_INST_MAG], dtype = float)
         mag_order_stars = self.stars[inst_mag_array.argsort()]
         mag_order_stars = mag_order_stars[:10] 
@@ -153,16 +157,20 @@ class CATA():
         for star in mag_order_stars: 
             #-------------------------------------------------
             # Find the info of the source from catalog I/329
-            failure, match_star = get_catalog(star, TAT_env.URAT_1, TAT_env.index_URAT_1) 
+            index_RA = TAT_env.obs_data_titles.index('RA')
+            index_DEC = TAT_env.obs_data_titles.index('`DEC`')
+            RA = float(targets[index_RA])
+            DEC = float(targets[index_DEC])
+            failure, match_stars = get_catalog(RA, DEC, TAT_env.URAT_1, TAT_env.index_URAT_1) 
             if failure:
                 continue
             # Find the apparent magnitude to the found source
-            failure, app_mag = get_app_mag(match_star, filter_)
+            failure, app_mag = get_app_mag(match_stars, filter_)
             if failure:
                 continue
             inst_mag = float(star[self.index_INST_MAG])
             mag_delta = app_mag - inst_mag
-            print "inst_mag = {0}, app_mag = {1}, delta = {2}".format(inst_mag, app_mag, mag_delta)
+            print "INST_MAG = {0}, CATA_MAG = {1}, delta = {2}".format(inst_mag, app_mag, mag_delta)
             mag_delta_list.append(mag_delta)
         # Check if the number of source is enough or not.
         if len(mag_delta_list) == 0:

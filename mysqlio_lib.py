@@ -14,6 +14,8 @@ update log
     1. The code works.
 20180822 version alpha 2
     1. update some names of variables
+20181205 version alpha 3
+    1. Add a new func for updating photometry results.
 '''
 import mysql.connector as mariadb
 import time
@@ -63,6 +65,22 @@ def save2sql_EP(correlated_data, ID):
     for i in range(len(correlated_data)):
         cursor.execute("UPDATE `{0}` SET `EP_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,1], ID[i]))
         cursor.execute("UPDATE `{0}` SET `E_EP_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,2], ID[i]))
+    # Make sure data is committed to the database.
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return 0
+
+# save or append data to sql database.
+def save2sql_CATA(correlated_data, ID):
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    # create data base if not exist
+    create_TAT_tables()
+    # Save data into the table in the database.
+    for i in range(len(correlated_data)):
+        cursor.execute("UPDATE `{0}` SET `CATA_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,0], ID[i]))
+        cursor.execute("UPDATE `{0}` SET `E_CATA_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,1], ID[i]))
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()

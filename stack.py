@@ -45,6 +45,7 @@ if __name__ == "__main__":
     sum_fits = stack_mdn_method(image_name_list)
     header = pyfits.getheader(image_name_list[len(image_name_list)/2])
     pyfits.writeto("stacked_image.fits", sum_fits, header, overwrite = True)
+    #pyfits.writeto("{0}.fits".format(name_list[:-4]), sum_fits, header, overwrite = True)
     #----------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

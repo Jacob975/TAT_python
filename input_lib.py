@@ -29,7 +29,7 @@ class option_plotLC():
                 '',
                 '# Ingress timing in JD',
                 '',
-                '# egress timing in JD',
+                '# Egress timing in JD',
                 '']
         np.savetxt('option_plotLC.txt', s, fmt = '%s')
     def load(self, file_name):

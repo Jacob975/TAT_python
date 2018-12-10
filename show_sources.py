@@ -53,9 +53,9 @@ if __name__ == "__main__":
     pixel_coord = w.wcs_world2pix(world_coord, 1)
     # Plot and show
     fig = plt.figure(figsize = (8, 8))
-    plt.subplot(111, projection = w)
+    plt.subplot(111)
     plt.title("Source on {0}".format(image_name))
-    plt_image = plt.imshow(image, vmax = 50)
+    plt_image = plt.imshow(image, vmin = 1300, vmax = 1350)
     plt.colorbar()
     plt.scatter(pixel_coord[:,0], pixel_coord[:,1], s= 2, c= 'r' )
     plt.show()

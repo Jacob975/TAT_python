@@ -55,8 +55,9 @@ object_list = [ {'RA':'21:53:24','DEC':'47:16:00','name':'IC5146'},
                 {'RA':'21:06:53.9','DEC':'38:44:57.9','name':'61Cygni'},
                 {'RA':'20:12:7', 'DEC':'38:21:18', 'name':'NGC6888'},
                 # Kepler star
-                {'RA':'21:00:06.19', 'DEC':'-05:05:39.85', 'name':'WASP-69b'}]
-
+                {'RA':'21:00:06.19', 'DEC':'-05:05:39.85', 'name':'WASP-69b'},
+                # WASP
+                {'RA':'08:46:19.29', 'DEC':'-08:01:37.01', 'name':'WASP-36'}]
 #--------------- Band list-------------------------
 band_list = ["A", "B", "C", "N", "R", "V" ]
 #--------------- Site list-------------------------
@@ -220,8 +221,8 @@ obs_data_format = \
                        'FILEID INT',]    
 
 #--------------- FOV------------------------------
-# 1 pixel is equal to 2.19 arcsec on TAT image.
-pix1 = 2.2
+# 1 pixel is equal to 2.478 arcsec on TAT image.
+pix1 = 2.478
 
 #--------------- URAT 1 --------------------------
 URAT_1 = ['URAT1', 

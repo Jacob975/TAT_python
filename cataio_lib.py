@@ -29,18 +29,14 @@ import TAT_env
 from joblib import Parallel, delayed
 
 # Get catalog with Vizier
-def get_catalog(targets, column_names, catalog_index):
-    index_RA = TAT_env.obs_data_titles.index('RA')
-    index_DEC = TAT_env.obs_data_titles.index('`DEC`')
-    RA = float(targets[index_RA])
-    DEC = float(targets[index_DEC])
+def get_catalog(RA, DEC, column_names, catalog_index, VERBOSE = 0):
     # Match stars with catalog I/329
     try:
-        print "send a query to Vizier..."
+        if VERBOSE == 1: print "send a query to Vizier..."
         result = Vizier.query_region(coordinates.SkyCoord(ra=RA, dec=DEC, unit=('deg','deg'), frame='icrs'), 
                                     radius="10s", 
                                     catalog=[catalog_index])[0]
-        print "query finished"
+        if VERBOSE == 1: print "query finished"
     except:
         print "empty table"
         return 1, None
@@ -123,33 +119,3 @@ def find_alias_and_spectral_type(source):
     source[2] = alias
     source[9] = spectral_tyep
     return 0, source
-#--------------------------------------------
-# main code
-if __name__ == "__main__":
-    # Measure time
-    start_time = time.time()
-    #----------------------------------------
-    # Load argv
-    if len(argv) != 2:
-        print "Wrong number of arguments"
-        print "Usage:  cataio_lib.py [table list]"
-        exit(1)
-    table_name_list_name = argv[1]
-    #----------------------------------------
-    # Load table and find apparent magnitude in catalogs
-    table_name_list = np.loadtxt(table_name_list_name, dtype = str)
-    for table_name in table_name_list:
-        # Load table
-        print "### Load a table ###"
-        table = np.loadtxt(table_name, dtype = object, skiprows = 1)
-        failure, table = ensemble_photometry(table)
-        if failure: 
-            print "correlating fail"
-            continue
-        table = np.insert(table, 0, TAT_env.titles_for_target_on_frame_table, axis = 0)
-        # Save table
-        np.savetxt("{0}_a.dat".format(table_name[:-4]), table, fmt = "%s")
-    #---------------------------------------
-    # Measure time
-    elapsed_time = time.time() - start_time
-    print "Exiting Main Program, spending ", elapsed_time, "seconds."

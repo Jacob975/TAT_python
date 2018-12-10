@@ -90,7 +90,10 @@ class image_info:
         self.name_image = name_image
         self.data = pyfits.getdata(name_image)
         self.u_sigma_x, self.u_sigma_y = self.get_sigma()
-        self.u_sigma = (self.u_sigma_x + self.u_sigma_y)/2
+        try:
+            self.u_sigma = (self.u_sigma_x + self.u_sigma_y)/2
+        except:
+            self.u_sigma = ufloat(1, 1)
         paras, cov = hist_gaussian_fitting('default', self.data)
         self.amp = paras[0]
         self.bkg = paras[1]

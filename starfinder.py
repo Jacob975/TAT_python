@@ -43,7 +43,7 @@ def starfinder(image_name):
     sigma = u_sigma.n
     iraffind = IRAFStarFinder(threshold = 5.0*std_bkg + mean_bkg, \
                             # fwhm = sigma*gaussian_sigma_to_fwhm, \
-                            fwhm = 2.2, \
+                            fwhm = 4.0, \
                             minsep_fwhm = 2, \
                             roundhi = 1.0, \
                             roundlo = -1.0, \
@@ -60,11 +60,14 @@ def star_phot(image_name, iraf_table, infos):
     coord = np.transpose(coord)
     #------------------------------------------------------------
     # Redo the flux measurements.
-    image = pyfits.getdata(image_name)
-    star_array = get_flux(image, coord, infos.u_sigma_x, infos.u_sigma_y)
-    # Replace all inf value by -999
-    star_array[np.isinf(star_array)] = -999
-    extend_star_array = np.full((len(star_array), len(extend_star_table_titles)), None, dtype = object)
+    try:
+        image = pyfits.getdata(image_name)
+        star_array = get_flux(image, coord, infos.u_sigma_x, infos.u_sigma_y)
+        # Replace all inf value by -999
+        star_array[np.isinf(star_array)] = -999
+        extend_star_array = np.full((len(star_array), len(extend_star_table_titles)), None, dtype = object)
+    except:
+        return 1, None
     #------------------------------------------------------------
     # Add infomations into the extend star array
     # Get WCS infos with astrometry
@@ -133,7 +136,7 @@ def check_new_sources(extend_star_array):
     index_of_ra   = TAT_env.obs_data_titles.index('RA')
     index_of_dec  = TAT_env.obs_data_titles.index('`DEC`')
     # Setup the spatial tolerance.
-    tolerance = TAT_env.pix1/3600.0 * 3.0
+    tolerance = TAT_env.pix1/3600.0 * 2.0
     # Match positions
     for i in xrange(len(extend_star_array)):
         src_coord_list = find_source_match_coords(  extend_star_array[i, index_of_ra],
@@ -211,17 +214,21 @@ if __name__ == "__main__":
     # PSF register
     for image_name in image_list:
         # Find all stars with IRAFstarfinder
+        print ("{0}, start!".format(image_name))
         print ('--- starfinder ---')
         iraf_table, infos = starfinder(image_name)
         # Add more infos
         print ('--- star phot ---')
         failure, extend_star_array = star_phot(image_name, iraf_table, infos)
+        if failure:
+            print 'phot failure'
+            continue
         # Rename if source is already named in previous observations.
         print ('--- repeatness check ---')
         extend_star_array, new_sources, new = check_new_sources(extend_star_array)
         # Save and upload the result
         save2sql(extend_star_array, new_sources, new)
-        print ("{0}, done.".format(image_name))
+        print ("done.")
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time
