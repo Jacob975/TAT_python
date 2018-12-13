@@ -17,13 +17,14 @@ update log
     1. Make the program simplier, leave the func for finding source only.
         Anything else(IDP, EP) is independant from here.
 '''
-from photutils.detection import IRAFStarFinder
+from photutils.detection import IRAFStarFinder, DAOStarFinder
+from photutils import aperture_photometry, CircularAperture
 from astropy.stats import gaussian_sigma_to_fwhm
 from astropy.io import fits as pyfits
 from astropy import wcs
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from fit_lib import get_star, get_flux
+from fit_lib import get_star, get_peak_filter, get_flux
 from reduction_lib import image_info
 from mysqlio_lib import save2sql, find_fileID, find_source_match_coords
 import matplotlib.pyplot as plt
@@ -41,14 +42,14 @@ def starfinder(image_name):
     std_bkg = infos.std
     u_sigma = infos.u_sigma
     sigma = u_sigma.n
-    iraffind = IRAFStarFinder(threshold = 5.0*std_bkg + mean_bkg, \
+    print 3.0*std_bkg + mean_bkg
+    iraffind = IRAFStarFinder(threshold = 3.0*std_bkg + mean_bkg, \
                             # fwhm = sigma*gaussian_sigma_to_fwhm, \
-                            fwhm = 4.0, \
-                            minsep_fwhm = 2, \
-                            roundhi = 1.0, \
-                            roundlo = -1.0, \
-                            sharplo = 0.5, \
-                            sharphi = 2.0)
+                            fwhm = 5.0,
+                            roundhi = 1.0, 
+                            roundlo = -1.0,
+                            sharphi = 2.0,
+                            sharplo = 0.5)
     iraf_table = iraffind.find_stars(infos.data)
     return iraf_table, infos
 
@@ -126,6 +127,63 @@ def star_phot(image_name, iraf_table, infos):
     extend_star_array[:, 33] = fileID
     np.savetxt('wcs_coord.txt', world)
     return 0, extend_star_array
+
+def star_extend(image_name, SE_table):
+    #------------------------------------------------------------
+    # Add infomations into the extend star array
+    # Get WCS infos with astrometry
+    try:
+        header_wcs = pyfits.getheader("stacked_image.wcs")
+    except:
+        print "WCS not found"
+        return 1, None, None
+    w = wcs.WCS(header_wcs)
+    # Convert pixel coord to RA and DEC
+    pixcrd = np.transpose(np.array([SE_table[:,2], SE_table[:,3]]))
+    world = w.wcs_pix2world(pixcrd, 1)
+    extend_star_array = np.full((len(SE_table), len(TAT_env.extend_star_table_titles)), None, dtype = object)
+    # RA and DEC
+    extend_star_array[:,14] = world[:,0]
+    extend_star_array[:,15] = world[:,1]
+    # Name targets with RA and DEC, and insert into table
+    table_length = len(world)
+    target_names_list = np.array(["target_{0:.4f}_{1:.4f}".format(world[i,0], world[i,1]) for i in range(table_length)]) 
+    # NAME
+    extend_star_array[:,1] = target_names_list
+    # FLUX
+    extend_star_array[:,4] = SE_table[:,6]
+    extend_star_array[:,5] = SE_table[:,7]
+    # INST MAG
+    mag, err_mag = flux2mag(SE_table[:,0], SE_table[:,1])
+    extend_star_array[:,6] = mag
+    extend_star_array[:,7] = err_mag
+    # CENTER
+    extend_star_array[:,19] = SE_table[:,2]
+    extend_star_array[:,20] = SE_table[:,3]
+    # Load infos from the header of the image
+    header = pyfits.getheader(image_name) 
+    # get the fileID from mysql.
+    fileID = find_fileID(image_name)
+    # The else
+    extend_star_array[:,  3] = header['BJD']
+    extend_star_array[:, 30] = header['JD']
+    extend_star_array[:, 31] = header['MJD-OBS']
+    extend_star_array[:, 32] = header['HJD']
+    extend_star_array[:, 33] = fileID
+    return 0, extend_star_array
+
+def SExtractor(image_name):
+    # Initilized
+    config_name = "{0}.config".format(image_name[:-5])
+    catalog_name = "{0}.cat".format(image_name[:-5])
+    # Copy parameter files to working directory.
+    os.system('cp {0}/SE_workshop/SE.config {1}'.format(TAT_env.path_of_code, config_name))
+    os.system("sed -i 's/stack_image/{0}/g' {1}".format(image_name[:-5], config_name))
+    # Execute SExtrctor
+    os.system('sex {0} -c {1}'.format(image_name, config_name))
+    # Load the result table
+    table = np.loadtxt(catalog_name)
+    return table
 
 # check if there is new sources.
 def check_new_sources(extend_star_array):
@@ -215,6 +273,11 @@ if __name__ == "__main__":
     for image_name in image_list:
         # Find all stars with IRAFstarfinder
         print ("{0}, start!".format(image_name))
+        print ('SExtractor!')
+        SE_table = SExtractor(image_name)
+        failure, extend_star_array = star_extend(image_name, SE_table)
+        # Create an parameter file.
+        '''
         print ('--- starfinder ---')
         iraf_table, infos = starfinder(image_name)
         # Add more infos
@@ -223,6 +286,7 @@ if __name__ == "__main__":
         if failure:
             print 'phot failure'
             continue
+        '''
         # Rename if source is already named in previous observations.
         print ('--- repeatness check ---')
         extend_star_array, new_sources, new = check_new_sources(extend_star_array)

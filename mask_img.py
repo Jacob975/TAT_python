@@ -34,7 +34,7 @@ if __name__ == "__main__":
     # Mask
     data[:200] = np.nan
     # Save data
-    pyfits.writeto('{0}_mask.fits'.format(image_name[:-4]), data, header)
+    pyfits.writeto('{0}_mask.fits'.format(image_name[:-5]), data, header)
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

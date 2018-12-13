@@ -126,7 +126,7 @@ if __name__ == "__main__":
             exit(1)
         '''
         # Tolerance of time range
-        if abs(date_t.jd - nearest_date_t.jd) > 90:
+        if abs(date_t.jd - nearest_date_t.jd) > 10:
             print "No enough flat found"
             exit(1)
         '''
