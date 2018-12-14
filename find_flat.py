@@ -130,6 +130,10 @@ if __name__ == "__main__":
             print "No enough flat found"
             exit(1)
         '''
+        # Tolerance of time range
+        if abs(date_t.jd - nearest_date_t.jd) > 10:
+            print "No enough flat found"
+            break
         number, nearest_date = sub_process(path, band, telescope, date, date_list, path_of_flat, flat_exptime)
         print "number of found flats: {0}".format(number)
         nearest_date_t = astrotime.Time("{0}-{1}-{2}".format(nearest_date[0:4], nearest_date[4:6], nearest_date[6:8]))

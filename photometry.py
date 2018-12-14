@@ -61,8 +61,7 @@ def EP_process(data):
     first_frame_data = data[index_data_in_first_frame]
     # Take 15 brightest stars from first frame
     index_Bstar = np.argsort(first_frame_data[:,inst_mag_index])
-    Bstar_name_list = first_frame_data[index_Bstar[:15], target_name_index]
-    Bstar_name_list = Bstar_name_list[ Bstar_name_list != 'target_315.0266_-5.0953']
+    Bstar_name_list = first_frame_data[index_Bstar[:10], target_name_index]
     print Bstar_name_list
     # Take the data of 10B star from all frames.
     Bstar_jndex = np.where(data[:,target_name_index] == Bstar_name_list[0])
@@ -76,6 +75,7 @@ def EP_process(data):
         data2 = data[Bstar_jndex]
         found_jndex = np.isin(data2[:,fileID_index], fileIDs)
         current_fileIDs = data2[found_jndex, fileID_index]
+        print current_fileIDs
         # Find the common file ID compare to the previous one.
         if i == 0:
             interception_fileID = current_fileIDs 
@@ -102,6 +102,7 @@ def EP_process(data):
         err_mag_array = data2[found_jndex, e_inst_mag_index] 
         source_data = np.transpose(np.array([time_array, mag_array, err_mag_array], dtype = float))
         source_data_list.append(source_data)
+    print 'final intercepted file ID'
     print interception_fileID
     #----------------------------------------
     # Do photometry on 10BS only, save the result.

@@ -154,9 +154,8 @@ def star_extend(image_name, SE_table):
     extend_star_array[:,4] = SE_table[:,6]
     extend_star_array[:,5] = SE_table[:,7]
     # INST MAG
-    mag, err_mag = flux2mag(SE_table[:,0], SE_table[:,1])
-    extend_star_array[:,6] = mag
-    extend_star_array[:,7] = err_mag
+    extend_star_array[:,6] = SE_table[:,4]
+    extend_star_array[:,7] = SE_table[:,5]
     # CENTER
     extend_star_array[:,19] = SE_table[:,2]
     extend_star_array[:,20] = SE_table[:,3]
