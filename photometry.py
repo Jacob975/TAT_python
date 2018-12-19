@@ -30,8 +30,8 @@ import collections
 
 def take_data_within_duration(start_date, end_date):
     #----------------------------------------
-    times = ['{0}-{1}-{2}T00:00:00'.format(start_date[:4], start_date[4:6], start_date[6:]), 
-             '{0}-{1}-{2}T00:00:00'.format(end_date[:4], end_date[4:6], end_date[6:])]
+    times = ['{0}-{1}-{2}T12:00:00'.format(start_date[:4], start_date[4:6], start_date[6:]), 
+             '{0}-{1}-{2}T12:00:00'.format(end_date[:4], end_date[4:6], end_date[6:])]
     t = Time(times, format='isot', scale='utc')
     start_jd = t.jd[0] 
     end_jd = t.jd[1]
@@ -39,6 +39,8 @@ def take_data_within_duration(start_date, end_date):
     # Query data
     cnx = TAT_auth()
     cursor = cnx.cursor()
+    print 'start JD : {0}'.format(start_jd)
+    print 'end JD: {0}'.format(end_jd)
     cursor.execute('select * from {0} where JD between {1} and {2}'.format(TAT_env.obs_data_tb_name, start_jd, end_jd))
     data = cursor.fetchall()
     data = np.array(data)
@@ -61,7 +63,7 @@ def EP_process(data):
     first_frame_data = data[index_data_in_first_frame]
     # Take 15 brightest stars from first frame
     index_Bstar = np.argsort(first_frame_data[:,inst_mag_index])
-    Bstar_name_list = first_frame_data[index_Bstar[:10], target_name_index]
+    Bstar_name_list = first_frame_data[index_Bstar[10:20], target_name_index]
     print Bstar_name_list
     # Take the data of 10B star from all frames.
     Bstar_jndex = np.where(data[:,target_name_index] == Bstar_name_list[0])

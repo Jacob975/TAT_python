@@ -17,14 +17,14 @@ import numpy as np
 # calculate the inner product and error of two side, from star_1 to star_2 and from star_1 to star_3.
 def inner_product(star_1, star_2, star_3, sigma):
     try:
-        inner_prod = (star_2[1] - star_1[1])*(star_3[1] - star_1[1]) + (star_2[2] - star_1[2])*(star_3[2] - star_1[2])
-        x_part_1 = np.power(star_1[1] - star_2[1], 2)
+        inner_prod = (star_2[0] - star_1[0])*(star_3[0] - star_1[0]) + (star_2[1] - star_1[1])*(star_3[1] - star_1[1])
+        x_part_1 = np.power(star_1[0] - star_2[0], 2)
         x_error_1 = (2 * np.power(sigma, 2))/x_part_1
-        x_part_2 = np.power(star_1[1] - star_3[1], 2)
+        x_part_2 = np.power(star_1[0] - star_3[0], 2)
         x_error_2 = (2 * np.power(sigma, 2))/x_part_2
-        y_part_1 = np.power(star_1[2] - star_2[2], 2)
+        y_part_1 = np.power(star_1[1] - star_2[1], 2)
         y_error_1 = (2 * np.power(sigma, 2))/y_part_1
-        y_part_2 = np.power(star_1[2] - star_3[2], 2)
+        y_part_2 = np.power(star_1[1] - star_3[1], 2)
         y_error_2 = (2 * np.power(sigma, 2))/y_part_2
         var = x_part_1*x_part_2*(x_error_1 + x_error_2) + y_part_1*y_part_2*(y_error_1 + y_error_2)
         error = np.power(var, 0.5)
@@ -45,10 +45,10 @@ def num_relation_lister(ref_star, star, error):
     return valid_inner_prod
 
 # choose a star as a target, than choose two else the calculate the inner product.
-def get_inner_product(iraf_table, infos):
+def get_inner_product(iraf_table, infos = None):
     inner_prod_star_list = []
     inner_prod_error_list = []
-    sigma = infos.u_sigma.n
+    sigma = 2.0
     # choose a star, named A
     for i in xrange(len(iraf_table)):
         inner_prod_star = np.array([])
@@ -62,7 +62,35 @@ def get_inner_product(iraf_table, infos):
                     continue
                 if k <= j:
                     continue
-                inner_prod, error = inner_product(iraf_table[i], iraf_table[j], iraf_table[k], sigma)
+                inner_prod, error = inner_product(iraf_table[i,1:3], iraf_table[j,1:3], iraf_table[k,1:3], sigma)
+                inner_prod_star = np.append(inner_prod_star, inner_prod)
+                inner_prod_error = np.append(inner_prod_error, error)
+        # set all inner product as a list, seems like DNA of this star
+        inner_prod_star_list.append(inner_prod_star)
+        inner_prod_error_list.append(inner_prod_error)
+    inner_prod_star_list = np.array(inner_prod_star_list)
+    inner_prod_error_list = np.array(inner_prod_error_list)
+    return inner_prod_star_list, inner_prod_error_list
+
+# choose a star as a target, than choose two else the calculate the inner product.
+def get_inner_product_SE(SE_table):
+    inner_prod_star_list = []
+    inner_prod_error_list = []
+    sigma = 2.0
+    # choose a star, named A
+    for i in xrange(len(SE_table)):
+        inner_prod_star = np.array([])
+        inner_prod_error = np.array([])
+        # choose two else stars, named B and C, to get inner product of two side AB and AC.
+        for j in xrange(len(SE_table)):
+            if i == j:
+                continue
+            for k in xrange(len(SE_table)):
+                if k == i:
+                    continue
+                if k <= j:
+                    continue
+                inner_prod, error = inner_product(SE_table[i,2:4], SE_table[j,2:4], SE_table[k,2:4], sigma)
                 inner_prod_star = np.append(inner_prod_star, inner_prod)
                 inner_prod_error = np.append(inner_prod_error, error)
         # set all inner product as a list, seems like DNA of this star

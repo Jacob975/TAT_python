@@ -13,13 +13,10 @@ update log
 20181205 version alpha 1:
     1. The code works.
 '''
-from photutils.detection import IRAFStarFinder
-from astropy.stats import gaussian_sigma_to_fwhm
 from astropy.io import fits as pyfits
 from astropy import wcs
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from reduction_lib import image_info
 import numpy as np
 import time
 from sys import argv
@@ -27,36 +24,36 @@ import TAT_env
 from cataio_lib import get_catalog, get_distance, get_app_mag
 from reduction_lib import get_rid_of_exotic
 from matplotlib import pyplot as plt
+import os
 
-# find a star through iraf finder
-def starfinder(image_name):
-    infos = image_info(image_name)
-    mean_bkg = infos.bkg
-    std_bkg = infos.std
-    u_sigma = infos.u_sigma
-    sigma = u_sigma.n
-    iraffind = IRAFStarFinder(threshold = 3.0*std_bkg + mean_bkg, \
-                            # fwhm = sigma*gaussian_sigma_to_fwhm, \
-                            fwhm = 2.2, \
-                            minsep_fwhm = 2, \
-                            roundhi = 1.0, \
-                            roundlo = -1.0, \
-                            sharplo = 0.5, \
-                            sharphi = 2.0)
-    iraf_table = iraffind.find_stars(infos.data)
-    return iraf_table, infos
+def SExtractor(image_name):
+    # Initilized
+    config_name = "{0}.config".format(image_name[:-5])
+    catalog_name = "{0}.cat".format(image_name[:-5])
+    # Copy parameter files to working directory.
+    os.system('cp {0}/SE_workshop/SE.config {1}'.format(TAT_env.path_of_code, config_name))
+    os.system("sed -i 's/stack_image/{0}/g' {1}".format(image_name[:-5], config_name))
+    # Execute SExtrctor
+    os.system('sex {0} -c {1}'.format(image_name, config_name))
+    # Load the result table
+    table = np.loadtxt(catalog_name)
+    return table
 
-def show_mini_mag(iraf_table, infos, VERBOSE = 0):
+def show_mini_mag(se_table, VERBOSE = 0):
+    # Load the index of columes
+    index_mag = TAT_env.SE_table_titles.index('MAG_AUTO')
+    index_x = TAT_env.SE_table_titles.index('X_IMAGE')
+    index_y = TAT_env.SE_table_titles.index('Y_IMAGE')
     # Take the minimum magnitude in INST_MAG 
-    mag = np.array(iraf_table['mag'])
+    mag = se_table[:,index_mag]
     mini_mag = np.amax(mag)
-    print 'instrumental minimum mag: {0}'.format(mini_mag)
-    xcenter = np.array(iraf_table['xcentroid'])
-    ycenter = np.array(iraf_table['ycentroid'])
+    if VERBOSE > 0:print 'instrumental minimum mag: {0}'.format(mini_mag)
+    xcenter = se_table[:,index_x]
+    ycenter = se_table[:,index_y]
     reduce_data = np.transpose(np.array([mag, xcenter, ycenter]))
     reduce_data = reduce_data[mag.argsort()]
     # Pick 10 brightest stars from the data
-    reduce_data = reduce_data[:10]
+    reduce_data = reduce_data[:50]
     pixcrd = reduce_data[:,1:]
     try: 
         header_wcs = pyfits.getheader("stacked_image.wcs")
@@ -65,6 +62,8 @@ def show_mini_mag(iraf_table, infos, VERBOSE = 0):
         return 1, None
     w = wcs.WCS(header_wcs)
     world = w.wcs_pix2world(pixcrd, 1)
+    #--------------------------------------------------
+    # Find the catalog magnitude.
     # Query data from vizier
     mag_delta_list = []
     filter_ = 'V'
@@ -115,22 +114,26 @@ if __name__ == "__main__":
     # Find all stars with IRAFstarfinder
     print ('--- mimi mag finder ---')
     print ('Image: {0}'.format(image_name))
-    iraf_table, infos = starfinder(image_name)
-    failure, app_mag, app_mini_mag = show_mini_mag(iraf_table, infos)
-    numbers, bin_edges = np.histogram(app_mag, bins = np.linspace(10, 20, 51))
+    se_table = SExtractor(image_name)
+    failure, app_mag, app_mini_mag = show_mini_mag(se_table)
+    numbers, bin_edges = np.histogram(app_mag, bins = np.linspace(10, 20, 41))
     bins = bin_edges[1:]
     index_max = np.argmax(numbers)
-    print('limiting magnitude = {0}'.format(bins[index_max]-0.1))
+    print('limiting magnitude = {0}'.format(bins[index_max]))
+    # Save the result to a file
+    result = np.loadtxt('minimag_result.txt', dtype = str)
+    result = np.append(result, [image_name, bins[index_max]])
+    result = np.reshape(result, (-1, 2))
+    np.savetxt('minimag_result.txt', result, fmt = '%s')
     # plot the histogram of magnitude
-    '''
     plt.title(image_name)
-    plt.bar(bins, numbers)
-    plt.plot([app_mini_mag, app_mini_mag], [0, 1], label = 'minimum magnitude')
+    plt.plot(bins, numbers, c = 'r')
+    plt.bar(bins, numbers, width = 0.2, color= 'b')
     plt.xlabel('CATA MAG')
     plt.ylabel("# of sources")
+    plt.xlim(10, 20)
     plt.legend()
-    plt.show() 
-    '''
+    plt.savefig('{0}_hist.png'.format(image_name[:-5]))
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

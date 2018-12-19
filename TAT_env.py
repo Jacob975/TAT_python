@@ -82,6 +82,19 @@ iraf_table_titles=[['id',         0 ],
                    ['flux',       4 ],
                    ['mag',        5 ]]
 
+SE_table_titles = \
+                [   'ALPHA_SKY',
+                    'DELTA_SKY', 
+                    'X_IMAGE',
+                    'Y_IMAGE',
+                    'MAG_AUTO',
+                    'MAGERR_AUTO',
+                    'FLUX_AUTO',
+                    'FLUXERR_AUTO', 
+                    'FWHM_WORLD',
+                    'FWHM_IMAGE', 
+                    'FLAGS'] 
+
 star_table_titles = \
                     [[  'FLUX',         4],
                      [  'E_FLUX',       5],
@@ -225,7 +238,7 @@ obs_data_format = \
                        'FILEID INT',]    
 
 #--------------- FOV------------------------------
-# 1 pixel is equal to 2.478 arcsec on TAT image.
+# 1 pixel is equal to 2.478 arcsec on TAT image with 25 cm telescope.
 pix1 = 2.478
 
 #--------------- URAT 1 --------------------------

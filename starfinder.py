@@ -193,7 +193,7 @@ def check_new_sources(extend_star_array):
     index_of_ra   = TAT_env.obs_data_titles.index('RA')
     index_of_dec  = TAT_env.obs_data_titles.index('`DEC`')
     # Setup the spatial tolerance.
-    tolerance = TAT_env.pix1/3600.0 * 2.0
+    tolerance = TAT_env.pix1/3600.0 * 3.0
     # Match positions
     for i in xrange(len(extend_star_array)):
         src_coord_list = find_source_match_coords(  extend_star_array[i, index_of_ra],
