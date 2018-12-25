@@ -50,7 +50,7 @@ def take_data_within_duration(start_date, end_date):
 
 def EP_process(data):
     #----------------------------------------
-    # Save the index of some parameters 
+    # Load the index of some parameters 
     bjd_index = TAT_env.obs_data_titles.index('BJD')
     inst_mag_index = TAT_env.obs_data_titles.index('INST_MAG')
     e_inst_mag_index = TAT_env.obs_data_titles.index('E_INST_MAG')
@@ -59,70 +59,44 @@ def EP_process(data):
     # Pick 10 brightest stars from each frame (They have to be the same star in diff. frames.)
     # Take all the data in the first frame
     first_bjd = data[0, bjd_index]
-    index_data_in_first_frame = np.where(data[:,bjd_index] == first_bjd)
-    first_frame_data = data[index_data_in_first_frame]
-    # Take 15 brightest stars from first frame
-    index_Bstar = np.argsort(first_frame_data[:,inst_mag_index])
-    Bstar_name_list = first_frame_data[index_Bstar[10:20], target_name_index]
-    print Bstar_name_list
-    # Take the data of 10B star from all frames.
-    Bstar_jndex = np.where(data[:,target_name_index] == Bstar_name_list[0])
-    fileID_index = TAT_env.obs_data_titles.index("FILEID")
-    fileIDs = data[Bstar_jndex, fileID_index] 
-    source_fileID_list = []
-    interception_fileID = None
-    # Find the common file ID for 10 bright sources.
-    for i in range(len(Bstar_name_list)):
-        Bstar_jndex = np.where(data[:, target_name_index] == Bstar_name_list[i])
-        data2 = data[Bstar_jndex]
-        found_jndex = np.isin(data2[:,fileID_index], fileIDs)
-        current_fileIDs = data2[found_jndex, fileID_index]
-        print current_fileIDs
-        # Find the common file ID compare to the previous one.
-        if i == 0:
-            interception_fileID = current_fileIDs 
-        else:
-            interception_fileID = np.intersect1d(interception_fileID, current_fileIDs) 
-        source_fileID_list.append(current_fileIDs)
-    # Remove the frame misses one or more stars.
-    source_data_list = []
-    # Get the data of 10 bright sources.
-    for i in range(len(source_fileID_list)):
-        # Get the rows contain a Bright star.
-        Bstar_jndex = np.where(data[:, target_name_index] == Bstar_name_list[i])
-        data2 = data[Bstar_jndex]
-        # Check if the number of found sources is repeated?
-        # If repeat, that means the source is confusing, so I abandan the source.
-        repeat_numbers = [item for item, count in collections.Counter(source_fileID_list[i]).items() if count > 1]
-        if len(repeat_numbers) != 0:
-            continue
-        # Take the common frames only
-        index_fileIDs = np.isin(source_fileID_list[i], interception_fileID)
-        found_jndex = np.isin(data2[:,fileID_index], source_fileID_list[i][index_fileIDs])
-        time_array = data2[found_jndex, bjd_index]
-        mag_array  = data2[found_jndex, inst_mag_index]
-        err_mag_array = data2[found_jndex, e_inst_mag_index] 
-        source_data = np.transpose(np.array([time_array, mag_array, err_mag_array], dtype = float))
-        source_data_list.append(source_data)
-    print 'final intercepted file ID'
-    print interception_fileID
+    first_frame_data = data[data[:,bjd_index] == first_bjd]
+    # Sort the first frame data by the brightness 
+    first_frame_data = first_frame_data[np.argsort(first_frame_data[:,inst_mag_index])]
+    # Take the data from all frames.
+    all_fileIDs = data[:,fileID_index]
+    fileIDs = [item for item, count in collections.Counter(all_fileIDs).items() if count > 1] 
+    source_list = []
+    # Find 10 sources found in all frames.
+    for source in first_frame_data:
+        source_data = data[data[:,target_name_index] == source[target_name_index]]
+        source_fileIDs = source_data[:,fileID_index]
+        if len(source_fileIDs) == len(fileIDs):
+            source_error = source_data[:, e_inst_mag_index]
+            source_error[source_error == 0.0] = 1e-5
+            source_data_lite = np.transpose(np.array([source_data[:, bjd_index], 
+                                                    source_data[:, inst_mag_index], 
+                                                    source_error])) 
+            source_list.append(source_data_lite)
+        if len(source_list) > 20:
+            break
     #----------------------------------------
     # Do photometry on 10BS only, save the result.
-    source_data_array = np.array(source_data_list)
+    source_data_array = np.array(source_list)
     stu = photometry_lib.EP(source_data_array[0], source_data_array)
     ems, var_ems, m0s, var_m0s = stu.make_airmass_model()
     #----------------------------------------
     # Pick a image, find the center position. 
     cnx = TAT_auth()
     cursor = cnx.cursor()
-    cursor.execute('select * from data_file where `ID` = {0}'.format(fileIDs[0][0]))
+    print fileIDs
+    cursor.execute('select * from data_file where `ID` = {0}'.format(fileIDs[0]))
     img_data = cursor.fetchall()
     cursor.close()
     cnx.close()
     img_ra_cntr = float(img_data[0][4])
     img_dec_cntr = float(img_data[0][5])
     # Get all possible target within the region.
-    observed_targets = find_source_match_coords(img_ra_cntr, img_dec_cntr, margin = 0.5)
+    observed_targets = find_source_match_coords(img_ra_cntr, img_dec_cntr, margin = TAT_env.pix1*1024./3600.)
     # Pick a target star, we make a photometry on it.
     for source in observed_targets:
         # Take the name of the source

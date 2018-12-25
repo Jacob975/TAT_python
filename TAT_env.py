@@ -95,6 +95,32 @@ SE_table_titles = \
                     'FWHM_IMAGE', 
                     'FLAGS'] 
 
+confirm_transit_titles = \
+                [   'loc_rowid',
+                    'planetname',
+                    'ra_str',	
+                    'ra',
+                    'dec_str',
+                    'dec',
+                    'obsname',
+                    'reflink',
+                    'algorithm',
+                    'isdefault',
+                    'ismostprecise',
+                    'phase',
+                    'period',
+                    'transitduration',	
+                    'transitdepthdb',
+                    'transitdepthcalc',
+                    'ttv',
+                    'midpointcalendar',	
+                    'propmidpointunc',	
+                    'midpointairmass',
+                    'targetobsstartcalendar',	
+                    'targetobsendcalendar',	
+                    'fractionobservable',
+                    'magnitude_visible']
+
 star_table_titles = \
                     [[  'FLUX',         4],
                      [  'E_FLUX',       5],

@@ -81,6 +81,7 @@ def get_app_mag(match_star, filter_):
     R-r   =     (-0.153 +/- 0.003)*(r-i) - (0.117 +/- 0.003)
     R-I   =     (0.930 +/- 0.005)*(r-i)  + (0.259 +/- 0.002)
     '''
+    Vmag = float(match_star[12])
     gmag = float(match_star[13])
     rmag = float(match_star[14])
     imag = float(match_star[15])
@@ -88,8 +89,10 @@ def get_app_mag(match_star, filter_):
         return 1, None
     elif filter_ == "C":
         return 1, None
-    elif filter_ == "V" and gmag != 0 and rmag != 0:
-        Vmag = gmag - 0.565 * (gmag - rmag) - 0.016
+    #elif filter_ == "V" and gmag != 0 and rmag != 0:
+    #    Vmag = gmag - 0.565 * (gmag - rmag) - 0.016
+    #    return 0, Vmag
+    elif filter_ == "V":
         return 0, Vmag
     elif filter_ == "R" and rmag != 0 and imag != 0:
         Rmag = rmag - 0.153 * (rmag - imag) - 0.117

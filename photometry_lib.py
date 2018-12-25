@@ -117,9 +117,10 @@ class EP():
         # Only pick the data which match the time.
         ems = self.ems[np.isin(ref_t_series, t_series)]
         var_ems = self.var_ems[np.isin(ref_t_series, t_series)]
+        err_ems = np.sqrt(var_ems)
         proper_target = target[np.isin(t_series, ref_t_series)]
         utarget = unumpy.uarray(proper_target[:,1], proper_target[:,2])
-        uems = unumpy.uarray(ems, var_ems)
+        uems = unumpy.uarray(ems, err_ems)
         if len(uems) != len(utarget):
             print "Confusing source spotted."
             return True, None, None
@@ -142,7 +143,7 @@ class CATA():
         print "filter = {0}".format(filter_)
     # Making the model
     def make_airmass_model(self):
-        print "### start to correlate the inst mag to apparent mag in catalog I/329"
+        print "### start to calibrate the inst mag with apparent mag in catalog I/329"
         filter_ = self.filter_
         if filter_ != 'V' and filter_ != 'B' and filter_ != 'R':
             print "This photometry doesn't this filter."
@@ -152,15 +153,17 @@ class CATA():
         self.index_E_INST_MAG = TAT_env.obs_data_titles.index('E_INST_MAG')
         inst_mag_array = np.array(self.stars[:,self.index_INST_MAG], dtype = float)
         mag_order_stars = self.stars[inst_mag_array.argsort()]
-        mag_order_stars = mag_order_stars[:10] 
+        print ('The number of sources: {0}'.format(len(mag_order_stars)))
+        picking = np.arange(10)
+        mag_order_stars = mag_order_stars[picking] 
         mag_delta_list = []
         for star in mag_order_stars: 
             #-------------------------------------------------
             # Find the info of the source from catalog I/329
             index_RA = TAT_env.obs_data_titles.index('RA')
             index_DEC = TAT_env.obs_data_titles.index('`DEC`')
-            RA = float(targets[index_RA])
-            DEC = float(targets[index_DEC])
+            RA = float(star[index_RA])
+            DEC = float(star[index_DEC])
             failure, match_stars = get_catalog(RA, DEC, TAT_env.URAT_1, TAT_env.index_URAT_1) 
             if failure:
                 continue

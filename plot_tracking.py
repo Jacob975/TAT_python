@@ -46,7 +46,7 @@ if __name__ == "__main__":
     #---------------------------------------
     fig, axs = plt.subplots(1, 2, figsize = (12, 6))
     axs = axs.ravel()
-    axs[0].set_title('Tracking offset(WASP 36 b)')
+    axs[0].set_title('Tracking offset(WASP 11 b)')
     axs[0].grid(True)
     axs[0].scatter(pixel_coord[:,0], pixel_coord[:,1], c= 'g', marker = '+')
     axs[0].scatter(pixel_coord[0,0], pixel_coord[0, 1], c = 'r', label = 'start point')
@@ -65,14 +65,14 @@ if __name__ == "__main__":
         axs[0].set_ylim(scale-10, 10)
     elif x_track[-1] < 0 and y_track[-1] < 0:
         print '3'
-        axs[0].set_xlim(scale-10, 10)
+        axs[0].set_xlim(scale-10+100, 10+100)
         axs[0].set_ylim(scale-10, 10)
     elif x_track[-1] < 0 and y_track[-1] > 0:
         print '4'
         axs[0].set_xlim(scale-10, 10)
         axs[0].set_ylim(-10, scale+10)
     
-    axs[1].set_title('Tracking stability(WASP 36 b)')
+    axs[1].set_title('Tracking stability(WASP 11 b)')
     axs[1].grid(True)
     axs[1].scatter(time_lin, tot_track, c= 'g', marker = '+')
     axs[1].set_ylabel('total offset(arcsec)')
