@@ -81,7 +81,7 @@ if __name__ == "__main__":
     E_INST_MAG_array =  np.array(data[:,index_E_INST_MAG], dtype = float)
     #---------------------------------------
     x_margin = 0.02
-    y_margin = 0.05
+    y_margin = 0.25
     fig, axs = plt.subplots(2, 1, figsize = (12, 12))
     axs = axs.ravel()
     axs[0].set_title('Instrumental magnitude of {0}'.format(data_name))

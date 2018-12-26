@@ -95,12 +95,14 @@ if __name__ == "__main__":
         np.median(EP_MAG_array[~np.isnan(EP_MAG_array)]) + y_margin,
         )
     axs.grid(True)
-    axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = 'WASP 36 b, Vmag = 12.7')
     if timing != 'skip':
         axs.plot([ingress, ingress],
-                    [np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])-y_margin, np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])+y_margin],)
+                    [np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])-y_margin, np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])+y_margin],
+                    zorder=2)
         axs.plot([egress, egress],
-                    [np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])-y_margin, np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])+y_margin],)
+                    [np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])-y_margin, np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])+y_margin],
+                    zorder=1)
+    axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = 'WASP 36 b, Vmag = 12.7',zorder=3)
     plt.legend()
     plt.savefig('light_curve.png')
     #---------------------------------------

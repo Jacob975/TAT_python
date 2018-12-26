@@ -92,7 +92,7 @@ def get_app_mag(match_star, filter_):
     #elif filter_ == "V" and gmag != 0 and rmag != 0:
     #    Vmag = gmag - 0.565 * (gmag - rmag) - 0.016
     #    return 0, Vmag
-    elif filter_ == "V":
+    elif filter_ == "V" and ~np.isnan(Vmag):
         return 0, Vmag
     elif filter_ == "R" and rmag != 0 and imag != 0:
         Rmag = rmag - 0.153 * (rmag - imag) - 0.117

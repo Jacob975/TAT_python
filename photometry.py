@@ -72,7 +72,7 @@ def EP_process(data):
         source_fileIDs = source_data[:,fileID_index]
         if len(source_fileIDs) == len(fileIDs):
             source_error = source_data[:, e_inst_mag_index]
-            source_error[source_error == 0.0] = 1e-5
+            source_error[source_error == 0.0] = 1e-4
             source_data_lite = np.transpose(np.array([source_data[:, bjd_index], 
                                                     source_data[:, inst_mag_index], 
                                                     source_error])) 

@@ -175,6 +175,7 @@ def SExtractor(image_name):
     # Initilized
     config_name = "{0}.config".format(image_name[:-5])
     catalog_name = "{0}.cat".format(image_name[:-5])
+    index_flag = TAT_env.SE_table_titles.index('FLAGS')
     # Copy parameter files to working directory.
     os.system('cp {0}/SE_workshop/SE.config {1}'.format(TAT_env.path_of_code, config_name))
     os.system("sed -i 's/stack_image/{0}/g' {1}".format(image_name[:-5], config_name))
@@ -182,6 +183,7 @@ def SExtractor(image_name):
     os.system('sex {0} -c {1}'.format(image_name, config_name))
     # Load the result table
     table = np.loadtxt(catalog_name)
+    table = table[table[:,index_flag ] == 0 ]
     return table
 
 # check if there is new sources.
