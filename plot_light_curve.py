@@ -110,7 +110,7 @@ if __name__ == "__main__":
         axs[1].plot([egress, egress],
                     [np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])-y_margin, np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])+y_margin],)
     plt.legend()
-    plt.savefig('light_curve.png')
+    plt.savefig('pre_curve.png')
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time

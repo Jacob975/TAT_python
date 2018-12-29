@@ -90,12 +90,12 @@ if __name__ == "__main__":
     date=temp_path_2[3]
     # get exptime and band from header of one of images 
     image_list = glob.glob("*.fit")
-    darkh = pyfits.getheader(image_list[0])
-    exptime = int(darkh["EXPTIME"])
-    band = darkh["FILTER"]
+    header = pyfits.getheader(image_list[0])
+    exptime = int(header["EXPTIME"])
+    band = header["FILTER"]
     print band
     try:
-        telescope = darkh["OBSERVAT"]
+        telescope = header["OBSERVAT"]
     except:
         telescope = temp_path_2[1]
     #----------------------------------------
@@ -149,13 +149,16 @@ if __name__ == "__main__":
         print "No enough darks for flats, find_flat.py stop."
         exit(1)
     subdark_flat_list = subtract_images(flat_list, dark_name)
-    # median and normalize on all flats
+    #-----------------------------------------
+    # Median and normalize on all flats
     norm_flat_list = []
+    # Normalized images respectively
     for name in subdark_flat_list:
         data = pyfits.getdata(name)
         norm_member = np.divide(data, np.mean(data))
         norm_flat_list.append(norm_member)
     norm_flat_array = np.array(norm_flat_list)
+    # Median all images
     norm_median_subdark_flat = np.median(norm_flat_array, axis = 0)
     #-----------------------------------------
     # Give it a name, save, and export

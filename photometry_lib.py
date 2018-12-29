@@ -45,6 +45,7 @@ class EP():
         self.target = np.array(target)
         self.t_series = target[:,0]
         self.comparison_stars = np.array(comparison_stars)
+        self.comparison_stars[:,:,1] = np.transpose(np.transpose(self.comparison_stars[:,:,1]) - self.comparison_stars[:,0,1]+1e-5)
     def make_airmass_model(self):
         # Load data
         all_stars = self.comparison_stars

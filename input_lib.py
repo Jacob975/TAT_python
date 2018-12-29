@@ -28,10 +28,42 @@ class option_plotLC():
                 '# The name of source or the name of files',
                 '',
                 '# Ingress timing in JD',
-                '',
+                '# "skip" means it would not print the ingress timing on plots.',
+                'skip',
                 '# Egress timing in JD',
-                '']
+                '# "skip" means it would not print the ingress timing on plots.',
+                'skip']
         np.savetxt('option_plotLC.txt', s, fmt = '%s')
+    def load(self, file_name):
+        self.opts = np.loadtxt(file_name, dtype = str)
+        self.opts = list(self.opts)
+        return self.opts
+
+class option_photometry():
+    def __init__(self):
+        self.opts = None
+    def create(self):
+        s = [   '# What kinds of photometry calibration you want',
+                '# Available options: EP, CATA.',
+                '#  EP: Ensemble Photometry',
+                '#  CATA: Calibrate the magnitude with I/329 catalog',
+                'EP',
+                '# The date of starting observation',
+                '# example: 20181208',
+                '',
+                '# The date of end observation',
+                '# example: 20181209',
+                '',
+                '# RA centroid',
+                '# What is the right ascention of the center of FOV.',
+                '# You could type "skip" to ignore this selection.',
+                '',
+                '# DEC centroid',
+                '# What is the declination of the center of FOV.',
+                '# You could type "skip" to ignore this selection.',
+                '',
+                ]
+        np.savetxt('option_phot.txt', s, fmt = '%s')
     def load(self, file_name):
         self.opts = np.loadtxt(file_name, dtype = str)
         self.opts = list(self.opts)

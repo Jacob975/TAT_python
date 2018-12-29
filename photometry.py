@@ -27,21 +27,28 @@ from astropy.time import Time
 import matplotlib.pyplot as plt
 from test_EP import flux2mag
 import collections
+from input_lib import option_photometry
 
-def take_data_within_duration(start_date, end_date):
+def take_data_within(start_date, end_date, ra_cntr_str, dec_cntr_str):
     #----------------------------------------
     times = ['{0}-{1}-{2}T12:00:00'.format(start_date[:4], start_date[4:6], start_date[6:]), 
              '{0}-{1}-{2}T12:00:00'.format(end_date[:4], end_date[4:6], end_date[6:])]
     t = Time(times, format='isot', scale='utc')
     start_jd = t.jd[0] 
     end_jd = t.jd[1]
+    ra_cntr = float(ra_cntr_str)
+    dec_cntr = float(dec_cntr_str)
     #----------------------------------------
     # Query data
     cnx = TAT_auth()
     cursor = cnx.cursor()
     print 'start JD : {0}'.format(start_jd)
     print 'end JD: {0}'.format(end_jd)
-    cursor.execute('select * from {0} where JD between {1} and {2}'.format(TAT_env.obs_data_tb_name, start_jd, end_jd))
+    print "Center at ({0}, {1})".format(ra_cntr, dec_cntr)
+    cursor.execute('select * from {0} where `JD` between {1} and {2} \
+                    and `RA` between {3} and {4} \
+                    and `DEC` between {5} and {6}'\
+                    .format(TAT_env.obs_data_tb_name, start_jd, end_jd, ra_cntr-0.5, ra_cntr+0.5, dec_cntr-0.5, dec_cntr+0.5))
     data = cursor.fetchall()
     data = np.array(data)
     cursor.close()
@@ -66,8 +73,9 @@ def EP_process(data):
     all_fileIDs = data[:,fileID_index]
     fileIDs = [item for item, count in collections.Counter(all_fileIDs).items() if count > 1] 
     source_list = []
+    selected_source_name = []
     # Find 10 sources found in all frames.
-    for source in first_frame_data:
+    for source in first_frame_data[25:]:
         source_data = data[data[:,target_name_index] == source[target_name_index]]
         source_fileIDs = source_data[:,fileID_index]
         if len(source_fileIDs) == len(fileIDs):
@@ -77,7 +85,8 @@ def EP_process(data):
                                                     source_data[:, inst_mag_index], 
                                                     source_error])) 
             source_list.append(source_data_lite)
-        if len(source_list) > 20:
+            selected_source_name.append(source[target_name_index])
+        if len(source_list) > 35:
             break
     #----------------------------------------
     # Do photometry on 10BS only, save the result.
@@ -116,8 +125,6 @@ def EP_process(data):
             continue
         observation_data_ID = observation_data_ID[matched]
         save2sql_EP(correlated_target, observation_data_ID)
-        #----------------------------------------
-        # Do photometry on 10BS + target, save the result for the target only, and so on.
     return False
 
 # find the corresponding filter with fileID
@@ -162,18 +169,22 @@ if __name__ == "__main__":
     start_time = time.time()
     #----------------------------------------
     # Laod argv
-    if len(argv) != 4:
+    stu = option_photometry()
+    if len(argv) != 2:
         print 'Error!'
         print 'The number of arguments is wrong.'
-        print 'Usage: photometry.py [phot type] [start_jd] [end_jd]'
-        print 'Available [phot type ]: EP, CATA'
-        print 'Example: phototmetry.py EP 20180909 20180910'
+        print 'Usage: photometry.py [option file]' 
+        print 'You should modify the [option file] before execution.'
+        stu.create()
         exit()
-    phot_type = argv[1]
-    start_date = argv[2]
-    end_date = argv[3]
+    options = argv[1]
+    phot_type,\
+    start_date,\
+    end_date,\
+    ra_cntr,\
+    dec_cntr = stu.load(options)
     #----------------------------------------
-    data = take_data_within_duration(start_date, end_date)
+    data = take_data_within(start_date, end_date, ra_cntr, dec_cntr)
     if phot_type == 'EP':
         failure = EP_process(data)
     elif phot_type == 'CATA':

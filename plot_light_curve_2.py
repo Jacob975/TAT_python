@@ -86,7 +86,7 @@ if __name__ == "__main__":
     y_margin = 0.05
     fig, axs = plt.subplots(1, 1, figsize = (12, 6))
     #axs.set_title('The light curve of {0}'.format(data_name))
-    axs.set_title('The light curve of WASP 36 b')
+    axs.set_title('The light curve of {0}'.format(data_name))
     axs.set_xlabel('JD')
     axs.set_ylabel('Flux Percentage')
     axs.set_xlim(JD_array[0]-x_margin, JD_array[-1]+x_margin)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         axs.plot([egress, egress],
                     [np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])-y_margin, np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])+y_margin],
                     zorder=1)
-    axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = 'WASP 36 b, Vmag = 12.7',zorder=3)
+    axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = data_name,zorder=3)
     plt.legend()
     plt.savefig('light_curve.png')
     #---------------------------------------

@@ -56,8 +56,15 @@ if __name__ == "__main__":
     mag_airmass = -2.5 * np.log10(airmass)
     shifted_mag_airmass = mag_airmass - mag_airmass[0]
     # Model a Target Star 
+    '''
     # Sine wave (radian)
     intrinsic = np.sin(2 * np.pi * t / T) + 2
+    '''
+    # Stage func
+    intrinsic = np.ones(len(t)) * 2.0
+    intrinsic[:20] = 1.0
+    intrinsic[-20:] = 1.0
+    # Simulate the observe data.
     mag_intrinsic = -2.5 * np.log10(intrinsic)
     shifted_mag_intrinsic = mag_intrinsic - mag_intrinsic[0]
     flux = airmass * intrinsic + np.random.normal(0, stdev, 100) 
@@ -75,7 +82,7 @@ if __name__ == "__main__":
     comparison_stars = np.array(comparison_stars)
     student = EP(target, comparison_stars)
     ems, var_ems, m0s, var_m0s = student.make_airmass_model()
-    correlated_target = student.phot()
+    failure, correlated_target, matched = student.phot(target)
     #----------------------------------------
     # Plot the answers
     # target
@@ -87,7 +94,7 @@ if __name__ == "__main__":
     plt.ylabel('mag')
     frame1 = plt.gca()
     frame1.axes.get_xaxis().set_visible(False)
-    plt.errorbar(target[:,0], target[:,1], yerr = target[:,2], fmt = 'ro', label = 'observed_target')
+    plt.errorbar(target[:,0], target[:,1] - target[0,1], yerr = target[:,2], fmt = 'ro', label = 'observed_target')
     plt.legend()
     
     plt.subplot(2, 1, 2)
@@ -95,7 +102,7 @@ if __name__ == "__main__":
     plt.ylabel('flux')
     plt.xlabel('time')
     plt.scatter(t, shifted_mag_intrinsic, label = 'intrinsic_target', alpha = 0.5)
-    plt.errorbar(t, correlated_target[:,0] - correlated_target[0,0], yerr = correlated_target[:,1], fmt = 'ro', label = 'correlated_target', alpha = 0.5)
+    plt.errorbar(t, correlated_target[:,1] - correlated_target[0,1], yerr = correlated_target[:,2], fmt = 'ro', label = 'correlated_target', alpha = 0.5)
     plt.legend()
     
     # comparison_airmass
