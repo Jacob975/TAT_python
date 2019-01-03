@@ -78,7 +78,11 @@ if __name__ == "__main__":
     EP_MAG_array =      np.array(data[:,index_EP_MAG], dtype = float)
     E_EP_MAG_array =    np.array(data[:,index_E_EP_MAG], dtype = float)
     # Convert mag to delta mag
-    EP_MAG_array = np.mean(EP_MAG_array[-10:]) - EP_MAG_array 
+    EP_MAG_mean = np.mean(EP_MAG_array[-10:])
+    if np.isnan(EP_MAG_mean):
+        EP_MAG_mean = np.mean(EP_MAG_array[:10])
+    EP_MAG_array = EP_MAG_mean - EP_MAG_array 
+    
     # Convert delta mag to percentage
     EP_MAG_array = np.power(10.0, EP_MAG_array/2.5)
     #---------------------------------------
@@ -91,16 +95,16 @@ if __name__ == "__main__":
     axs.set_ylabel('Flux Percentage')
     axs.set_xlim(JD_array[0]-x_margin, JD_array[-1]+x_margin)
     axs.set_ylim( \
-        np.median(EP_MAG_array[~np.isnan(EP_MAG_array)]) - y_margin, 
-        np.median(EP_MAG_array[~np.isnan(EP_MAG_array)]) + y_margin,
+        np.nanmedian(EP_MAG_array) - y_margin, 
+        np.nanmedian(EP_MAG_array) + y_margin,
         )
     axs.grid(True)
     if timing != 'skip':
         axs.plot([ingress, ingress],
-                    [np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])-y_margin, np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])+y_margin],
+                    [np.nanmedian(EP_MAG_array)-y_margin, np.nanmedian(EP_MAG_array)+y_margin],
                     zorder=2)
         axs.plot([egress, egress],
-                    [np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])-y_margin, np.median(EP_MAG_array[~np.isnan(EP_MAG_array)])+y_margin],
+                    [np.nanmedian(EP_MAG_array)-y_margin, np.nanmedian(EP_MAG_array)+y_margin],
                     zorder=1)
     axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = data_name,zorder=3)
     plt.legend()

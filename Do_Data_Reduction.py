@@ -15,26 +15,25 @@ update log
     1. Update processed list in each loop.
 '''
 import numpy as np
-from astropy.io import fits as pyfits
 import time
 import glob
 import TAT_env
 import os
 import warnings
-from starfinder import starfinder, iraf_tbl2reg
 
 def data_reduction(site):
     # Load path
     path_of_data = "{0}/{1}/image".format(TAT_env.path_of_image, site)
     path_of_calibrate = "{0}/{1}/calibrate".format(TAT_env.path_of_image, site)
     path_of_log = "{0}/{1}/log".format(TAT_env.path_of_image, site)
-    # Load unprocessed data list
+    #----------------------------------------------
+    # Process the calibrate data 
     processed_calibrate_list, unprocessed_calibrate_list = unprocessed_check(path_of_log, path_of_calibrate, type_ = "calibrate")
-    processed_data_list, unprocessed_data_list = unprocessed_check(path_of_log, path_of_data, type_ = "data")
-    
     # Do reduction on calibration 
     failure = undo(unprocessed_calibrate_list)
     failure = check_cal(unprocessed_calibrate_list, processed_calibrate_list, path_of_log)
+    #----------------------------------------------
+    processed_data_list, unprocessed_data_list = unprocessed_check(path_of_log, path_of_data, type_ = "data")
     # Do reduction on data
     failure = undo(unprocessed_data_list)
     failure = check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_log)
@@ -117,8 +116,6 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
     flats_not_found = []
     psf_register_fail = []
     for unpro_data in unprocessed_data_list:
-        #failure_unpro_data = 0
-        failure_unpro_data = 1
         print "DIR: {0}".format(unpro_data)
         os.chdir(unpro_data)
         # Check
@@ -132,71 +129,41 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
             os.chdir(target)
             band_exptime_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)] 
             for band_exptime in band_exptime_list:
-                failure = 0
-                name_dark = ""
-                name_flat = ""
                 os.chdir(band_exptime)
                 #--------------------------------------------------------------------------
-                # check if dark were found.
+                # check if dark were found. If no, find one.
                 try:
                     name_dark = glob.glob("Median_dark_*.fits")[0]
                 except:
-                    # check if the program success
-                    try:
-                        # find proper dark
-                        os.system("{0}/find_dark.py".format(TAT_env.path_of_code))
-                        name_dark = glob.glob("Median_dark_*.fits")[0]
-                    except:
-                        failure = 1
-                        darks_not_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
-                np.savetxt("{0}/darks_not_found.txt".format(path_of_log), darks_not_found, fmt="%s")
+                    os.system("{0}/find_dark.py".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
-                # check if flat were found
+                # check if flat were found. If no, find one.
                 try:
                     name_flat = glob.glob("Median_flat_*.fits")[0]
                 except:
-                    # check if the program success
-                    try:
-                        # find proper flats
-                        os.system("{0}/find_flat.py".format(TAT_env.path_of_code))
-                        name_flat = glob.glob("Median_flat_*.fits")[0]
-                    except:
-                        failure = 1
-                        flats_not_found.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
-                np.savetxt("{0}/flats_not_found.txt".format(path_of_log), flats_not_found, fmt="%s")
+                    os.system("{0}/find_flat.py".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
                 # Subtracted by dark and divided by flat
                 try:
                     reducted_images = np.loadtxt("reducted_image_list.txt", dtype = str)    
                 except:
-                    try:
-                        # subtracted by darks and divided by flat
-                        os.system("{0}/sub_div.py".format(TAT_env.path_of_code))
-                        reducted_images = np.loadtxt("reducted_image_list.txt", dtype = str)    
-                    except:
-                        failure = 1
+                    # subtracted by darks and divided by flat
+                    os.system("{0}/sub_div.py".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
                 # psf register
                 # try to load registed_image_list, which is produced by register.py
                 try: 
                     registed_images = np.loadtxt("registed_image_list.txt", dtype = str)
-                    temp_name_space = registed_images[1]
                 except:
-                    try:
-                        os.system("{0}/register.py reducted_image_list.txt".format(TAT_env.path_of_code))
-                        registed_images = np.loadtxt("registed_image_list.txt", dtype = str)
-                        temp_name_space = registed_images[1]
-                    except:
-                        failure = 1
-                        psf_register_fail.append("{0}/{1}/{2}".format(unpro_data, target, band_exptime))
-                # save log infomations
-                np.savetxt("{0}/psf_register_fail.txt".format(path_of_log), psf_register_fail, fmt="%s")
+                    os.system("{0}/register.py reducted_image_list.txt".format(TAT_env.path_of_code))
+                #--------------------------------------------------------------------------
+                # Upload the information of all image to mysql database.
+                os.system("")
                 #--------------------------------------------------------------------------
                 # Get WCS 
                 os.system("{0}/wcsfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
                 # Find targets on images
-                # Do ensemble photometry and correlation to catalog I/329
                 # And update to database.
                 os.system("{0}/starfinder.py registed_image_list.txt".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
@@ -207,14 +174,8 @@ def check_arr_sub_div_image(unprocessed_data_list, processed_data_list, path_of_
                 # Save results into path of result.
                 os.system("{0}/arrange_results.py".format(TAT_env.path_of_code))
                 #--------------------------------------------------------------------------
-                if failure:
-                    failure_unpro_data = 1
                 os.chdir('..')
             os.chdir('..')
-            # if redcution is OK, list the folder in success list.
-        if not failure_unpro_data:
-            processed_data_list.append(unpro_data)
-        np.savetxt("{0}/data_reduction_log.txt".format(path_of_log), processed_data_list, fmt="%s")
     return 0 
 
 #--------------------------------------------

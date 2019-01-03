@@ -20,7 +20,11 @@ update log
 import mysql.connector as mariadb
 import time
 import numpy as np
-from TAT_env import src_tb_name, src_titles, src_format, obs_data_tb_name, obs_data_titles, obs_data_format 
+from TAT_env import src_tb_name, src_titles, src_format, \
+                    obs_data_tb_name, obs_data_titles, obs_data_format, \
+                    trg_tb_name, trg_format, \
+                    df_tb_name, df_format, \
+                    ctn_tb_name, ctn_format 
 from sys import argv
 
 def TAT_auth():
@@ -90,11 +94,24 @@ def save2sql_CATA(correlated_data, ID):
 def create_TAT_tables():
     cnx = TAT_auth()
     cursor = cnx.cursor()
-    # create table `observation_data` and `source_name`
+    # Create table `observation_data`, which save the data getting from image. 
     sql = 'create table if not exists `{0}` ({1})'.format(obs_data_tb_name, ', '.join(obs_data_format))
     cursor.execute(sql)
+    # Create table `source` saving the detected sources on images.
     sql = 'create table if not exists `{0}` ({1})'.format(src_tb_name, ', '.join(src_format))
     cursor.execute(sql)
+    #-----------------------------------------
+    # Inherit from Yun-Yan
+    # Create table `targets` saving the basic infomation of targets.
+    sql = 'create table if not exists `{0}` ({1})'.format(trg_tb_name, ', '.join(trg_format))
+    cursor.execute(sql)
+    # Create table `data_file` saving the fundamental properties of images.
+    sql = 'create table if not exists `{0}` ({1})'.format(df_tb_name, ', '.join(df_format))
+    cursor.execute(sql)
+    # Create table `container` saving where the images saved have been processed already.`
+    sql = 'create table if not exists `{0}` ({1})'.format(ctn_tb_name, ', '.join(ctn_format))
+    cursor.execute(sql)
+    #-----------------------------------------
     cnx.commit()
     cursor.close()
     cnx.close()

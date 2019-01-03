@@ -8,3 +8,7 @@ I/329 http://vizier.u-strasbg.fr/viz-bin/VizieR?-source=I/329
 # I get alias and spectral type of target from the latter catalogues.
 name    index   url
 HIC     I/196   http://vizier.u-strasbg.fr/viz-bin/VizieR-3?-source=I/196/main
+
+# 20181219 task
+Plot mag versus observable objects.
+# problems

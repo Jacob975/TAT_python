@@ -86,7 +86,7 @@ def EP_process(data):
                                                     source_error])) 
             source_list.append(source_data_lite)
             selected_source_name.append(source[target_name_index])
-        if len(source_list) > 35:
+        if len(source_list) > 25:
             break
     #----------------------------------------
     # Do photometry on 10BS only, save the result.

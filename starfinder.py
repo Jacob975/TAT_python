@@ -53,81 +53,6 @@ def starfinder(image_name):
     iraf_table = iraffind.find_stars(infos.data)
     return iraf_table, infos
 
-def star_phot(image_name, iraf_table, infos):
-    # Initialize Variables
-    iraf_table_titles = TAT_env.iraf_table_titles
-    extend_star_table_titles = TAT_env.extend_star_table_titles
-    coord = np.array([np.array(iraf_table['ycentroid']), np.array(iraf_table['xcentroid'])], dtype = int)
-    coord = np.transpose(coord)
-    #------------------------------------------------------------
-    # Redo the flux measurements.
-    try:
-        image = pyfits.getdata(image_name)
-        star_array = get_flux(image, coord, infos.u_sigma_x, infos.u_sigma_y)
-        # Replace all inf value by -999
-        star_array[np.isinf(star_array)] = -999
-        extend_star_array = np.full((len(star_array), len(extend_star_table_titles)), None, dtype = object)
-    except:
-        return 1, None
-    #------------------------------------------------------------
-    # Add infomations into the extend star array
-    # Get WCS infos with astrometry
-    try:
-        header_wcs = pyfits.getheader("stacked_image.wcs")
-    except:
-        print "WCS not found"
-        return 1, None, None
-    w = wcs.WCS(header_wcs)
-    # Convert pixel coord to RA and DEC
-    pixcrd = np.transpose(np.array([star_array[:,6], star_array[:,4]]))
-    world = w.wcs_pix2world(pixcrd, 1)
-    # RA and DEC
-    extend_star_array[:,14] = world[:,0]
-    extend_star_array[:,15] = world[:,1]
-    # Name targets with RA and DEC, and insert into table
-    table_length = len(world)
-    target_names_list = np.array(["target_{0:.4f}_{1:.4f}".format(world[i,0], world[i,1]) for i in range(table_length)]) 
-    # NAME
-    extend_star_array[:,1] = target_names_list
-    # FLUX
-    extend_star_array[:,4] = star_array[:,0]
-    extend_star_array[:,5] = star_array[:,1]
-    # INST MAG
-    mag, err_mag = flux2mag(star_array[:,0], star_array[:,1])
-    extend_star_array[:,6] = mag
-    extend_star_array[:,7] = err_mag
-    # AMP
-    extend_star_array[:,17] = star_array[:,2]
-    extend_star_array[:,18] = star_array[:,3]
-    # CENTER
-    extend_star_array[:,19] = star_array[:,6]
-    extend_star_array[:,20] = star_array[:,4]
-    # SIGMA
-    extend_star_array[:,21] = star_array[:,10]
-    extend_star_array[:,22] = star_array[:,11]
-    extend_star_array[:,23] = star_array[:,8]
-    extend_star_array[:,24] = star_array[:,9]
-    # PA
-    extend_star_array[:,25] = star_array[:,12]
-    extend_star_array[:,26] = star_array[:,13]
-    # SKY
-    extend_star_array[:,27] = star_array[:,14]
-    extend_star_array[:,28] = star_array[:,15]
-    # NPIX
-    extend_star_array[:,29] = star_array[:,16]
-    # Load infos from the header of the image
-    header = pyfits.getheader(image_name) 
-    # get the fileID from mysql.
-    fileID = find_fileID(image_name)
-    # The else
-    extend_star_array[:,  3] = header['BJD']
-    extend_star_array[:, 30] = header['JD']
-    extend_star_array[:, 31] = header['MJD-OBS']
-    extend_star_array[:, 32] = header['HJD']
-    extend_star_array[:, 33] = fileID
-    np.savetxt('wcs_coord.txt', world)
-    return 0, extend_star_array
-
 def star_extend(image_name, SE_table):
     #------------------------------------------------------------
     # Add infomations into the extend star array
@@ -141,7 +66,7 @@ def star_extend(image_name, SE_table):
     # Convert pixel coord to RA and DEC
     pixcrd = np.transpose(np.array([SE_table[:,2], SE_table[:,3]]))
     world = w.wcs_pix2world(pixcrd, 1)
-    extend_star_array = np.full((len(SE_table), len(TAT_env.extend_star_table_titles)), None, dtype = object)
+    extend_star_array = np.full((len(SE_table), len(TAT_env.obs_data_titles)), None, dtype = object)
     # RA and DEC
     extend_star_array[:,14] = world[:,0]
     extend_star_array[:,15] = world[:,1]

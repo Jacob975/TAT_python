@@ -21,10 +21,15 @@ import TAT_env
 
 def check_sources_info(name_image):
     # load header of images
+    header=pyfits.getheader(name_image)
     try:
-        darkh=pyfits.getheader(name_image)
-        RA=darkh['RA'].split(':')
-        DEC=darkh['DEC'].split(':')
+        source_name = header['TARGET']
+        return 0, source_name
+    except:
+        pass
+    try:
+        RA=header['RA'].split(':')
+        DEC=header['DEC'].split(':')
     except:
         print "Warning!\nHeader of {0} is broken".format(name_image)
         command = "mv {0} X_{0}_X".format(name_image)
