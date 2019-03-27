@@ -26,6 +26,29 @@ import matplotlib.pyplot as plt
 from reduction_lib import header_editor
 from input_lib import option_plotLC
 
+def take_data_within(name, start_date, end_date):
+    #----------------------------------------
+    times = ['{0}-{1}-{2}T12:00:00'.format(start_date[:4], start_date[4:6], start_date[6:]), 
+             '{0}-{1}-{2}T12:00:00'.format(end_date[:4], end_date[4:6], end_date[6:])]
+    t = Time(times, format='isot', scale='utc')
+    start_jd = t.jd[0] 
+    end_jd = t.jd[1]
+    #----------------------------------------
+    # Query data
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    print 'target: {0}'.format(name)
+    print 'start JD : {0}'.format(start_jd)
+    print 'end JD: {0}'.format(end_jd)
+    cursor.execute('select * from {0} where `NAME` = {1} \
+                    and `JD` between {2} and {3}'\
+                    .format(TAT_env.obs_data_tb_name, name, start_jd, end_jd))
+    data = cursor.fetchall()
+    data = np.array(data)
+    cursor.close()
+    cnx.close()
+    return data
+
 def load_data(name):
     cnx = TAT_auth()
     cursor = cnx.cursor()
@@ -48,7 +71,7 @@ if __name__ == "__main__":
         stu.create()
         exit()
     options = argv[1]
-    where_they_from, data_name, ingress, egress = stu.load(options)
+    where_they_from, data_name, ingress, egress, start_date, end_date = stu.load(options)
     where_they_from = int(where_they_from)
     timing = 'OK'
     if ingress == 'skip' or egress == 'skip':

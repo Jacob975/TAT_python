@@ -32,7 +32,15 @@ class option_plotLC():
                 'skip',
                 '# Egress timing in JD',
                 '# "skip" means it would not print the ingress timing on plots.',
-                'skip']
+                'skip',
+                '# Start date in YYYYMMDD',
+                '# The first date of the plot showing.',
+                '# "skip" will make the program shows all light curves.',
+                'skip',
+                '# End date in YYYYMMDD',
+                '# The last date of the plot showing.',
+                '# "skip" will make the program shows all light curves.',
+                'skip',]
         np.savetxt('option_plotLC.txt', s, fmt = '%s')
     def load(self, file_name):
         self.opts = np.loadtxt(file_name, dtype = str)

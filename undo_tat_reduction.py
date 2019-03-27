@@ -22,12 +22,7 @@ from glob import glob
 import time
 import TAT_env
 
-#--------------------------------------------
-# main code
-if __name__ == "__main__":
-    # measure times
-    start_time = time.time()
-    #----------------------------------------
+def undo_tat_reduction():
     # Move images back to base directory
     command = "find . -mindepth 2 -type f -exec mv -t . '{}' +"
     os.system(command)
@@ -37,11 +32,20 @@ if __name__ == "__main__":
     # Remove synthesis files
     command = "rm *_list* *.fits *.tar *.pro *.dat *.reg *.wcs *.new"
     os.system(command)
-    # Remove all denotation
+    # Remove all indications 
     X_denotations = glob('X_*_X')
     for name in X_denotations:
         command = "mv {0} {1}".format(name, name[2:-2])     
         os.system(command)
+    return
+
+#--------------------------------------------
+# main code
+if __name__ == "__main__":
+    # measure times
+    start_time = time.time()
+    #----------------------------------------
+    undo_tat_reduction()
     #---------------------------------------
     # measuring time
     elapsed_time = time.time() - start_time

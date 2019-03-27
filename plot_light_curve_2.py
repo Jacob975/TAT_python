@@ -25,6 +25,30 @@ import TAT_env
 import matplotlib.pyplot as plt
 from reduction_lib import header_editor
 from input_lib import option_plotLC
+from astropy.time import Time
+
+def take_data_within(name, start_date, end_date):
+    #----------------------------------------
+    times = ['{0}-{1}-{2}T12:00:00'.format(start_date[:4], start_date[4:6], start_date[6:]), 
+             '{0}-{1}-{2}T12:00:00'.format(end_date[:4], end_date[4:6], end_date[6:])]
+    t = Time(times, format='isot', scale='utc')
+    start_jd = t.jd[0] 
+    end_jd = t.jd[1]
+    #----------------------------------------
+    # Query data
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    print 'target: {0}'.format(name)
+    print 'start JD : {0}'.format(start_jd)
+    print 'end JD: {0}'.format(end_jd)
+    cursor.execute('select * from {0} where `NAME` = "{1}" \
+                    and `JD` between {2} and {3}'\
+                    .format(TAT_env.obs_data_tb_name, name, start_jd, end_jd))
+    data = cursor.fetchall()
+    data = np.array(data)
+    cursor.close()
+    cnx.close()
+    return data
 
 def load_data(name):
     cnx = TAT_auth()
@@ -34,6 +58,8 @@ def load_data(name):
     cursor.close()
     cnx.close()
     return data
+
+
 #--------------------------------------------
 # Main code
 if __name__ == "__main__":
@@ -48,7 +74,7 @@ if __name__ == "__main__":
         stu.create()
         exit()
     options = argv[1]
-    where_they_from, data_name, ingress, egress = stu.load(options)
+    where_they_from, data_name, ingress, egress, start_date, end_date = stu.load(options)
     where_they_from = int(where_they_from)
     timing = 'OK'
     if ingress == 'skip' or egress == 'skip':
@@ -57,11 +83,15 @@ if __name__ == "__main__":
     else:
         ingress = float(ingress)
         egress = float(egress)
+
     #---------------------------------------
     # Load data
     data = None
-    if where_they_from == 2:
-        data = load_data(data_name)
+    if where_they_from == 2 and start_date != 'skip':
+        data = take_data_within(data_name, start_date, end_date)
+        data = np.array(data, dtype = object)
+    elif where_they_from == 2 and start_date == 'skip':
+        data = load_data(data_name)    
         data = np.array(data, dtype = object)
     elif where_they_from == 1:
         data = np.loadtxt(data_name, dtype = object)
@@ -106,7 +136,7 @@ if __name__ == "__main__":
         axs.plot([egress, egress],
                     [np.nanmedian(EP_MAG_array)-y_margin, np.nanmedian(EP_MAG_array)+y_margin],
                     zorder=1)
-    axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = data_name,zorder=3)
+    axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = data_name, markersize = 3, zorder=3)
     plt.legend()
     plt.savefig('light_curve.png')
     #---------------------------------------

@@ -141,7 +141,7 @@ star_table_titles = \
                      [  'NPIX',        29]]
 
 #------------- parameters for mysql table -----------------
-
+# All light source we found in the sky
 src_tb_name = 'source'
 
 src_titles = [ 'ID',
@@ -154,6 +154,8 @@ src_format = [ 'ID INT AUTO_INCREMENT PRIMARY KEY',
                'RA DOUBLE',         # The right accension when the first time it shows up.
                '`DEC` DOUBLE']      # The declination when the first time it shows up.
 
+#-----------------------
+# All exposure on all light sources.
 obs_data_tb_name = 'observation_data'
 
 obs_data_titles = \
@@ -228,6 +230,8 @@ obs_data_format = \
                         'HJD DOUBLE',       
                         'FILEID INT',]    
 
+#-----------------------
+# The light source we are intereted in.
 trg_tb_name = 'targets'
 
 trg_format = [\
@@ -256,9 +260,11 @@ trg_format = [\
                         '`BFE6` FLOAT',                     # best exposure time for filter 6
                         '`F6` VARCHAR(2)',]                 # filter6
 
-df_tb_name = 'data_file'
+#-----------------------
+# The image we take.
+im_tb_name = 'images'
 
-df_format = [\
+im_format = [\
                         '`ID` INT AUTO_INCREMENT PRIMARY KEY',
                         '`FILENAME` VARCHAR(80) UNIQUE',
                         '`FILEPATH` VARCHAR(80)',
@@ -277,12 +283,31 @@ df_format = [\
                         '`JD` DOUBLE',                # Julian Date
                         '`SUBBED` BOOLEAN',           # if the file has been subbed, it results True. Otherwise, it results False
                         '`FLATDIVED` BOOLEAN',]     # if the file has been divfitted, it results True. Otherwise, it results False
+#-----------------------
+site_tb_name = 'observatory'
 
+site_format = [\
+                        '`ID` int not null auto_increment primary key',
+                        '`SITENAME` varchar(20) UNIQUE',    # location of observatory
+                        '`SITELAT` varchar(20)',            # Latitude of the observatory
+                        '`SITELONG` varchar(20)',           # Longitude of the observatory
+                        '`SITEALT` varchar(20)'             # Altitude of the observatory
+                        ]
+#-----------------------
+# Where we put our images.
 ctn_tb_name = 'container'
+
+ctn_titles = [\
+                        '`ID`', 
+                        '`NAME`',
+                        '`PROCESSED`',
+                        '`COMMENT`']
 
 ctn_format = [\
                         '`ID` INT AUTO_INCREMENT PRIMARY KEY',
-                        '`NAME` VARCHAR(255)',]
+                        '`NAME` VARCHAR(255)',
+                        '`PROCESSED` VARCHAR(2)',
+                        '`COMMENT` VARCHAR(255)' ]
 
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.478 arcsec on TAT image with 25 cm telescope.

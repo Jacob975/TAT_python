@@ -22,6 +22,8 @@ import glob
 import time
 from sys import argv
 from reduction_lib import header_editor
+import mysqlio_lib
+from joblib import Parallel, delayed
 
 def check_header(name_image, PARAS):
     darkh=pyfits.getheader(name_image)
@@ -172,6 +174,11 @@ if __name__ == "__main__":
     print "Number of broken header: {0}".format(np.sum(bad_headers, dtype = int))
     if type_ != 'flat':
         print "Number of inconsistent background: {0}".format(np.sum(bad_bkgs, dtype = int))
+    #---------------------------------------
+    # Write to database
+    cwd = os.getcwd()
+    Parallel(   n_jobs=10)(\
+                delayed(mysqlio_lib.save2sql_images)(name, cwd) for name in image_list)
     #---------------------------------------
     # measuring time
     elapsed_time = time.time() - start_time
