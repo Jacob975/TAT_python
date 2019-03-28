@@ -88,7 +88,7 @@ if __name__ == "__main__":
     image_list = glob.glob("*.fit")
     if len(image_list) == 0:
         print "No image found, find_dark.py stop."
-        exit()
+        exit(1)
     # Initialize
     # get info from path
     path=os.getcwd()

@@ -23,7 +23,6 @@ import time
 from sys import argv
 from reduction_lib import header_editor
 import mysqlio_lib
-from joblib import Parallel, delayed
 
 def check_header(name_image, PARAS):
     darkh=pyfits.getheader(name_image)
@@ -177,8 +176,8 @@ if __name__ == "__main__":
     #---------------------------------------
     # Write to database
     cwd = os.getcwd()
-    Parallel(   n_jobs=10)(\
-                delayed(mysqlio_lib.save2sql_images)(name, cwd) for name in image_list)
+    for name in image_list:
+        mysqlio.save2sql_images(name, cwd)
     #---------------------------------------
     # measuring time
     elapsed_time = time.time() - start_time

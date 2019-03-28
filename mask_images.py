@@ -17,6 +17,7 @@ import numpy as np
 import time
 from sys import argv
 import os
+import mysqlio_lib
 #--------------------------------------------
 # Main code
 if __name__ == "__main__":
@@ -38,8 +39,16 @@ if __name__ == "__main__":
         # Mask
         data[:200] = np.nan
         # Save data
-        pyfits.writeto('{0}_mask.fits'.format(image_name[:-5]), data, header, overwrite = True)
-        print "{0}, done".format(image_name)
+        new_name = '{0}_mask.fits'.format(image_name[:-5])
+        pyfits.writeto( new_name, 
+                        data, 
+                        header, 
+                        overwrite = True)
+        print "{0}, done".format(new_name)
+        #---------------------------------------
+        # Write to database
+        cwd = os.getcwd()
+        mysqlio_lib.save2sql_images(new_name, cwd)
     # Save the result as a list
     temp = "ls *_mask.fits > masked_image_list.txt"
     os.system(temp)

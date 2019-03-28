@@ -161,7 +161,7 @@ def CATA_process(data):
         observation_data_ID = frame_data[:,ID_index]
         # save the result into database
         save2sql_CATA(mag_array, observation_data_ID)
-    return False
+    return 0 
 #--------------------------------------------
 # Main code
 if __name__ == "__main__":
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         print 'Usage: photometry.py [option file]' 
         print 'You should modify the [option file] before execution.'
         stu.create()
-        exit()
+        exit(1)
     options = argv[1]
     phot_type,\
     start_date,\

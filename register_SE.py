@@ -21,6 +21,7 @@ from register_lib import get_inner_product_SE as get_inner_product
 from starfinder import SExtractor 
 import os
 import TAT_env
+import mysqlio_lib
 
 class register:
     def __init__(self, se_table, name):
@@ -182,7 +183,12 @@ if __name__ == "__main__":
         # If registration is OK, save the shifted image
         if not failure:
             shift_image(image_list[i], offset_ym, offset_xm)
-            print "{0}_m.fits, OK".format(image_list[i][:-5])
+            new_name = "{0}_m.fits".format(image_list[i][:-5])
+            print "{0}, OK".format(new_name)
+            #---------------------------------------
+            # Write to database
+            cwd = os.getcwd()
+            mysqlio_lib.save2sql_images(new_name, cwd)
     os.system("ls *_m.fits > registed_image_list.txt")
     #---------------------------------------
     # Measure time

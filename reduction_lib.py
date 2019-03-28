@@ -18,7 +18,8 @@ import numpy as np
 from astropy import coordinates as coord, units as u
 from astropy import time as astrotime
 from uncertainties import unumpy, ufloat
-
+import os
+import mysqlio_lib
 #---------------------------------------------------------------------
 # basic fits processing
 
@@ -61,32 +62,41 @@ def subtract_images_subroutine(name, dark):
 # This is used to generate subDARK fits
 def subtract_images(image_list, dark_name):
     dark = pyfits.getdata(dark_name)
-    new_image_list = Parallel(  n_jobs=5)(\
-                                delayed(subtract_images_subroutine)(name, dark) for name in image_list)
+    new_image_list = []
+    for name in image_list:
+        imA = pyfits.getdata(name)
+        imAh = pyfits.getheader(name)
+        imAh['SUBBED'] = 1
+        imB = np.subtract(imA, dark)
+        sub_name = name.split(".")[0] 
+        new_name = "{0}_subDARK.fits".format(sub_name)
+        new_image_list.append(new_name)
+        pyfits.writeto(new_name, imB, imAh, overwrite = True)
+        print "{0}, OK".format(new_name)
+        #---------------------------------------
+        # Write to database
+        cwd = os.getcwd()
+        mysqlio_lib.save2sql_images(new_name, cwd)
     return new_image_list
-
-def divide_images_subroutine(name, flat):
-    imA = pyfits.getdata(name)
-    imAh = pyfits.getheader(name)
-    imAh['DIVED'] = 1
-    imB = np.divide(imA, flat)
-    sub_name = name.split(".")[0] 
-    new_name = "{0}_divFLAT.fits".format(sub_name)
-    new_image_list.append(new_name)
-    pyfits.writeto(new_name, imB, imAh, overwrite = True)
-    print "{0}, OK ".format(new_name)
-    #---------------------------------------
-    # Write to database
-    cwd = os.getcwd()
-    mysqlio_lib.save2sql_images(new_name, cwd)
-    return new_name
 
 # This is used to generate divFLAT fits
 def divide_images(image_list, flat_name):
     flat = pyfits.getdata(flat_name)
-    new_image_list = Parallel(  n_jobs=5)(\
-                                delayed(divide_images_subroutine)(name, flat) for name in image_list)
-    
+    new_image_list = []
+    for name in image_list:
+        imA = pyfits.getdata(name)
+        imAh = pyfits.getheader(name)
+        imAh['DIVED'] = 1
+        imB = np.divide(imA, flat)
+        sub_name = name.split(".")[0] 
+        new_name = "{0}_divFLAT.fits".format(sub_name)
+        new_image_list.append(new_name)
+        pyfits.writeto(new_name, imB, imAh, overwrite = True)
+        print "{0}, OK ".format(new_name)
+        #---------------------------------------
+        # Write to database
+        cwd = os.getcwd()
+        mysqlio_lib.save2sql_images(new_name, cwd)
     return new_image_list
 
 #----------------------------------------------

@@ -227,13 +227,49 @@ def save2sql_images(name, path):
     cnx.close()
     return 0
 
-def save2sql_container(ctn_data):
+def save2sql_container(name):
     cnx = TAT_auth()
     cursor = cnx.cursor()
     # create data base if not exist
     create_TAT_tables()
     # Save data into the table in the database.
-    cursor.execute("INSERT INTO {0} (`NAME`) VALUES ('{1}')".format( ctn_tb_name, ctn_data))
+    cursor.execute("INSERT INTO {0} (`NAME`) VALUES ('{1}')".format( ctn_tb_name, name))
+    # Make sure data is committed to the database.
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return 0
+
+def update2sql_container(   name, 
+                            stat, 
+                            comment, 
+                            append = False):
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    # create data base if not exist
+    create_TAT_tables()
+    # Check if this container exist
+    cursor.execute( "select * from {0} where `NAME` = '{1}'".format(
+                    ctn_tb_name,
+                    name))
+    tmp = cursor.fetchall()
+    if len(tmp) == 0:
+        save2sql_container(name)
+    actual_comment = comment
+    if append:
+        cursor.execute("select `COMMENT` from {0} where `NAME` = '{1}'".format(ctn_tb_name, name))
+        last_comment = cursor.fetchall()
+        actual_comment = last_comment[0][0] + comment
+        cnx.commit()
+    # Save data into the table in the database.
+    cursor.execute( "UPDATE {0} set `STATUS` = '{1}' where `NAME` = '{2}'".format( 
+                    ctn_tb_name, 
+                    stat,
+                    name))
+    cursor.execute( "UPDATE {0} set `COMMENT` = '{1}' where `NAME` = '{2}'".format( 
+                    ctn_tb_name, 
+                    actual_comment,
+                    name))
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()
@@ -241,7 +277,6 @@ def save2sql_container(ctn_data):
     return 0
 
 def create_TAT_tables():
-    print ("Check the TAT db.")
     cnx = TAT_auth()
     cursor = cnx.cursor()
     # Create table `observation_data`, which save the data getting from image. 
@@ -268,7 +303,6 @@ def create_TAT_tables():
     cnx.commit()
     cursor.close()
     cnx.close()
-    print ('Done')
     return 0
 
 def remove_TAT_tables():

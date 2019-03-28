@@ -23,6 +23,7 @@ import warnings
 import mysqlio_lib
 import undo_tat_reduction
 from joblib import Parallel, delayed
+import subprocess
 
 def data_reduction(site):
     #----------------------------------------------
@@ -58,7 +59,7 @@ def unproced_check(path_of_data, table_name):
     cnx = mysqlio_lib.TAT_auth()
     cursor = cnx.cursor()
     # Load data from table
-    cursor.execute('select `NAME` from TAT.{0}'.format(table_name))
+    cursor.execute('select `NAME` from TAT.{0} where `STATUS` = "Y"'.format(table_name))
     processed = np.array(cursor.fetchall(), dtype = str).flatten()
     cursor.close()
     cnx.close()
@@ -98,9 +99,15 @@ def check_cal(unproced_cal_list):
     return 0
 
 def check_cal_single(unpro_cal):
+    #-------------------------------------
+    # Create a row for this container into table `container`
+    mysqlio_lib.update2sql_container(unpro_cal, 
+                                    stat = 'N', 
+                                    comment = 'not finished yet')
+    #----------------------------------------
     band_list = TAT_env.band_list
     accumulated_exptime_list = []
-    print "Check DIR: {0}".format(unpro_cal)
+    print "Checking DIR: {0}".format(unpro_cal)
     os.chdir(unpro_cal)
     # Determine exptime
     image_list = glob.glob("{0}/*.fit".format(unpro_cal))
@@ -120,97 +127,115 @@ def check_cal_single(unpro_cal):
                         TAT_env.path_of_code, band, exptime))
     #-------------------------------------
     # Save comments and logs into table `container`
-    cnx = mysqlio_lib.TAT_auth()
-    cursor = cnx.cursor()
-    # create data base if not exist
-    mysqlio_lib.create_TAT_tables()
-    # Save data into the table in the database.
-    cursor.execute("INSERT INTO {0} ({1}) VALUES ({2})".format( 
-                    TAT_env.ctn_tb_name, 
-                    ', '.join(TAT_env.ctn_titles[1:]),
-                    ', '.join(['%s'] * len(TAT_env.ctn_titles[1:]))),
-                    (unpro_cal, 'Y', 'calibration'))
-    # Make sure data is committed to the database.
-    cnx.commit()
-    cursor.close()
-    cnx.close()
+    mysqlio_lib.update2sql_container(   unpro_cal, 
+                                        'Y', 
+                                        'calibrations')
     return 0
 
-def im_red_sub():
-    #-----------------------------
-    # For each container
-    print "Check DIR: {0}".format(unpro_data)
-    os.chdir(unpro_data)
-    # Check
-    for band in band_list:
-        os.system(  "{0}/check_image.py data {1} 0".format(
-                    TAT_env.path_of_code, 
-                    band))
-    # Arrange
-    os.system(  "{0}/arrange_images.py".format(
-                TAT_env.path_of_code))
-    # find dark and flat
-    target_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)] 
-    for target in target_list:
-        os.chdir(target)
-        band_exptime_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)] 
-        Parallel(   n_jobs=5)(
-                    delayed(im_red_subsub)(band_exptime) for band_exptime in band_exptime_list)
-        os.chdir('..')
-    return 0
-
-def im_red_subsub(band_exptime):
-    os.chdir(band_exptime)
+def im_red_subsub(unpro_data, target, band_exptime):
+    # Move to working directory
+    subsub_directory = '{0}/{1}/{2}'.format(unpro_data, target, band_exptime)
+    os.chdir(subsub_directory)
+    # Create a row in `container` for checking status.
+    mysqlio_lib.update2sql_container(subsub_directory, 
+                                    stat = 'N', 
+                                    comment = 'not finished yet')
     #--------------------------------------------------------------------------
     # check if dark were found. If no, find one.
     try:
         name_dark = glob.glob("Median_dark_*.fits")[0]
     except:
-        os.system("{0}/find_dark.py &> /dev/null".format(TAT_env.path_of_code))
+        exit_status = subprocess.call(  "{0}/find_dark.py  &> /dev/null".format(
+                                        TAT_env.path_of_code),
+                                        shell = True
+                                        )
+        if exit_status != 0:
+            mysqlio_lib.update2sql_container(subsub_directory, 
+                                            'D', 
+                                            'Dark not found',
+                                            )
+            return 1
     #--------------------------------------------------------------------------
     # check if flat were found. If no, find one.
     try:
         name_flat = glob.glob("Median_flat_*.fits")[0]
     except:
-        os.system("{0}/find_flat.py &> /dev/null".format(TAT_env.path_of_code))
+        exit_status = subprocess.call(  "{0}/find_flat.py  &> /dev/null".format(
+                                        TAT_env.path_of_code),
+                                        shell=True
+                                        )
+        if exit_status != 0:
+            mysqlio_lib.update2sql_container(subsub_directory, 
+                                            'F', 
+                                            'Flat not found',
+                                            )
+            return 1
     #--------------------------------------------------------------------------
     # Subtracted by dark and divided by flat
-    try:
-        reducted_images = np.loadtxt("reducted_image_list.txt", dtype = str)    
-    except:
-        # subtracted by darks and divided by flat
-        os.system("{0}/sub_div.py  &> /dev/null".format(TAT_env.path_of_code))
-    ''' check point '''
-    os.chdir('..')
-    return 0
+    exit_status = subprocess.call("{0}/sub_div.py  &> /dev/null".format(
+                    TAT_env.path_of_code),
+                    shell = True
+                    )
+    if exit_status != 0:
+        mysqlio_lib.update2sql_container(subsub_directory, 
+                                        'X', 
+                                        'sub_div.py failed',
+                                        )
+        return 1
     #--------------------------------------------------------------------------
-    # Mask the bad pixels
-    try:
-        masked_images = np.loadtxt("masked_image_list.txt", dtype = str)    
-    except:
-        # Mask the bad pixels 
-        os.system(  "{0}/mask_images.py reducted_image_list.txt  &> /dev/null".format(
-                    TAT_env.path_of_code))
+    # Mask the bad pixels 
+    exit_status = subprocess.call("{0}/mask_images.py reducted_image_list.txt  &> /dev/null".format(
+                    TAT_env.path_of_code), 
+                    shell = True
+                    )
+    if exit_status != 0:
+        mysqlio_lib.update2sql_container(subsub_directory,
+                                        'X',
+                                        'mask_images.py failed',
+                                        )
+        return 1
     #--------------------------------------------------------------------------
     # PSF register
     # try to load registed_image_list, which is produced by register.py
-    try: 
-        registed_images = np.loadtxt("registed_image_list.txt", dtype = str)
-    except:
-        os.system(  "{0}/register.py masked_image_list.txt".format(
-                    TAT_env.path_of_code))
-    #--------------------------------------------------------------------------
-    # Upload the information of all image to mysql database.
-    os.system("{0}/update_to_TAT_db.py".format(TAT_env.path_of_code))
+    exit_status = subprocess.call("{0}/register_SE.py masked_image_list.txt &> /dev/null".format(
+                    TAT_env.path_of_code),
+                    shell = True
+                    )
+    if exit_status != 0:
+        mysqlio_lib.update2sql_container(subsub_directory,
+                                        'X',
+                                        'register_SE.py fail',
+                                        )
+        return 1
     #--------------------------------------------------------------------------
     # Get WCS 
-    os.system(  "{0}/wcsfinder.py registed_image_list.txt".format(
-                TAT_env.path_of_code))
+    exit_status = subprocess.call("{0}/wcsfinder.py registed_image_list.txt &> /dev/null".format(
+                    TAT_env.path_of_code),
+                    shell = True
+                    )
+    if exit_status != 0:
+        mysqlio_lib.update2sql_container(subsub_directory,
+                                        'X',
+                                        'wcsfinder.py fail',
+                                        )
+        return 1
+
     #--------------------------------------------------------------------------
     # Find targets on images
     # Update to database.
-    os.system(  "{0}/starfinder.py registed_image_list.txt".format(
-                TAT_env.path_of_code))
+    exit_status = subprocess.call("{0}/starfinder.py registed_image_list.txt &> /dev/null".format(
+                    TAT_env.path_of_code),
+                    shell = True
+                    )
+    if exit_status != 0:
+        mysqlio_lib.update2sql_container(subsub_directory,
+                                        'X',
+                                        'starfinder.py fail',
+                                        )
+        return 1
+    ''' check point '''
+    mysqlio_lib.update2sql_container(subsub_directory, 'Y', '')
+    return 0
     #--------------------------------------------------------------------------
     # Do more CATA photometry.
     os.system("{0}/photometry.py CATA {0} {1}".format(start_date, end_date))
@@ -218,29 +243,37 @@ def im_red_subsub(band_exptime):
     # Save results into path of result.
     os.system("{0}/arrange_results.py".format(TAT_env.path_of_code))
     #--------------------------------------------------------------------------
-    os.chdir('..')
+    return 0
 
-def im_red_sub():
+def im_red_sub(unpro_data):
+    mysqlio_lib.update2sql_container(unpro_data, 
+                                    stat = 'N', 
+                                    comment = 'not finished yet')
     #-----------------------------
     # For each container
-    print "Check DIR: {0}".format(unpro_data)
+    print "Reducing DIR: {0}".format(unpro_data)
     os.chdir(unpro_data)
     # Check
     for band in TAT_env.band_list:
-        os.system(  "{0}/check_image.py data {1} 0".format(
+        os.system(  "{0}/check_image.py data {1} 0 &> /dev/null".format(
                     TAT_env.path_of_code, 
                     band))
     # Arrange
-    os.system(  "{0}/arrange_images.py".format(
+    os.system(  "{0}/arrange_images.py &> /dev/null".format(
                 TAT_env.path_of_code))
-    # find dark and flat
     target_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)] 
+    cwd = os.getcwd()
+    exit_status_list = []
     for target in target_list:
-        os.chdir(target)
-        band_exptime_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)] 
-        Parallel(   n_jobs=5)(
-                    delayed(im_red_subsub)(band_exptime) for band_exptime in band_exptime_list)
-        os.chdir('..')
+        os.chdir('{0}/{1}'.format(unpro_data, target))
+        band_exptime_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)]
+        for band_exptime in band_exptime_list:
+            exit_status = im_red_subsub(unpro_data, target, band_exptime)
+            exit_status_list.append(exit_status)
+    #-------------------------------------
+    # Say done if all file are processed 
+    if any(exit_status_list) == False:
+        mysqlio_lib.update2sql_container(unpro_data, 'Y', '')
     return 0
 
 def image_reduction(unprocessed_data_list): 

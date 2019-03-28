@@ -300,14 +300,21 @@ ctn_tb_name = 'container'
 ctn_titles = [\
                         '`ID`', 
                         '`NAME`',
-                        '`PROCESSED`',
+                        '`STATUS`',
                         '`COMMENT`']
 
 ctn_format = [\
                         '`ID` INT AUTO_INCREMENT PRIMARY KEY',
                         '`NAME` VARCHAR(255)',
-                        '`PROCESSED` VARCHAR(2)',
+                        '`STATUS` VARCHAR(2)',
                         '`COMMENT` VARCHAR(255)' ]
+# For status:
+# Y : Finished
+# N : Not finished yet
+# D : Dark not found
+# F : Flat not found
+# R : Reduction fail
+# X : Other issues
 
 #--------------- FOV------------------------------
 # 1 pixel is equal to 2.478 arcsec on TAT image with 25 cm telescope.
