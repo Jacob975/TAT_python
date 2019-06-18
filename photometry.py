@@ -98,7 +98,7 @@ def EP_process(data):
     cnx = TAT_auth()
     cursor = cnx.cursor()
     print fileIDs
-    cursor.execute('select * from data_file where `ID` = {0}'.format(fileIDs[0]))
+    cursor.execute('select * from {0} where `ID` = {1}'.format(TAT_env.im_tb_name, fileIDs[0]))
     img_data = cursor.fetchall()
     cursor.close()
     cnx.close()

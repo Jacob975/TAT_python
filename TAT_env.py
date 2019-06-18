@@ -295,7 +295,7 @@ site_format = [\
                         ]
 #-----------------------
 # Where we put our images.
-ctn_tb_name = 'container'
+ctn_tb_name = 'epoch'
 
 ctn_titles = [\
                         '`ID`', 
