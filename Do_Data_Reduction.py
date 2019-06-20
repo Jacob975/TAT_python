@@ -9,6 +9,7 @@ Usage:
         Y: Not finished yet
         D: Done
         X: Failed
+        E: Empty, no data
 
 Editor:
     Jacob975
@@ -43,14 +44,12 @@ def data_reduction(site):
     unproced_cal_list = unproced_check( path_of_calibrate, 
                                         table_name = TAT_env.ctn_tb_name)
     # Do reduction on calibration 
-    failure = undo(unproced_cal_list)
     failure = check_cal(unproced_cal_list)
     #----------------------------------------------
     # Pick the files which are not processed yet
     unproced_data_list = unproced_check(path_of_data, 
                                         table_name = TAT_env.ctn_tb_name)
     # Do reduction on data
-    failure = undo(unproced_data_list)
     failure = image_reduction(  unproced_data_list)
     return failure
 
@@ -83,15 +82,11 @@ def unproced_check(path_of_data, table_name):
     return unprocessed
 
 # The def for flattening files in a folder.
-def undo(unprocessed_list):
-    # Initialized the files saved below.
-    for unpro in unprocessed_list:
-        print ('--------------------------')
-        print unpro
-        os.chdir(unpro)
-        undo_tat_reduction.undo_tat_reduction()
-    os.system("cd")
-    return 0
+def undo(unpro):
+    os.chdir(unpro)
+    undo_tat_reduction.undo_tat_reduction()
+    os.system('cd')
+    return
 
 # The def for check header and quality of images in calibration.
 def check_cal(unproced_cal_list):
@@ -112,7 +107,10 @@ def check_cal_single(unpro_cal):
                                         stat = 'Y', 
                                         comment = 'Not finished yet, '
                                     )
+    # Undo everything before reduction
+    undo(unpro_cal)
     #----------------------------------------
+    # Check the quality of images.
     band_list = TAT_env.band_list
     accumulated_exptime_list = []
     print "Checking DIR: {0}".format(unpro_cal)
@@ -149,9 +147,9 @@ def im_red_subsub(unpro_data, target, band_exptime):
                         unpro_data, 
                         target, 
                         band_exptime)
-    os.chdir(subsub_directory)
     #--------------------------------------------------------------------------
     # check if dark were found. If no, find one.
+    os.chdir(subsub_directory)
     try:
         name_dark = glob.glob("Median_dark_*.fits")[0]
     except:
@@ -265,15 +263,26 @@ def im_red_sub(unpro_data):
     mysqlio_lib.update2sql_container(   unpro_data, 
                                         stat = 'Y', 
                                         comment = 'Not finished yet, ')
+    # Undo everything before reduction
+    undo(unpro_data)
     #-----------------------------
     # For each container
     print "Reducing DIR: {0}".format(unpro_data)
     os.chdir(unpro_data)
-    # Check
+    # Check the quality of the images.
     for band in TAT_env.band_list:
         os.system(  "{0}/check_image.py data {1} 0 &> /dev/null".format(
                     TAT_env.path_of_code, 
                     band))
+    # Confirm whether is any image in there.
+    image_list = glob.glob('./*.fit')
+    num_image = len(image_list)
+    if num_image == 0:
+        mysqlio_lib.update2sql_container(   unpro_data, 
+                                            'E', 
+                                            'No data',
+                                            )
+        return 3
     # Arrange
     os.system(  "{0}/arrange_images.py &> /dev/null".format(
                 TAT_env.path_of_code))
@@ -311,7 +320,7 @@ def im_red_sub(unpro_data):
                                             )
         return 2
     # Unexpected status
-    return 3
+    return -1
 
 def image_reduction(unprocessed_data_list): 
     # check if input list is empty
