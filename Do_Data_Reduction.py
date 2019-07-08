@@ -28,6 +28,7 @@ import time
 import glob
 import TAT_env
 import os
+import re
 import warnings
 import mysqlio_lib
 import undo_tat_reduction
@@ -37,24 +38,26 @@ import subprocess
 def data_reduction(site):
     #----------------------------------------------
     # Load where we save data and calibration files 
-    path_of_data = "{0}/{1}/image".format(TAT_env.path_of_image, site)
-    path_of_calibrate = "{0}/{1}/calibrate".format(TAT_env.path_of_image, site)
+    path_of_raw_data = "{0}/{1}/image".format(TAT_env.path_of_image, site)
+    path_of_raw_calibrate = "{0}/{1}/calibrate".format(TAT_env.path_of_image, site)
     #----------------------------------------------
     # Pick the files which are not processed yet
-    unproced_cal_list = unproced_check( path_of_calibrate, 
+    unproced_cal_list= unproced_check(  path_of_raw_calibrate, 
                                         table_name = TAT_env.ctn_tb_name)
+    print unproced_cal_list
     # Do reduction on calibration 
     failure = check_cal(unproced_cal_list)
     #----------------------------------------------
     # Pick the files which are not processed yet
-    unproced_data_list = unproced_check(path_of_data, 
+    unproced_data_list= unproced_check( path_of_raw_data, 
                                         table_name = TAT_env.ctn_tb_name)
+    print unproced_data_list
     # Do reduction on data
     failure = image_reduction(  unproced_data_list)
-    return failure
+    #return failure
 
 # The def for checking which date is not processed.
-def unproced_check(path_of_data, table_name):
+def unproced_check(path_of_raw_data, table_name):
     print ("Check unprocessed files.")
     # Initialized
     unprocessed = []
@@ -72,12 +75,14 @@ def unproced_check(path_of_data, table_name):
     cnx.close()
     #-------------------------------------
     # It takes the name of the data, and then matches with the list of processed data. 
-    candidates = glob.glob("{0}/20*".format(path_of_data))
+    candidates = glob.glob("{0}/20*".format(path_of_raw_data))
     for cand in candidates:
-        temp = np.where(processed == cand)
+        # Take the short (base) name
+        base_cand = re.sub(TAT_env.path_of_image, '', cand)
+        temp = np.where(processed == base_cand)
         # Not found
         if len(temp[0]) == 0:
-            unprocessed.append(cand)
+            unprocessed.append(base_cand)
     unprocessed = np.array(unprocessed, dtype = str)
     return unprocessed
 
@@ -100,23 +105,30 @@ def check_cal(unproced_cal_list):
                 delayed(check_cal_single)(unpro_cal) for unpro_cal in unproced_cal_list)
     return 0
 
-def check_cal_single(unpro_cal):
+def check_cal_single(unpro_cal, undo = False):
     #-------------------------------------
     # Create a row for this container into table `container`
     mysqlio_lib.update2sql_container(   unpro_cal, 
                                         stat = 'Y', 
                                         comment = 'Not finished yet, '
                                     )
+    # Get the fullname of that folder
+    fullpath_unpro_raw_cal = '{0}/{1}'.format(  TAT_env.path_of_image,
+                                                unpro_cal)
+    fullpath_unpro_cal = '{0}/{1}'.format(  TAT_env.path_of_data, 
+                                            unpro_cal)
     # Undo everything before reduction
-    undo(unpro_cal)
+    if undo:
+        undo(fullpath_unpro_cal)
+    # Move good calibrator to the destination
     #----------------------------------------
     # Check the quality of images.
     band_list = TAT_env.band_list
     accumulated_exptime_list = []
-    print "Checking DIR: {0}".format(unpro_cal)
-    os.chdir(unpro_cal)
+    print "Checking DIR: {0}".format(fullpath_unpro_cal)
+    os.chdir(fullpath_unpro_raw_cal)
     # Determine exptime
-    image_list = glob.glob("{0}/*.fit".format(unpro_cal))
+    image_list = glob.glob("{0}/*.fit".format(fullpath_unpro_raw_cal))
     for name_image in image_list:
         sub_name_1 = name_image.split('x')
         sub_name_2 = sub_name_1[1].split('.fit')
@@ -135,7 +147,7 @@ def check_cal_single(unpro_cal):
                         band, 
                         exptime))
     #-------------------------------------
-    # Save comments and logs into table `container`
+    # Save comments and logs into table `container`(epoch)
     mysqlio_lib.update2sql_container(   unpro_cal, 
                                         'D', 
                                         'Calibrations')
@@ -259,21 +271,31 @@ def im_red_subsub(unpro_data, target, band_exptime):
     #--------------------------------------------------------------------------
     return 0
 
-def im_red_sub(unpro_data):
+def im_red_sub(unpro_data, undo = False):
     mysqlio_lib.update2sql_container(   unpro_data, 
                                         stat = 'Y', 
                                         comment = 'Not finished yet, ')
+    
+    # Get the fullname of that folder
+    fullpath_unpro_raw_data = '{0}/{1}'.format( TAT_env.path_of_image, 
+                                                unpro_data)
+    fullpath_unpro_data = '{0}/{1}'.format(  TAT_env.path_of_data, 
+                                            unpro_data)
+    
     # Undo everything before reduction
-    undo(unpro_data)
+    if undo:
+        undo(fullpath_unpro_data)
     #-----------------------------
     # For each container
-    print "Reducing DIR: {0}".format(unpro_data)
-    os.chdir(unpro_data)
+    print "Reducing DIR: {0}".format(fullpath_unpro_data)
+    os.chdir(fullpath_unpro_raw_data)
     # Check the quality of the images.
     for band in TAT_env.band_list:
         os.system(  "{0}/check_image.py data {1} 0 &> /dev/null".format(
                     TAT_env.path_of_code, 
                     band))
+    # Move to the reduction
+    os.chdir(fullpath_unpro_data)
     # Confirm whether is any image in there.
     image_list = glob.glob('./*.fit')
     num_image = len(image_list)
@@ -290,10 +312,10 @@ def im_red_sub(unpro_data):
     cwd = os.getcwd()
     exit_status_list = []
     for target in target_list:
-        os.chdir('{0}/{1}'.format(unpro_data, target))
+        os.chdir('{0}/{1}'.format(fullpath_unpro_data, target))
         band_exptime_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)]
         for band_exptime in band_exptime_list:
-            exit_status = im_red_subsub(unpro_data, target, band_exptime)
+            exit_status = im_red_subsub(fullpath_unpro_data, target, band_exptime)
             exit_status_list.append(exit_status)
     #-------------------------------------
     # Say done if all file are processed 

@@ -21,7 +21,7 @@ import os
 from glob import glob
 import time
 import TAT_env
-
+from sys import argv
 def undo_tat_reduction():
     # Move images back to base directory
     command = "find . -mindepth 2 -type f -exec mv -t . '{}' +"
@@ -30,7 +30,7 @@ def undo_tat_reduction():
     command = "rm -R -- */"
     os.system(command)
     # Remove synthesis files
-    command = "rm *_list* *.fits *.tar *.pro *.dat *.reg *.wcs *.new"
+    command = "rm *_list* *.fits *.tar *.pro *.dat *.reg *.new"
     os.system(command)
     # Remove all indications 
     X_denotations = glob('X_*_X')
@@ -45,7 +45,13 @@ if __name__ == "__main__":
     # measure times
     start_time = time.time()
     #----------------------------------------
+    working_dir = os.getcwd()
+    given_dir = working_dir
+    if len(argv) == 2:
+        given_dir = argv[1]
+    os.chdir(given_dir)
     undo_tat_reduction()
+    os.chdir(working_dir)
     #---------------------------------------
     # measuring time
     elapsed_time = time.time() - start_time

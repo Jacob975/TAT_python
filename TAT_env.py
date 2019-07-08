@@ -29,7 +29,7 @@ update log
 path_of_python = "/usr/bin/python"
 
 #--------------- Setting source path ----------------
-# source path means where will you put your row image.
+# Here you put your raw image.
 # recommand: /home/username
 path_of_image = "/home2/TAT/data/raw"
 
@@ -39,7 +39,8 @@ path_of_image = "/home2/TAT/data/raw"
 path_of_code = "/home2/TAT/programs/TATIRP"
 
 #--------------- Name of Folders---------------------
-path_of_result = "/home2/TAT_test/reduction"
+# Here you put the reduced images.
+path_of_data = "/home2/TAT/data/reduction"
 
 #--------------- Object list---------------------------------
 # every object recorded below will be read
