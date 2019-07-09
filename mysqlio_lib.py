@@ -259,7 +259,12 @@ def update2sql_container(   name,
     if append:
         cursor.execute("select `COMMENT` from {0} where `NAME` = '{1}'".format(ctn_tb_name, name))
         last_comment = cursor.fetchall()
-        actual_comment = last_comment[0][0] + comment
+        try:
+            actual_comment = '{0}{1}'.format(   last_comment[0][0], 
+                                                comment)
+        except:
+            print last_comment
+            actual_comment = comment
         cnx.commit()
     # Save data into the table in the database.
     cursor.execute( "UPDATE {0} set `STATUS` = '{1}' where `NAME` = '{2}'".format( 

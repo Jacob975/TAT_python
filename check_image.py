@@ -210,11 +210,11 @@ if __name__ == "__main__":
     np.savetxt('bad_images.txt', bad_image_array, fmt = '%s')
     # Send a copy to result path
     rest_dir = re.sub(TAT_env.path_of_image, '', cwd)
-    command = 'mkdir {0}/{1}'.format(TAT_env.path_of_data, rest_dir)
+    command = 'mkdir -p {0}{1}'.format(TAT_env.path_of_data, rest_dir)
     print command
     os.system(command)
     for image_name in good_image_array:
-        command = 'cp {0} {1}/{2}/{0}'.format(  image_name, 
+        command = 'cp {0} {1}{2}/{0}'.format(  image_name, 
                                                 TAT_env.path_of_data,
                                                 rest_dir,
                                                 )

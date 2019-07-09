@@ -44,17 +44,17 @@ def data_reduction(site):
     # Pick the files which are not processed yet
     unproced_cal_list= unproced_check(  path_of_raw_calibrate, 
                                         table_name = TAT_env.ctn_tb_name)
-    print unproced_cal_list
     # Do reduction on calibration 
-    failure = check_cal(unproced_cal_list)
+    failure = check_cal(unproced_cal_list, 
+                        undo = True)
     #----------------------------------------------
     # Pick the files which are not processed yet
     unproced_data_list= unproced_check( path_of_raw_data, 
                                         table_name = TAT_env.ctn_tb_name)
-    print unproced_data_list
     # Do reduction on data
-    failure = image_reduction(  unproced_data_list)
-    #return failure
+    failure = image_reduction(  unproced_data_list, 
+                                undo = True)
+    return failure
 
 # The def for checking which date is not processed.
 def unproced_check(path_of_raw_data, table_name):
@@ -87,14 +87,14 @@ def unproced_check(path_of_raw_data, table_name):
     return unprocessed
 
 # The def for flattening files in a folder.
-def undo(unpro):
+def undo_reduction(unpro):
     os.chdir(unpro)
     undo_tat_reduction.undo_tat_reduction()
     os.system('cd')
     return
 
 # The def for check header and quality of images in calibration.
-def check_cal(unproced_cal_list):
+def check_cal(unproced_cal_list, undo = False):
     # check if input list is empty
     if len(unproced_cal_list) == 0:
         print "No unprocessed calibrate, check_cal stop"
@@ -102,7 +102,7 @@ def check_cal(unproced_cal_list):
     #------------------------------
     # Do parallel
     Parallel(   n_jobs=20)(
-                delayed(check_cal_single)(unpro_cal) for unpro_cal in unproced_cal_list)
+                delayed(check_cal_single)(unpro_cal, undo) for unpro_cal in unproced_cal_list)
     return 0
 
 def check_cal_single(unpro_cal, undo = False):
@@ -113,13 +113,15 @@ def check_cal_single(unpro_cal, undo = False):
                                         comment = 'Not finished yet, '
                                     )
     # Get the fullname of that folder
-    fullpath_unpro_raw_cal = '{0}/{1}'.format(  TAT_env.path_of_image,
+    fullpath_unpro_raw_cal = '{0}{1}'.format(  TAT_env.path_of_image,
                                                 unpro_cal)
-    fullpath_unpro_cal = '{0}/{1}'.format(  TAT_env.path_of_data, 
+    fullpath_unpro_cal = '{0}{1}'.format(  TAT_env.path_of_data, 
                                             unpro_cal)
+    # Make a directory before cleaning
+    os.system('mkdir -p {0}'.format(fullpath_unpro_cal))
     # Undo everything before reduction
     if undo:
-        undo(fullpath_unpro_cal)
+        undo_reduction(fullpath_unpro_cal)
     # Move good calibrator to the destination
     #----------------------------------------
     # Check the quality of images.
@@ -153,10 +155,13 @@ def check_cal_single(unpro_cal, undo = False):
                                         'Calibrations')
     return 0
 
-def im_red_subsub(unpro_data, target, band_exptime):
+def im_red_subsub(  fullpath_unpro_data, 
+                    unpro_data, 
+                    target, 
+                    band_exptime):
     # Move to working directory
     subsub_directory =  '{0}/{1}/{2}'.format(
-                        unpro_data, 
+                        fullpath_unpro_data, 
                         target, 
                         band_exptime)
     #--------------------------------------------------------------------------
@@ -277,14 +282,16 @@ def im_red_sub(unpro_data, undo = False):
                                         comment = 'Not finished yet, ')
     
     # Get the fullname of that folder
-    fullpath_unpro_raw_data = '{0}/{1}'.format( TAT_env.path_of_image, 
+    fullpath_unpro_raw_data = '{0}{1}'.format( TAT_env.path_of_image, 
                                                 unpro_data)
-    fullpath_unpro_data = '{0}/{1}'.format(  TAT_env.path_of_data, 
+    fullpath_unpro_data = '{0}{1}'.format(  TAT_env.path_of_data, 
                                             unpro_data)
     
+    # Make directory before cleaning
+    os.system('mkdir -p {0}'.format(fullpath_unpro_data))
     # Undo everything before reduction
     if undo:
-        undo(fullpath_unpro_data)
+        undo_reduction(fullpath_unpro_data)
     #-----------------------------
     # For each container
     print "Reducing DIR: {0}".format(fullpath_unpro_data)
@@ -315,7 +322,10 @@ def im_red_sub(unpro_data, undo = False):
         os.chdir('{0}/{1}'.format(fullpath_unpro_data, target))
         band_exptime_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)]
         for band_exptime in band_exptime_list:
-            exit_status = im_red_subsub(fullpath_unpro_data, target, band_exptime)
+            exit_status = im_red_subsub(fullpath_unpro_data, 
+                                        unpro_data,
+                                        target, 
+                                        band_exptime)
             exit_status_list.append(exit_status)
     #-------------------------------------
     # Say done if all file are processed 
@@ -344,14 +354,14 @@ def im_red_sub(unpro_data, undo = False):
     # Unexpected status
     return -1
 
-def image_reduction(unprocessed_data_list): 
+def image_reduction(unprocessed_data_list, undo = False): 
     # check if input list is empty
     if len(unprocessed_data_list) == 0:
         print "No unprocessed data, image_reduction stop"
         return 1
     # Do it parallel
     Parallel(   n_jobs=20)(
-                delayed(im_red_sub)(unpro_data) for unpro_data in unprocessed_data_list)
+                delayed(im_red_sub)(unpro_data, undo) for unpro_data in unprocessed_data_list)
     return 0 
 
 #--------------------------------------------
