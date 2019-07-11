@@ -116,7 +116,7 @@ class register:
             return 1, 0, 0
         offset_xm = np.median(offset_xs)
         offset_ym = np.median(offset_ys)
-        print "--- offset_xm = {0}, offset_ym = {1}".format(offset_xm, offset_ym)
+        print "offset_xm = {0}, offset_ym = {1}".format(offset_xm, offset_ym)
         return 0, offset_xm, offset_ym
 
 def shift_image(name_image, offset_x, offset_y):

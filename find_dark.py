@@ -44,14 +44,15 @@ def match_date(current_date, date_list):
     nearest_date = str(date_list[index])
     return nearest_date
 
-def stack_mdn_method(fits_list):
+def stack_mdn_method(name_list):
     data_list = []
-    for name in fits_list:
+    # Use the first 20 image only, or it would be out of buffer.
+    for name in name_list[:20]:
         data = pyfits.getdata(name)
         data_list.append(data)
     data_list = np.array(data_list)
-    sum_fits = np.median(data_list, axis = 0)
-    return sum_fits
+    mdn_data = np.median(data_list, axis = 0)
+    return mdn_data
 
 def get_dark_to(site, exptime, date, path_of_dark):
     temp_path=os.getcwd()
@@ -127,10 +128,10 @@ if __name__ == "__main__":
             exit(1)
     os.chdir(path_of_dark)
     dark_list = glob.glob('dark*.fit')
-    m_dark = stack_mdn_method(dark_list)
+    mdn_dark = stack_mdn_method(dark_list)
     Median_dark_name="Median_dark_{0}_{1}.fits".format(date, exptime)
-    print ("The dark name is :"+Median_dark_name)
-    pyfits.writeto(Median_dark_name, m_dark, overwrite= True)
+    print ("The dark name is :" + Median_dark_name)
+    pyfits.writeto(Median_dark_name, mdn_dark, overwrite= True)
     command="cp -R {0} {1}".format(Median_dark_name, path)
     os.system(command)
     #---------------------------------------

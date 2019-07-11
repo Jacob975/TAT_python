@@ -79,24 +79,25 @@ def bkg_info(name_image):
     return 0, mean_bkg, std_bkg
 
 def add_jd_airmass_info(name_image):
-    data = pyfits.getdata(name_image)
-    header = pyfits.getheader(name_image)
+    # Initialized
     try:
+        tmp_data = pyfits.getdata(name_image)
+        header = pyfits.getheader(name_image)
         stu = header_editor(header)
         jd = stu.jd
         mjd = stu.mjd()
         hjd = stu.hjd()
         bjd = stu.bjd()
         air_mass = stu.air_mass().value
+        header["JD"] = jd
+        header["MJD"] = mjd
+        header["HJD"] = (hjd, "Heliocentric Julian Date")
+        header["BJD"] = (bjd, "Barycentric, Julian Date")
+        header["AIRMASS"] = (air_mass, "Air mass when a half of exposure.")
+        pyfits.writeto(name_image, tmp_data, header, overwrite = True)
     except:
         print "Fail to update header with HJD, BJD, AIRMASS."
         return 1
-    header["JD"] = jd
-    header["MJD"] = mjd
-    header["HJD"] = (hjd, "Heliocentric Julian Date")
-    header["BJD"] = (bjd, "Barycentric, Julian Date")
-    header["AIRMASS"] = (air_mass, "Air mass when a half of exposure.")
-    pyfits.writeto(name_image, data, header, overwrite = True)
     return 0
 
 #--------------------------------------------

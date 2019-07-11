@@ -63,20 +63,25 @@ def subtract_images_subroutine(name, dark):
 def subtract_images(image_list, dark_name):
     dark = pyfits.getdata(dark_name)
     new_image_list = []
+    print (len(image_list))
     for name in image_list:
-        imA = pyfits.getdata(name)
-        imAh = pyfits.getheader(name)
-        imAh['SUBBED'] = 1
-        imB = np.subtract(imA, dark)
-        sub_name = name.split(".")[0] 
-        new_name = "{0}_subDARK.fits".format(sub_name)
-        new_image_list.append(new_name)
-        pyfits.writeto(new_name, imB, imAh, overwrite = True)
-        print "{0}, OK".format(new_name)
-        #---------------------------------------
-        # Write to database
-        cwd = os.getcwd()
-        mysqlio_lib.save2sql_images(new_name, cwd)
+        try:
+            imA = pyfits.getdata(name)
+            imAh = pyfits.getheader(name)
+            imAh['SUBBED'] = 1
+            imB = np.subtract(imA, dark)
+            sub_name = name.split(".")[0] 
+            new_name = "{0}_subDARK.fits".format(sub_name)
+            new_image_list.append(new_name)
+            pyfits.writeto(new_name, imB, imAh, overwrite = True)
+            print "{0}, OK".format(new_name)
+            #---------------------------------------
+            # Write to database
+            cwd = os.getcwd()
+            mysqlio_lib.save2sql_images(new_name, cwd)
+        except:
+            print "{0} cannot be subtracted by dark".format(name)
+            pass
     return new_image_list
 
 # This is used to generate divFLAT fits

@@ -170,7 +170,8 @@ def im_red_subsub(  fullpath_unpro_data,
     try:
         name_dark = glob.glob("Median_dark_*.fits")[0]
     except:
-        exit_status = subprocess.call(  "{0}/find_dark.py  &> /dev/null".format(
+        #exit_status = subprocess.call(  "{0}/find_dark.py  &> /dev/null".format(
+        exit_status = subprocess.call(  "{0}/find_dark.py".format(
                                         TAT_env.path_of_code),
                                         shell = True
                                         )
@@ -186,7 +187,8 @@ def im_red_subsub(  fullpath_unpro_data,
     try:
         name_flat = glob.glob("Median_flat_*.fits")[0]
     except:
-        exit_status = subprocess.call(  "{0}/find_flat.py  &> /dev/null".format(
+        #exit_status = subprocess.call(  "{0}/find_flat.py  &> /dev/null".format(
+        exit_status = subprocess.call(  "{0}/find_flat.py".format(
                                         TAT_env.path_of_code),
                                         shell=True
                                         )
@@ -199,7 +201,8 @@ def im_red_subsub(  fullpath_unpro_data,
             return 1
     #--------------------------------------------------------------------------
     # Subtracted by dark and divided by flat
-    exit_status = subprocess.call(  "{0}/sub_div.py  &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/sub_div.py  &> /dev/null".format(
+    exit_status = subprocess.call(  "{0}/sub_div.py".format(
                                     TAT_env.path_of_code),
                                     shell = True
                                     )
@@ -212,7 +215,8 @@ def im_red_subsub(  fullpath_unpro_data,
         return 2
     #--------------------------------------------------------------------------
     # Mask the bad pixels 
-    exit_status = subprocess.call(  "{0}/mask_images.py reducted_image_list.txt  &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/mask_images.py reducted_image_list.txt  &> /dev/null".format(
+    exit_status = subprocess.call(  "{0}/mask_images.py reducted_image_list.txt".format(
                                     TAT_env.path_of_code), 
                                     shell = True
                                     )
@@ -226,7 +230,8 @@ def im_red_subsub(  fullpath_unpro_data,
     #--------------------------------------------------------------------------
     # PSF register
     # try to load registed_image_list, which is produced by register.py
-    exit_status = subprocess.call(  "{0}/register_SE.py masked_image_list.txt &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/register_SE.py masked_image_list.txt &> /dev/null".format(
+    exit_status = subprocess.call(  "{0}/register_SE.py masked_image_list.txt".format(
                                     TAT_env.path_of_code),
                                     shell = True
                                     )
@@ -239,7 +244,8 @@ def im_red_subsub(  fullpath_unpro_data,
         return 2
     #--------------------------------------------------------------------------
     # Get WCS 
-    exit_status = subprocess.call(  "{0}/wcsfinder.py registed_image_list.txt &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/wcsfinder.py registed_image_list.txt &> /dev/null".format(
+    exit_status = subprocess.call(  "{0}/wcsfinder.py registed_image_list.txt".format(
                                     TAT_env.path_of_code),
                                     shell = True
                                     )
@@ -254,7 +260,8 @@ def im_red_subsub(  fullpath_unpro_data,
     #--------------------------------------------------------------------------
     # Find targets on images
     # Update to database.
-    exit_status = subprocess.call(  "{0}/starfinder.py registed_image_list.txt &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/starfinder.py registed_image_list.txt &> /dev/null".format(
+    exit_status = subprocess.call(  "{0}/starfinder.py registed_image_list.txt".format(
                                     TAT_env.path_of_code),
                                     shell = True
                                     )
@@ -272,7 +279,7 @@ def im_red_subsub(  fullpath_unpro_data,
     os.system("{0}/photometry.py CATA {0} {1}".format(start_date, end_date))
     #--------------------------------------------------------------------------
     # Save results into path of result.
-    os.system("{0}/arrange_results.py".format(TAT_env.path_of_code))
+    os.system("rename _subDARK_divFLAT_m.fits _reduce.fits *.fits")
     #--------------------------------------------------------------------------
     return 0
 
@@ -295,10 +302,12 @@ def im_red_sub(unpro_data, undo = False):
     #-----------------------------
     # For each container
     print "Reducing DIR: {0}".format(fullpath_unpro_data)
+    # Move to the raw data
     os.chdir(fullpath_unpro_raw_data)
     # Check the quality of the images.
     for band in TAT_env.band_list:
-        os.system(  "{0}/check_image.py data {1} 0 &> /dev/null".format(
+        #os.system(  "{0}/check_image.py data {1} 0 &> /dev/null".format(
+        os.system(  "{0}/check_image.py data {1} 0".format(
                     TAT_env.path_of_code, 
                     band))
     # Move to the reduction
@@ -319,6 +328,7 @@ def im_red_sub(unpro_data, undo = False):
     cwd = os.getcwd()
     exit_status_list = []
     for target in target_list:
+        # Move to the reduction with specific band and exptime.
         os.chdir('{0}/{1}'.format(fullpath_unpro_data, target))
         band_exptime_list = [d for d in os.listdir(os.getcwd()) if os.path.isdir(d)]
         for band_exptime in band_exptime_list:
@@ -360,8 +370,12 @@ def image_reduction(unprocessed_data_list, undo = False):
         print "No unprocessed data, image_reduction stop"
         return 1
     # Do it parallel
+    for unpro_data in unprocessed_data_list:
+        failure = im_red_sub(unpro_data, undo)
+    '''
     Parallel(   n_jobs=20)(
                 delayed(im_red_sub)(unpro_data, undo) for unpro_data in unprocessed_data_list)
+    '''
     return 0 
 
 #--------------------------------------------

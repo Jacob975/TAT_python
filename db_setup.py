@@ -18,7 +18,7 @@ import numpy as np
 import time
 from sys import argv
 import mysqlio_lib
-
+import TAT_env
 #--------------------------------------------
 # main code
 if __name__ == "__main__":
@@ -29,7 +29,10 @@ if __name__ == "__main__":
     if len(argv) != 2:
         print "Error! The number of arguments is wrong."
         print "Usage: db_setup.py [option]"
-        print "Available options: create, recreate."
+        print "Available options: create, recreate, remove_{0}, remove_{1}, remove_{2}, remove_{3}.".format(TAT_env.obs_data_tb_name,
+                                                                                                            TAT_env.src_tb_name,
+                                                                                                            TAT_env.im_tb_name,
+                                                                                                            TAT_env.ctn_tb_name)
         exit()
     option = argv[1]
     #----------------------------------------
@@ -38,6 +41,18 @@ if __name__ == "__main__":
         mysqlio_lib.create_TAT_tables()    
     elif option == 'recreate':
         mysqlio_lib.remove_TAT_tables()
+        mysqlio_lib.create_TAT_tables()
+    elif option == 'recreate_{0}'.format(TAT_env.obs_data_tb_name):
+        mysqlio_lib.remove_obs_data_table()
+        mysqlio_lib.create_TAT_tables()
+    elif option == 'recreate_{0}'.format(TAT_env.src_tb_name):
+        mysqlio_lib.remove_src_data_table()
+        mysqlio_lib.create_TAT_tables()
+    elif option == 'recreate_{0}'.format(TAT_env.im_tb_name):
+        mysqlio_lib.remove_im_data_table()
+        mysqlio_lib.create_TAT_tables()
+    elif option == 'recreate_{0}'.format(TAT_env.ctn_tb_name):
+        mysqlio_lib.remove_epoch_table()
         mysqlio_lib.create_TAT_tables()
     else:
         print 'Wrong input option!'

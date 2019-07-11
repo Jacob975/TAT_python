@@ -45,18 +45,39 @@ def save2sql(data, new_sources = None, new = None):
     cursor = cnx.cursor()
     # create data base if not exist
     create_TAT_tables()
+    # Check if the source exist.
+    cursor.execute( "select * from {0} where `NAME` = '{1}'".format(
+                    obs_data_tb_name,
+                    source))
+    tmp = cursor.fetchall()
+    if len(tmp) == 0:
+        save2sql_container(name)
+
     # Save data into the table in the database.
     for source in data:
-        cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name,  
-                                                                    ', '.join(obs_data_titles[1:]), 
-                                                                    ', '.join(['%s'] * len(obs_data_titles[1:]))), 
-                        tuple(source[1:]))
+        # Check if the detection saved before.
+        cursor.execute( "select * from {0} where `NAME` = '{1}' and `BJD` = '{2}'".format(
+                        obs_data_tb_name,
+                        # NAME, BJD
+                        source[1], source[3]))
+        tmp = cursor.fetchall()
+        # If no, save it.
+        if len(tmp) == 0:
+            cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name,  
+                                                                        ', '.join(obs_data_titles[1:]), 
+                                                                        ', '.join(['%s'] * len(obs_data_titles[1:]))), 
+                            tuple(source[1:]))
+            cnx.commit()
+        # If do, skip it.
+        else:
+            continue
     if new:
         for source in new_sources:
             cursor.execute("insert into {0} ( {1} ) values ({2})".format( src_tb_name, 
                                                                         ', '.join(src_titles[1:]), 
                                                                         ', '.join(['%s'] * len(src_titles[1:]))), 
                             tuple(source))
+            cnx.commit()
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()
@@ -310,21 +331,51 @@ def create_TAT_tables():
     cnx.close()
     return 0
 
-def remove_TAT_tables():
+def remove_obs_data_table():
     cnx = TAT_auth()
     cursor = cnx.cursor()
-    # remove table `observation_data` and `source_name`
     sql = 'drop table {0}'.format(obs_data_tb_name)
     cursor.execute(sql)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return 0
+
+def remove_src_data_table():
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
     sql = 'drop table {0}'.format(src_tb_name)
     cursor.execute(sql)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return 0
+
+def remove_im_table():
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
     sql = 'drop table {0}'.format(im_tb_name)
     cursor.execute(sql)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    return 0
+
+def remove_epoch_table():
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
     sql = 'drop table {0}'.format(ctn_tb_name)
     cursor.execute(sql)
     cnx.commit()
     cursor.close()
     cnx.close()
+    return 0
+
+def remove_TAT_tables():
+    remove_obs_data_table()
+    remove_src_data_table()
+    remove_im_table()
+    remove_epoch_table()
     return 0
 
 def find_source_match_coords(ra = np.nan, dec = np.nan, margin = 0.0):
