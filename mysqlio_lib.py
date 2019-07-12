@@ -45,13 +45,6 @@ def save2sql(data, new_sources = None, new = None):
     cursor = cnx.cursor()
     # create data base if not exist
     create_TAT_tables()
-    # Check if the source exist.
-    cursor.execute( "select * from {0} where `NAME` = '{1}'".format(
-                    obs_data_tb_name,
-                    source))
-    tmp = cursor.fetchall()
-    if len(tmp) == 0:
-        save2sql_container(name)
 
     # Save data into the table in the database.
     for source in data:
