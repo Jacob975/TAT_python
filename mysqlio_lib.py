@@ -128,23 +128,19 @@ def save2sql_images(name, path):
     except:
         return 1
     key=header.keys()                   # Read the variable key from header.   
-    datakey=[]                          # Define the datakey as a list. 
-
-    # Describe the images, the table. 
-    try:
-        sql= "desc {0}".format(im_tb_name)                      
-        cursor.execute(sql)
-        results=cursor.fetchall()      # The result of the Mysql command "desc images"
-    # if command "desc images" were wrong, it would output error
-    except:
-        print "Error: unable to fetch data"
-        return 1
+    datakey=TAT_env.im_titles           # Define the datakey as a list. 
     
-    # We just need the first column of "desc images"
-    # Its meaning is the all key in the  table, images.
-    for row in results:
-        datakey.append(row[0])     
-
+    # Check if the data of that images exist.
+    sql = "select * from {0} where `FILENAME` = '{1}'".format(im_tb_name, name)
+    cursor.execute(sql)
+    tmp = cursor.fetchall()
+    # Yes, so nothing to do.
+    if len(tmp) != 0:
+        return 0
+    # No, please go on.
+    else:
+        pass
+    
     # Insert the filename
     sql="insert into {0} (`FILENAME`) values ('{1}');".format(
         im_tb_name, 

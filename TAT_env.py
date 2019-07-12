@@ -265,6 +265,28 @@ trg_format = [\
 # The image we take.
 im_tb_name = 'images'
 
+im_titles = [
+                        '\ID',
+                        '`FILENAME`' ,
+                        '`FILEPATH`' ,
+                        '`FILTER`',
+                        '`RA(deg)`',
+                        '`DEC(deg)`' ,
+                        '`RA`',
+                        '`DEC`',
+                        '`SITENAME`' ,
+                        '`CCDTEMP`',
+                        '`EXPTIME`',
+                        '`DATE-OBS`',
+                        '`TIME-OBS`',
+                        '`MJD-OBS`',
+                        '`AIRMASS`',
+                        '`JD`',
+                        '`SUBBED`',
+                        '`FLATDIVED`',
+                        ]
+
+
 im_format = [\
                         '`ID` INT AUTO_INCREMENT PRIMARY KEY',
                         '`FILENAME` VARCHAR(80) UNIQUE',
