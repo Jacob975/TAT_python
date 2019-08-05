@@ -154,26 +154,6 @@ def save2sql_images(name, path):
         cnx.commit()
     except:
         cnx.rollback()
-
-    # Set false to "subbed" and "divfitted"  
-    sql="UPDATE {0} set `SUBBED`  = False WHERE `FILENAME`= '{1}';".format(
-        im_tb_name,
-        name)
-    try:
-        cursor.execute(sql)
-        cnx.commit()
-    except:
-        cnx.rollback()
-
-    sql="UPDATE {0} set `FLATDIVED`  = False WHERE `FILENAME`= '{1}';".format(
-        im_tb_name, 
-        name)
-    try:
-        cursor.execute(sql)
-        cnx.commit()
-    except:
-        cnx.rollback()
-
     # Update the coordinate, R.A. and Dec.
     try:
         coord = SkyCoord(header["RA"]+" "+header["DEC"], unit=(u.hourangle, u.deg))
@@ -200,19 +180,21 @@ def save2sql_images(name, path):
             cnx.rollback()
     
     # Match all key in header and the table, images.
+    print key
+    print datakey
     for header_element in key:
         for data_element in datakey:
-            if header_element==data_element:
-                if (type(header[data_element]) == bool) \
-                    or (type(header[data_element]) == int) \
-                    or (type(header[data_element]) == float):
-                    sql="UPDATE {0} SET `{1}` = {2} WHERE `FILENAME` = '{3}' ;".format(
+            if "`{0}`".format(header_element)==data_element:
+                if (type(header[header_element]) == bool) \
+                    or (type(header[header_element]) == int) \
+                    or (type(header[header_element]) == float):
+                    sql="UPDATE {0} SET {1} = {2} WHERE `FILENAME` = '{3}' ;".format(
                         im_tb_name, 
                         data_element,
                         header[header_element],
                         name)
                 else:
-                    sql="UPDATE {0} SET `{1}` = '{2}' WHERE `FILENAME` = '{3}' ;".format(
+                    sql="UPDATE {0} SET {1} = '{2}' WHERE `FILENAME` = '{3}' ;".format(
                         im_tb_name,
                         data_element,
                         header[header_element],

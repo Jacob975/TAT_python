@@ -124,15 +124,10 @@ if __name__ == "__main__":
         if len(date_list) == 1:
             print "No enough flat found"
             exit(1)
-        '''
         # Tolerance of time range
-        if abs(date_t.jd - nearest_date_t.jd) > 10:
+        if abs(date_t.jd - nearest_date_t.jd) > 15:
             print "No enough flat found"
-            exit(1)
-        '''
-        # Tolerance of time range
-        if abs(date_t.jd - nearest_date_t.jd) > 10:
-            print "No enough flat found"
+            #exit()
             break
         number, nearest_date = sub_process(path, band, telescope, date, date_list, path_of_flat, flat_exptime)
         print "number of found flats: {0}".format(number)

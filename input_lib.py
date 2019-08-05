@@ -62,14 +62,22 @@ class option_photometry():
                 '# The date of end observation',
                 '# example: 20181209',
                 '',
-                '# RA centroid',
+                '# RA centroid (deg)',
                 '# What is the right ascention of the center of FOV.',
                 '# You could type "skip" to ignore this selection.',
-                '',
-                '# DEC centroid',
+                'skip',
+                '# DEC centroid (deg)',
                 '# What is the declination of the center of FOV.',
                 '# You could type "skip" to ignore this selection.',
-                '',
+                'skip',
+                '# Band',
+                '# Available options: N, C, A, V, B, R',
+                '# You could type "skip" to ignore this selection.',
+                'V',
+                '# Exptime',
+                '# The exposure time of selected images',
+                '# You could type "skip" to ignore this selection.',
+                '150'
                 ]
         np.savetxt('option_phot.txt', s, fmt = '%s')
     def load(self, file_name):

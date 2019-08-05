@@ -45,15 +45,72 @@ def take_data_within(start_date, end_date, ra_cntr_str, dec_cntr_str):
     print 'start JD : {0}'.format(start_jd)
     print 'end JD: {0}'.format(end_jd)
     print "Center at ({0}, {1})".format(ra_cntr, dec_cntr)
+    # Selected by Coordinate.
     cursor.execute('select * from {0} where `JD` between {1} and {2} \
                     and `RA` between {3} and {4} \
                     and `DEC` between {5} and {6}'\
-                    .format(TAT_env.obs_data_tb_name, start_jd, end_jd, ra_cntr-0.5, ra_cntr+0.5, dec_cntr-0.5, dec_cntr+0.5))
+                    .format(TAT_env.obs_data_tb_name, 
+                            start_jd, 
+                            end_jd, 
+                            ra_cntr-0.5, 
+                            ra_cntr+0.5, 
+                            dec_cntr-0.5, 
+                            dec_cntr+0.5
+                            ))
     data = cursor.fetchall()
     data = np.array(data)
+    # Take the ID of selected images. 
+    if band == 'skip' and exptime == 'skip':
+        print ('No band and exptime selection.')
+        return data
+    elif band == 'skip':
+        print ('Selected by exptime.')
+        band_selection = ''
+        exptime_selection = 'and `EXPTIME` = {0}'.format(exptime)
+        cursor.execute('select `ID` from {0} where `JD` between {1} and {2}\
+                        {3} {4}'
+                        .format(TAT_env.im_tb_name,
+                                start_jd,
+                                end_jd,
+                                band_selection,
+                                exptime_selection
+                                ))
+    elif exptime == 'skip':
+        print ('Selected by bands.')
+        band_selection = 'and `FILTER` = "{0}"'.format(band)
+        exptime_selection = ''
+        cursor.execute('select `ID` from {0} where `JD` between {1} and {2}\
+                        {3} {4}'
+                        .format(TAT_env.im_tb_name,
+                                start_jd,
+                                end_jd,
+                                band_selection,
+                                exptime_selection
+                                ))
+    else:
+        print ('Selected by bands and exptime.')
+        cursor.execute('select `ID` from {0} where `JD` between {1} and {2}\
+                        and `FILTER` = "{3}"\
+                        and `EXPTIME` = {4}'
+                        .format(TAT_env.im_tb_name,
+                                start_jd,
+                                end_jd,
+                                band,
+                                exptime
+                                ))
+    selected_image_ID = cursor.fetchall()
     cursor.close()
     cnx.close()
-    return data
+    # Selected by Bands and Exposure Time.
+    selected_image_ID = np.array(selected_image_ID)
+    ID_index = TAT_env.obs_data_titles.index('FILEID')
+    selected_data = []
+    for source in data:
+        dummy_index = np.where(selected_image_ID == source[ID_index])
+        if len(dummy_index[0]) >= 1:
+            selected_data.append(source)
+    selected_data = np.array(selected_data)
+    return selected_data
 
 def EP_process(data):
     #----------------------------------------
@@ -65,7 +122,7 @@ def EP_process(data):
     fileID_index = TAT_env.obs_data_titles.index("FILEID")
     # Pick 10 brightest stars from each frame (They have to be the same star in diff. frames.)
     # Take all the data in the first frame
-    first_bjd = data[0, bjd_index]
+    first_bjd = np.amin(data[:, bjd_index])
     first_frame_data = data[data[:,bjd_index] == first_bjd]
     # Sort the first frame data by the brightness 
     first_frame_data = first_frame_data[np.argsort(first_frame_data[:,inst_mag_index])]
@@ -121,7 +178,7 @@ def EP_process(data):
         source_data = np.transpose(np.array([time_array, mag_array, err_mag_array]))
         failure, correlated_target, matched = stu.phot(source_data)
         if failure:
-            print 'phot fail'
+            print 'One event {0} cannot be measure.'.format(source_name)
             continue
         observation_data_ID = observation_data_ID[matched]
         save2sql_EP(correlated_target, observation_data_ID)
@@ -182,9 +239,17 @@ if __name__ == "__main__":
     start_date,\
     end_date,\
     ra_cntr,\
-    dec_cntr = stu.load(options)
+    dec_cntr,\
+    band,\
+    exptime = stu.load(options)
     #----------------------------------------
+    # Load data
     data = take_data_within(start_date, end_date, ra_cntr, dec_cntr)
+    # Sort data by BJD
+    bjd_index = TAT_env.obs_data_titles.index('BJD')
+    BJD = data[:,bjd_index]
+    BJD_index = np.argsort(BJD)
+    data = data[BJD_index]
     if phot_type == 'EP':
         failure = EP_process(data)
     elif phot_type == 'CATA':

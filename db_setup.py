@@ -29,10 +29,11 @@ if __name__ == "__main__":
     if len(argv) != 2:
         print "Error! The number of arguments is wrong."
         print "Usage: db_setup.py [option]"
-        print "Available options: create, recreate, remove_{0}, remove_{1}, remove_{2}, remove_{3}.".format(TAT_env.obs_data_tb_name,
-                                                                                                            TAT_env.src_tb_name,
-                                                                                                            TAT_env.im_tb_name,
-                                                                                                            TAT_env.ctn_tb_name)
+        print "Available options: create, recreate, recreate_{0}, recreate_{1}, recreate_{2}, recreate_{3}."\
+                .format(TAT_env.obs_data_tb_name,
+                        TAT_env.src_tb_name,
+                        TAT_env.im_tb_name,
+                        TAT_env.ctn_tb_name)
         exit()
     option = argv[1]
     #----------------------------------------

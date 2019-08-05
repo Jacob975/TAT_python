@@ -104,7 +104,7 @@ if __name__ == "__main__":
     index_E_EP_MAG = TAT_env.obs_data_titles.index('E_EP_MAG')
     index_INST_MAG = TAT_env.obs_data_titles.index('INST_MAG')
     index_E_INST_MAG = TAT_env.obs_data_titles.index('E_INST_MAG')
-    JD_array =         np.array(data[:,index_JD], dtype = float)
+    JD_array =          np.array(data[:,index_JD], dtype = float)
     EP_MAG_array =      np.array(data[:,index_EP_MAG], dtype = float)
     E_EP_MAG_array =    np.array(data[:,index_E_EP_MAG], dtype = float)
     # Convert mag to delta mag
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     axs.set_title('The light curve of {0}'.format(data_name))
     axs.set_xlabel('JD')
     axs.set_ylabel('Flux Percentage')
-    axs.set_xlim(JD_array[0]-x_margin, JD_array[-1]+x_margin)
+    axs.set_xlim(np.amin(JD_array)-x_margin, np.amax(JD_array)+x_margin)
     axs.set_ylim( \
         np.nanmedian(EP_MAG_array) - y_margin, 
         np.nanmedian(EP_MAG_array) + y_margin,

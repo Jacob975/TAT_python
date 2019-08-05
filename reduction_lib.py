@@ -91,7 +91,7 @@ def divide_images(image_list, flat_name):
     for name in image_list:
         imA = pyfits.getdata(name)
         imAh = pyfits.getheader(name)
-        imAh['DIVED'] = 1
+        imAh['FLATDIVED'] = 1
         imB = np.divide(imA, flat)
         sub_name = name.split(".")[0] 
         new_name = "{0}_divFLAT.fits".format(sub_name)

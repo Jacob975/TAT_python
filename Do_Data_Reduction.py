@@ -46,14 +46,14 @@ def data_reduction(site):
                                         table_name = TAT_env.ctn_tb_name)
     # Do reduction on calibration 
     failure = check_cal(unproced_cal_list, 
-                        undo = True)
+                        undo = False)
     #----------------------------------------------
     # Pick the files which are not processed yet
     unproced_data_list= unproced_check( path_of_raw_data, 
                                         table_name = TAT_env.ctn_tb_name)
     # Do reduction on data
     failure = image_reduction(  unproced_data_list, 
-                                undo = True)
+                                undo = False)
     return failure
 
 # The def for checking which date is not processed.
@@ -69,7 +69,10 @@ def unproced_check(path_of_raw_data, table_name):
     cnx = mysqlio_lib.TAT_auth()
     cursor = cnx.cursor()
     # Load data from table
-    cursor.execute('select `NAME` from TAT.{0} where `STATUS` = "D" or `STATUS` = "X"'.format(table_name))
+
+    #cursor.execute('select `NAME` from TAT.{0} where `STATUS` = "D" or `STATUS` = "X"'.format(table_name))
+    cursor.execute('select `NAME` from TAT.{0} where `STATUS` = "D"'.format(table_name))
+    
     processed = np.array(cursor.fetchall(), dtype = str).flatten()
     cursor.close()
     cnx.close()
@@ -170,8 +173,8 @@ def im_red_subsub(  fullpath_unpro_data,
     try:
         name_dark = glob.glob("Median_dark_*.fits")[0]
     except:
-        #exit_status = subprocess.call(  "{0}/find_dark.py  &> /dev/null".format(
-        exit_status = subprocess.call(  "{0}/find_dark.py".format(
+        exit_status = subprocess.call(  "{0}/find_dark.py  &> /dev/null".format(
+        #exit_status = subprocess.call(  "{0}/find_dark.py".format(
                                         TAT_env.path_of_code),
                                         shell = True
                                         )
@@ -187,8 +190,8 @@ def im_red_subsub(  fullpath_unpro_data,
     try:
         name_flat = glob.glob("Median_flat_*.fits")[0]
     except:
-        #exit_status = subprocess.call(  "{0}/find_flat.py  &> /dev/null".format(
-        exit_status = subprocess.call(  "{0}/find_flat.py".format(
+        exit_status = subprocess.call(  "{0}/find_flat.py  &> /dev/null".format(
+        #exit_status = subprocess.call(  "{0}/find_flat.py".format(
                                         TAT_env.path_of_code),
                                         shell=True
                                         )
@@ -201,8 +204,8 @@ def im_red_subsub(  fullpath_unpro_data,
             return 1
     #--------------------------------------------------------------------------
     # Subtracted by dark and divided by flat
-    #exit_status = subprocess.call(  "{0}/sub_div.py  &> /dev/null".format(
-    exit_status = subprocess.call(  "{0}/sub_div.py".format(
+    exit_status = subprocess.call(  "{0}/sub_div.py  &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/sub_div.py".format(
                                     TAT_env.path_of_code),
                                     shell = True
                                     )
@@ -215,8 +218,8 @@ def im_red_subsub(  fullpath_unpro_data,
         return 2
     #--------------------------------------------------------------------------
     # Mask the bad pixels 
-    #exit_status = subprocess.call(  "{0}/mask_images.py reducted_image_list.txt  &> /dev/null".format(
-    exit_status = subprocess.call(  "{0}/mask_images.py reducted_image_list.txt".format(
+    exit_status = subprocess.call(  "{0}/mask_images.py reducted_image_list.txt  &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/mask_images.py reducted_image_list.txt".format(
                                     TAT_env.path_of_code), 
                                     shell = True
                                     )
@@ -230,8 +233,8 @@ def im_red_subsub(  fullpath_unpro_data,
     #--------------------------------------------------------------------------
     # PSF register
     # try to load registed_image_list, which is produced by register.py
-    #exit_status = subprocess.call(  "{0}/register_SE.py masked_image_list.txt &> /dev/null".format(
-    exit_status = subprocess.call(  "{0}/register_SE.py masked_image_list.txt".format(
+    exit_status = subprocess.call(  "{0}/register_SE.py masked_image_list.txt &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/register_SE.py masked_image_list.txt".format(
                                     TAT_env.path_of_code),
                                     shell = True
                                     )
@@ -244,8 +247,8 @@ def im_red_subsub(  fullpath_unpro_data,
         return 2
     #--------------------------------------------------------------------------
     # Get WCS 
-    #exit_status = subprocess.call(  "{0}/wcsfinder.py registed_image_list.txt &> /dev/null".format(
-    exit_status = subprocess.call(  "{0}/wcsfinder.py registed_image_list.txt".format(
+    exit_status = subprocess.call(  "{0}/wcsfinder.py registed_image_list.txt &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/wcsfinder.py registed_image_list.txt".format(
                                     TAT_env.path_of_code),
                                     shell = True
                                     )
@@ -260,8 +263,8 @@ def im_red_subsub(  fullpath_unpro_data,
     #--------------------------------------------------------------------------
     # Find targets on images
     # Update to database.
-    #exit_status = subprocess.call(  "{0}/starfinder.py registed_image_list.txt &> /dev/null".format(
-    exit_status = subprocess.call(  "{0}/starfinder.py registed_image_list.txt".format(
+    exit_status = subprocess.call(  "{0}/starfinder.py registed_image_list.txt &> /dev/null".format(
+    #exit_status = subprocess.call(  "{0}/starfinder.py registed_image_list.txt".format(
                                     TAT_env.path_of_code),
                                     shell = True
                                     )
@@ -306,8 +309,8 @@ def im_red_sub(unpro_data, undo = False):
     os.chdir(fullpath_unpro_raw_data)
     # Check the quality of the images.
     for band in TAT_env.band_list:
-        #os.system(  "{0}/check_image.py data {1} 0 &> /dev/null".format(
-        os.system(  "{0}/check_image.py data {1} 0".format(
+        os.system(  "{0}/check_image.py data {1} 0 &> /dev/null".format(
+        #os.system(  "{0}/check_image.py data {1} 0".format(
                     TAT_env.path_of_code, 
                     band))
     # Move to the reduction
@@ -370,12 +373,12 @@ def image_reduction(unprocessed_data_list, undo = False):
         print "No unprocessed data, image_reduction stop"
         return 1
     # Do it parallel
+    '''
     for unpro_data in unprocessed_data_list:
         failure = im_red_sub(unpro_data, undo)
     '''
     Parallel(   n_jobs=20)(
                 delayed(im_red_sub)(unpro_data, undo) for unpro_data in unprocessed_data_list)
-    '''
     return 0 
 
 #--------------------------------------------

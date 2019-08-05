@@ -108,7 +108,10 @@ def SExtractor(image_name):
     os.system('sex {0} -c {1}'.format(image_name, config_name))
     # Load the result table
     table = np.loadtxt(catalog_name)
-    table = table[table[:,index_flag ] == 0 ]
+    try:
+        table = table[table[:,index_flag ] == 0 ]
+    except:
+        table = np.array([])
     return table
 
 # check if there is new sources.
@@ -202,17 +205,6 @@ if __name__ == "__main__":
         print ('SExtractor!')
         SE_table = SExtractor(image_name)
         failure, extend_star_array = star_extend(image_name, SE_table)
-        # Create an parameter file.
-        '''
-        print ('--- starfinder ---')
-        iraf_table, infos = starfinder(image_name)
-        # Add more infos
-        print ('--- star phot ---')
-        failure, extend_star_array = star_phot(image_name, iraf_table, infos)
-        if failure:
-            print 'phot failure'
-            continue
-        '''
         # Rename if source is already named in previous observations.
         print ('--- repeatness check ---')
         extend_star_array, new_sources, new = check_new_sources(extend_star_array)
