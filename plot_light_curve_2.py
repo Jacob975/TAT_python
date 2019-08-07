@@ -26,9 +26,11 @@ import matplotlib.pyplot as plt
 from reduction_lib import header_editor
 from input_lib import option_plotLC
 from astropy.time import Time
+import photometry
 
 def take_data_within(name, start_date, end_date):
     #----------------------------------------
+    # Convert date to JD
     times = ['{0}-{1}-{2}T12:00:00'.format(start_date[:4], start_date[4:6], start_date[6:]), 
              '{0}-{1}-{2}T12:00:00'.format(end_date[:4], end_date[4:6], end_date[6:])]
     t = Time(times, format='isot', scale='utc')
@@ -57,7 +59,74 @@ def load_data(name):
     data = cursor.fetchall()
     cursor.close()
     cnx.close()
+    data = np.array(data, dtype = object)
+    print(data.shape)
     return data
+
+def select_data_by_bands_exptime(data, start_date, end_date, band, exptime):
+    #----------------------------------------
+    # Convert date to JD
+    times = ['{0}-{1}-{2}T12:00:00'.format(start_date[:4], start_date[4:6], start_date[6:]), 
+             '{0}-{1}-{2}T12:00:00'.format(end_date[:4], end_date[4:6], end_date[6:])]
+    t = Time(times, format='isot', scale='utc')
+    start_jd = t.jd[0] 
+    end_jd = t.jd[1]
+    #----------------------------------------
+    cnx = TAT_auth()
+    cursor = cnx.cursor()
+    # Take the ID of selected images. 
+    if band == 'skip' and exptime == 'skip':
+        print ('No band and exptime selection.')
+        return data
+    elif band == 'skip':
+        print ('Selected by exptime.')
+        band_selection = ''
+        exptime_selection = 'and `EXPTIME` = {0}'.format(exptime)
+        cursor.execute('select `ID` from {0} where `JD` between {1} and {2}\
+                        {3} {4}'
+                        .format(TAT_env.im_tb_name,
+                                start_jd,
+                                end_jd,
+                                band_selection,
+                                exptime_selection
+                                ))
+    elif exptime == 'skip':
+        print ('Selected by bands.')
+        band_selection = 'and `FILTER` = "{0}"'.format(band)
+        exptime_selection = ''
+        cursor.execute('select `ID` from {0} where `JD` between {1} and {2}\
+                        {3} {4}'
+                        .format(TAT_env.im_tb_name,
+                                start_jd,
+                                end_jd,
+                                band_selection,
+                                exptime_selection
+                                ))
+    else:
+        print ('Selected by bands and exptime.')
+        cursor.execute('select `ID` from {0} where `JD` between {1} and {2}\
+                        and `FILTER` = "{3}"\
+                        and `EXPTIME` = {4}'
+                        .format(TAT_env.im_tb_name,
+                                start_jd,
+                                end_jd,
+                                band,
+                                exptime
+                                ))
+    selected_image_ID = cursor.fetchall()
+    cursor.close()
+    cnx.close()
+    # Selected by Bands and Exposure Time.
+    selected_image_ID = np.array(selected_image_ID)
+    ID_index = TAT_env.obs_data_titles.index('FILEID')
+    selected_data = []
+    for source in data:
+        dummy_index = np.where(selected_image_ID == source[ID_index])
+        if len(dummy_index[0]) >= 1:
+            selected_data.append(source)
+    selected_data = np.array(selected_data, dtype = object)
+    print (selected_data.shape)
+    return selected_data
 
 
 #--------------------------------------------
@@ -74,7 +143,14 @@ if __name__ == "__main__":
         stu.create()
         exit()
     options = argv[1]
-    where_they_from, data_name, ingress, egress, start_date, end_date = stu.load(options)
+    where_they_from,\
+    data_name,\
+    ingress,\
+    egress,\
+    start_date,\
+    end_date,\
+    band,\
+    exptime, = stu.load(options)
     where_they_from = int(where_they_from)
     timing = 'OK'
     if ingress == 'skip' or egress == 'skip':
@@ -88,11 +164,15 @@ if __name__ == "__main__":
     # Load data
     data = None
     if where_they_from == 2 and start_date != 'skip':
-        data = take_data_within(data_name, start_date, end_date)
+        data = take_data_within(data_name, 
+                                start_date, 
+                                end_date)
         data = np.array(data, dtype = object)
+        data = select_data_by_bands_exptime(data, start_date, end_date, band, exptime)
     elif where_they_from == 2 and start_date == 'skip':
         data = load_data(data_name)    
         data = np.array(data, dtype = object)
+        data = select_data_by_bands_exptime(data, start_date, end_date, band, exptime)
     elif where_they_from == 1:
         data = np.loadtxt(data_name, dtype = object)
     #---------------------------------------

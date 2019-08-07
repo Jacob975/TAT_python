@@ -25,7 +25,7 @@ import TAT_env
 import matplotlib.pyplot as plt
 from reduction_lib import header_editor
 from input_lib import option_plotLC
-
+import plot_light_curve_2
 def take_data_within(name, start_date, end_date):
     #----------------------------------------
     times = ['{0}-{1}-{2}T12:00:00'.format(start_date[:4], start_date[4:6], start_date[6:]), 
@@ -49,14 +49,6 @@ def take_data_within(name, start_date, end_date):
     cnx.close()
     return data
 
-def load_data(name):
-    cnx = TAT_auth()
-    cursor = cnx.cursor()
-    cursor.execute('select * from observation_data where `NAME` = "{0}"'.format(name))
-    data = cursor.fetchall()
-    cursor.close()
-    cnx.close()
-    return data
 #--------------------------------------------
 # Main code
 if __name__ == "__main__":
@@ -71,7 +63,14 @@ if __name__ == "__main__":
         stu.create()
         exit()
     options = argv[1]
-    where_they_from, data_name, ingress, egress, start_date, end_date = stu.load(options)
+    where_they_from,\
+    data_name,\
+    ingress,\
+    egress,\
+    start_date,\
+    end_date,\
+    band,\
+    exptime = stu.load(options)
     where_they_from = int(where_they_from)
     timing = 'OK'
     if ingress == 'skip' or egress == 'skip':
@@ -84,8 +83,9 @@ if __name__ == "__main__":
     # Load data
     data = None
     if where_they_from == 2:
-        data = load_data(data_name)
+        data = plot_light_curve_2.load_data(data_name)
         data = np.array(data, dtype = object)
+        data = plot_light_curve_2.select_data_by_bands_exptime(data, start_date, end_date, band, exptime)
     elif where_they_from == 1:
         data = np.loadtxt(data_name, dtype = object)
     #---------------------------------------

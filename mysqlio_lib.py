@@ -49,7 +49,7 @@ def save2sql(data, new_sources = None, new = None):
     # Save data into the table in the database.
     for source in data:
         # Check if the detection saved before.
-        cursor.execute( "select * from {0} where `NAME` = '{1}' and `BJD` = '{2}'".format(
+        cursor.execute( "select `ID` from {0} where `NAME` = '{1}' and `BJD` = '{2}'".format(
                         obs_data_tb_name,
                         # NAME, BJD
                         source[1], source[3]))
@@ -124,7 +124,7 @@ def save2sql_images(name, path):
     datakey=TAT_env.im_titles           # Define the datakey as a list. 
     
     # Check if the data of that images exist.
-    sql = "select * from {0} where `FILENAME` = '{1}'".format(im_tb_name, name)
+    sql = "select `ID` from {0} where `FILENAME` = '{1}'".format(im_tb_name, name)
     cursor.execute(sql)
     tmp = cursor.fetchall()
     # Yes, so nothing to do.
@@ -241,7 +241,7 @@ def update2sql_container(   name,
     # create data base if not exist
     create_TAT_tables()
     # Check if this container exist
-    cursor.execute( "select * from {0} where `NAME` = '{1}'".format(
+    cursor.execute( "select `ID` from {0} where `NAME` = '{1}'".format(
                     ctn_tb_name,
                     name))
     tmp = cursor.fetchall()

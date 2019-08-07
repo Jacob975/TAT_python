@@ -40,7 +40,14 @@ class option_plotLC():
                 '# End date in YYYYMMDD',
                 '# The last date of the plot showing.',
                 '# "skip" will make the program shows all light curves.',
-                'skip',]
+                'skip',
+                '# Band',
+                '# Available options: N, C, A, V, B, R',
+                'V',
+                '# Exptime',
+                '# The exposure time of selected images',
+                '150'
+                ]
         np.savetxt('option_plotLC.txt', s, fmt = '%s')
     def load(self, file_name):
         self.opts = np.loadtxt(file_name, dtype = str)
