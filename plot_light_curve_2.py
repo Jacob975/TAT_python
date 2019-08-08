@@ -43,6 +43,7 @@ def take_data_within(name, start_date, end_date):
     print 'target: {0}'.format(name)
     print 'start JD : {0}'.format(start_jd)
     print 'end JD: {0}'.format(end_jd)
+    print 'band: {0}, exptime = {1}'.format(band, exptime)
     cursor.execute('select * from {0} where `NAME` = "{1}" \
                     and `JD` between {2} and {3}'\
                     .format(TAT_env.obs_data_tb_name, name, start_jd, end_jd))
@@ -125,7 +126,7 @@ def select_data_by_bands_exptime(data, start_date, end_date, band, exptime):
         if len(dummy_index[0]) >= 1:
             selected_data.append(source)
     selected_data = np.array(selected_data, dtype = object)
-    print (selected_data.shape)
+    print ('data points: {0}'.format(len(selected_data)))
     return selected_data
 
 

@@ -49,16 +49,17 @@ def save2sql(data, new_sources = None, new = None):
     # Save data into the table in the database.
     for source in data:
         # Check if the detection saved before.
-        cursor.execute( "select `ID` from {0} where `NAME` = '{1}' and `BJD` = '{2}'".format(
-                        obs_data_tb_name,
-                        # NAME, BJD
-                        source[1], source[3]))
+        cursor.execute( "select `ID` from {0} where `NAME` = '{1}' and `BJD` = {2}"\
+                        .format(obs_data_tb_name,
+                                # NAME, BJD
+                                source[1], source[3]))
         tmp = cursor.fetchall()
         # If no, save it.
         if len(tmp) == 0:
-            cursor.execute("insert into {0} ({1}) values ({2})".format( obs_data_tb_name,  
-                                                                        ', '.join(obs_data_titles[1:]), 
-                                                                        ', '.join(['%s'] * len(obs_data_titles[1:]))), 
+            cursor.execute( "insert into {0} ({1}) values ({2})"\
+                            .format(obs_data_tb_name,  
+                                    ', '.join(obs_data_titles[1:]), 
+                                    ', '.join(['%s'] * len(obs_data_titles[1:]))), 
                             tuple(source[1:]))
             cnx.commit()
         # If do, skip it.
@@ -66,9 +67,10 @@ def save2sql(data, new_sources = None, new = None):
             continue
     if new:
         for source in new_sources:
-            cursor.execute("insert into {0} ( {1} ) values ({2})".format( src_tb_name, 
-                                                                        ', '.join(src_titles[1:]), 
-                                                                        ', '.join(['%s'] * len(src_titles[1:]))), 
+            cursor.execute("insert into {0} ( {1} ) values ({2})"\
+                            .format(src_tb_name, 
+                                    ', '.join(src_titles[1:]), 
+                                    ', '.join(['%s'] * len(src_titles[1:]))), 
                             tuple(source))
             cnx.commit()
     # Make sure data is committed to the database.
@@ -85,8 +87,14 @@ def save2sql_EP(correlated_data, ID):
     create_TAT_tables()
     # Save data into the table in the database.
     for i in range(len(correlated_data)):
-        cursor.execute("UPDATE `{0}` SET `EP_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,1], ID[i]))
-        cursor.execute("UPDATE `{0}` SET `E_EP_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,2], ID[i]))
+        cursor.execute( "UPDATE `{0}` SET `EP_MAG` = '{1}' WHERE `ID` = {2}"\
+                        .format(obs_data_tb_name, 
+                                correlated_data[i,1], 
+                                ID[i]))
+        cursor.execute( "UPDATE `{0}` SET `E_EP_MAG` = '{1}' WHERE `ID` = {2}"\
+                        .format(obs_data_tb_name, 
+                                correlated_data[i,2], 
+                                ID[i]))
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()
@@ -101,8 +109,14 @@ def save2sql_CATA(correlated_data, ID):
     create_TAT_tables()
     # Save data into the table in the database.
     for i in range(len(correlated_data)):
-        cursor.execute("UPDATE `{0}` SET `CATA_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,0], ID[i]))
-        cursor.execute("UPDATE `{0}` SET `E_CATA_MAG` = '{1}' WHERE `ID` = {2}".format(obs_data_tb_name, correlated_data[i,1], ID[i]))
+        cursor.execute("UPDATE `{0}` SET `CATA_MAG` = '{1}' WHERE `ID` = {2}"\
+                        .format(obs_data_tb_name, 
+                                correlated_data[i,0], 
+                                ID[i]))
+        cursor.execute("UPDATE `{0}` SET `E_CATA_MAG` = '{1}' WHERE `ID` = {2}"\
+                        .format(obs_data_tb_name, 
+                                correlated_data[i,1], 
+                                ID[i]))
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()
@@ -160,19 +174,19 @@ def save2sql_images(name, path):
     except:
         pass
     else:
-        sql="UPDATE {0} set `DEC(deg)`  = '{1}' WHERE `FILENAME`= '{2}';".format(
-            im_tb_name,
-            coord.dec.degree,
-            name)
+        sql="UPDATE {0} set `DEC(deg)`  = '{1}' WHERE `FILENAME`= '{2}';"\
+            .format(im_tb_name,
+                    coord.dec.degree,
+                    name)
         try:
             cursor.execute(sql)
             cnx.commit()
         except:
             cnx.rollback()
-        sql="UPDATE {0} set `RA(deg)`  = '{1}' WHERE `FILENAME`= '{2}';".format(
-            im_tb_name, 
-            coord.ra.degree,
-            name)
+        sql="UPDATE {0} set `RA(deg)`  = '{1}' WHERE `FILENAME`= '{2}';"\
+            .format(im_tb_name, 
+                    coord.ra.degree,
+                    name)
         try:
             cursor.execute(sql)
             cnx.commit()
@@ -188,27 +202,27 @@ def save2sql_images(name, path):
                 if (type(header[header_element]) == bool) \
                     or (type(header[header_element]) == int) \
                     or (type(header[header_element]) == float):
-                    sql="UPDATE {0} SET {1} = {2} WHERE `FILENAME` = '{3}' ;".format(
-                        im_tb_name, 
-                        data_element,
-                        header[header_element],
-                        name)
+                    sql="UPDATE {0} SET {1} = {2} WHERE `FILENAME` = '{3}' ;"\
+                        .format(im_tb_name, 
+                                data_element,
+                                header[header_element],
+                                name)
                 else:
-                    sql="UPDATE {0} SET {1} = '{2}' WHERE `FILENAME` = '{3}' ;".format(
-                        im_tb_name,
-                        data_element,
-                        header[header_element],
-                        name)
+                    sql="UPDATE {0} SET {1} = '{2}' WHERE `FILENAME` = '{3}' ;"\
+                        .format(im_tb_name,
+                                data_element,
+                                header[header_element],
+                                name)
         if 'OBSERVAT'== header_element:
-            sql="UPDATE {0} set `SITENAME`  = '{1}' WHERE `FILENAME`= '{2}';".format(
-                im_tb_name,
-                header['OBSERVAT'],
-                name)
+            sql="UPDATE {0} set `SITENAME`  = '{1}' WHERE `FILENAME`= '{2}';"\
+                .format(im_tb_name,
+                        header['OBSERVAT'],
+                        name)
         if 'LOCATION'== header_element:
-            sql="UPDATE {0} set `SITENAME`  = '{1}' WHERE `FILENAME`= '{2}';".format(
-                im_tb_name,
-                header['LOCATION'],
-                name)
+            sql="UPDATE {0} set `SITENAME`  = '{1}' WHERE `FILENAME`= '{2}';"\
+                .format(im_tb_name,
+                        header['LOCATION'],
+                        name)
         try:
             cursor.execute(sql)
             cnx.commit()
@@ -241,9 +255,9 @@ def update2sql_container(   name,
     # create data base if not exist
     create_TAT_tables()
     # Check if this container exist
-    cursor.execute( "select `ID` from {0} where `NAME` = '{1}'".format(
-                    ctn_tb_name,
-                    name))
+    cursor.execute( "select `ID` from {0} where `NAME` = '{1}'"\
+                    .format(ctn_tb_name,
+                            name))
     tmp = cursor.fetchall()
     if len(tmp) == 0:
         save2sql_container(name)
@@ -259,14 +273,14 @@ def update2sql_container(   name,
             actual_comment = comment
         cnx.commit()
     # Save data into the table in the database.
-    cursor.execute( "UPDATE {0} set `STATUS` = '{1}' where `NAME` = '{2}'".format( 
-                    ctn_tb_name, 
-                    stat,
-                    name))
-    cursor.execute( "UPDATE {0} set `COMMENT` = '{1}' where `NAME` = '{2}'".format( 
-                    ctn_tb_name, 
-                    actual_comment,
-                    name))
+    cursor.execute( "UPDATE {0} set `STATUS` = '{1}' where `NAME` = '{2}'"\
+                    .format(ctn_tb_name, 
+                            stat,
+                            name))
+    cursor.execute( "UPDATE {0} set `COMMENT` = '{1}' where `NAME` = '{2}'"\
+                    .format(ctn_tb_name, 
+                            actual_comment,
+                            name))
     # Make sure data is committed to the database.
     cnx.commit()
     cursor.close()

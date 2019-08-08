@@ -45,6 +45,7 @@ def take_data_within(start_date, end_date, ra_cntr_str, dec_cntr_str):
     print 'start JD : {0}'.format(start_jd)
     print 'end JD: {0}'.format(end_jd)
     print "Center at ({0}, {1})".format(ra_cntr, dec_cntr)
+    print "band: {0}, exptime: {1}".format(band, exptime)
     # Selected by Coordinate.
     cursor.execute('select * from {0} where `JD` between {1} and {2} \
                     and `RA` between {3} and {4} \
