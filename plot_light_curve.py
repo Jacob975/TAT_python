@@ -3,11 +3,8 @@
 Program:
     This is a program to plot the light curve. 
 Usage: 
-    plot_light_curve.py [where they from?] [target name]
+    plot_light_curve.py [option file] 
 
-    [where they from?]
-        1: from a text file
-        2: from database `observation_data`
 
 Editor:
     Jacob975

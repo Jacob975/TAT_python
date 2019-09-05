@@ -3,7 +3,7 @@
 Program:
     This is a program for doing photometry on observation data table. 
 Usage: 
-    photometry.py [phot type ] [start date] [end date]
+    photometry.py [option file]
     
     The input table should follow the form in TAT_env.obs_data_titles
 
@@ -132,7 +132,7 @@ def EP_process(data):
     fileIDs = [item for item, count in collections.Counter(all_fileIDs).items() if count > 1] 
     source_list = []
     selected_source_name = []
-    # Find 10 sources found in all frames.
+    # Find sources found in all frames.
     for source in first_frame_data[25:]:
         source_data = data[data[:,target_name_index] == source[target_name_index]]
         source_fileIDs = source_data[:,fileID_index]
@@ -147,7 +147,7 @@ def EP_process(data):
         if len(source_list) > 25:
             break
     #----------------------------------------
-    # Do photometry on 10BS only, save the result.
+    # Do photometry on Bright Stars only, save the result.
     source_data_array = np.array(source_list)
     stu = photometry_lib.EP(source_data_array[0], source_data_array)
     ems, var_ems, m0s, var_m0s = stu.make_airmass_model()

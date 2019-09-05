@@ -48,6 +48,14 @@ def save2sql(data, new_sources = None, new = None):
 
     # Save data into the table in the database.
     for source in data:
+        cursor.execute( "insert into {0} ({1}) values ({2})"\
+                        .format(obs_data_tb_name,  
+                                ', '.join(obs_data_titles[1:]), 
+                                ', '.join(['%s'] * len(obs_data_titles[1:]))), 
+                        tuple(source[1:]))
+        cnx.commit()
+        
+        '''
         # Check if the detection saved before.
         cursor.execute( "select `ID` from {0} where `NAME` = '{1}' and `BJD` = {2}"\
                         .format(obs_data_tb_name,
@@ -65,6 +73,7 @@ def save2sql(data, new_sources = None, new = None):
         # If do, skip it.
         else:
             continue
+        '''
     if new:
         for source in new_sources:
             cursor.execute("insert into {0} ( {1} ) values ({2})"\
