@@ -133,7 +133,7 @@ def EP_process(data):
     source_list = []
     selected_source_name = []
     # Find sources found in all frames.
-    for source in first_frame_data[25:]:
+    for source in first_frame_data[10:]:
         source_data = data[data[:,target_name_index] == source[target_name_index]]
         source_fileIDs = source_data[:,fileID_index]
         if len(source_fileIDs) == len(fileIDs):
@@ -144,7 +144,7 @@ def EP_process(data):
                                                     source_error])) 
             source_list.append(source_data_lite)
             selected_source_name.append(source[target_name_index])
-        if len(source_list) > 25:
+        if len(source_list) > 20:
             break
     #----------------------------------------
     # Do photometry on Bright Stars only, save the result.
