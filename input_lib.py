@@ -84,8 +84,17 @@ class option_photometry():
                 '# Exptime',
                 '# The exposure time of selected images',
                 '# You could type "skip" to ignore this selection.',
-                '150'
+                '150',
+                '# ID of beginning auxiliary star',
+                '# From which auxiliary star you want to start with while doing photometry.',
+                '# example: 10',
+                '',
+                '# Number of auxiliary stars',
+                '# How many stars do you want to use for photometry.',
+                '# example: 20',
+                '20'
                 ]
+
         np.savetxt('option_phot.txt', s, fmt = '%s')
     def load(self, file_name):
         self.opts = np.loadtxt(file_name, dtype = str)

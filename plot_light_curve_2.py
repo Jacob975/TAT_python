@@ -197,7 +197,7 @@ if __name__ == "__main__":
     y_margin = 0.05
     fig, axs = plt.subplots(1, 1, figsize = (12, 6))
     #axs.set_title('The light curve of {0}'.format(data_name))
-    axs.set_title('The light curve of {0}'.format(data_name))
+    axs.set_title('The light curve of {0} in {1} band {2} secs'.format(data_name, band, exptime))
     axs.set_xlabel('JD')
     axs.set_ylabel('Flux Percentage')
     axs.set_xlim(np.amin(JD_array)-x_margin, np.amax(JD_array)+x_margin)
@@ -209,10 +209,10 @@ if __name__ == "__main__":
     if timing != 'skip':
         axs.plot([ingress, ingress],
                     [np.nanmedian(EP_MAG_array)-y_margin, np.nanmedian(EP_MAG_array)+y_margin],
-                    zorder=2)
+                    zorder=2, label = 'Ingress time')
         axs.plot([egress, egress],
                     [np.nanmedian(EP_MAG_array)-y_margin, np.nanmedian(EP_MAG_array)+y_margin],
-                    zorder=1)
+                    zorder=1, label = 'Egress time')
     axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = data_name, markersize = 3, zorder=3)
     plt.legend()
     plt.savefig('light_curve.png')

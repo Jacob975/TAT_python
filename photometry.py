@@ -43,9 +43,10 @@ def take_data_within(start_date, end_date, ra_cntr_str, dec_cntr_str):
     cnx = TAT_auth()
     cursor = cnx.cursor()
     print 'start JD : {0}'.format(start_jd)
-    print 'end JD: {0}'.format(end_jd)
+    print 'end JD : {0}'.format(end_jd)
     print "Center at ({0}, {1})".format(ra_cntr, dec_cntr)
-    print "band: {0}, exptime: {1}".format(band, exptime)
+    print "band: {0}, exptime : {1}".format(band, exptime)
+    print 'Start ID : {0}, Numbers of aux star : {1}'.format(begin_of_aux, no_of_aux)
     # Selected by Coordinate.
     cursor.execute('select * from {0} where `JD` between {1} and {2} \
                     and `RA` between {3} and {4} \
@@ -133,7 +134,7 @@ def EP_process(data):
     source_list = []
     selected_source_name = []
     # Find sources found in all frames.
-    for source in first_frame_data[10:]:
+    for source in first_frame_data[int(begin_of_aux):]:
         source_data = data[data[:,target_name_index] == source[target_name_index]]
         source_fileIDs = source_data[:,fileID_index]
         if len(source_fileIDs) == len(fileIDs):
@@ -144,7 +145,7 @@ def EP_process(data):
                                                     source_error])) 
             source_list.append(source_data_lite)
             selected_source_name.append(source[target_name_index])
-        if len(source_list) > 20:
+        if len(source_list) > int(no_of_aux):
             break
     #----------------------------------------
     # Do photometry on Bright Stars only, save the result.
@@ -242,7 +243,9 @@ if __name__ == "__main__":
     ra_cntr,\
     dec_cntr,\
     band,\
-    exptime = stu.load(options)
+    exptime,\
+    begin_of_aux,\
+    no_of_aux = stu.load(options)
     #----------------------------------------
     # Load data
     data = take_data_within(start_date, end_date, ra_cntr, dec_cntr)
