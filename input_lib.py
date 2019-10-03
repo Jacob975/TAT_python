@@ -54,6 +54,38 @@ class option_plotLC():
         self.opts = list(self.opts)
         return self.opts
 
+class option_plot_auxLC():
+    def __init__(self):
+        self.opts = None
+    def create(self):
+        s = [   '# Where to get data',
+                '# 1: from given filename, and the name become the filename.',
+                '# 2: from database, and the name become the target name',
+                '2',
+                '# name',
+                '# The name of auxiliary star or the name of files',
+                '',
+                '# Start date in YYYYMMDD',
+                '# The first date of the plot showing.',
+                '# "skip" will make the program shows all light curves.',
+                'skip',
+                '# End date in YYYYMMDD',
+                '# The last date of the plot showing.',
+                '# "skip" will make the program shows all light curves.',
+                'skip',
+                '# Band',
+                '# Available options: N, C, A, V, B, R',
+                'V',
+                '# Exptime',
+                '# The exposure time of selected images',
+                '150'
+                ]
+        np.savetxt('option_plot_auxLC.txt', s, fmt = '%s')
+    def load(self, file_name):
+        self.opts = np.loadtxt(file_name, dtype = str)
+        self.opts = list(self.opts)
+        return self.opts
+
 class option_photometry():
     def __init__(self):
         self.opts = None

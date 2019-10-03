@@ -136,7 +136,7 @@ if __name__ == "__main__":
     stu = option_plotLC()
     if len(argv) != 2:
         print 'The number of arguments is wrong.'
-        print 'Usage: plot_light_curve.py [option_file]' 
+        print 'Usage: plot_light_curve_2.py [option_file]' 
         stu.create()
         exit()
     options = argv[1]
