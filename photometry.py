@@ -135,6 +135,8 @@ def EP_process(data):
     selected_source_name = []
     # Find sources found in all frames.
     for source in first_frame_data[int(begin_of_aux):]:
+        if source[target_name_index] == var_star:
+            continue
         source_data = data[data[:,target_name_index] == source[target_name_index]]
         source_fileIDs = source_data[:,fileID_index]
         if len(source_fileIDs) == len(fileIDs):
@@ -245,7 +247,8 @@ if __name__ == "__main__":
     band,\
     exptime,\
     begin_of_aux,\
-    no_of_aux = stu.load(options)
+    no_of_aux,\
+    var_star = stu.load(options)
     #----------------------------------------
     # Load data
     data = take_data_within(start_date, end_date, ra_cntr, dec_cntr)

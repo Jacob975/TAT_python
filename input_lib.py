@@ -124,7 +124,12 @@ class option_photometry():
                 '# Number of auxiliary stars',
                 '# How many stars do you want to use for photometry.',
                 '# example: 20',
-                '20'
+                '20',
+                '# The target name of variables',
+                '# The program will ignore these stars since their luminosity might changed.',
+                '# example: target_322.3157_50.8781',
+                '# You could type "skip" to ignore this selection',
+                'skip'
                 ]
 
         np.savetxt('option_phot.txt', s, fmt = '%s')
