@@ -45,26 +45,49 @@ class EP():
         self.target = np.array(target)
         self.t_series = target[:,0]
         self.comparison_stars = np.array(comparison_stars)
-        self.comparison_stars[:,:,1] = np.transpose(np.transpose(self.comparison_stars[:,:,1]) - self.comparison_stars[:,0,1]+1e-5)
+        self.comparison_stars[:,:,1] = np.transpose(np.transpose(   self.comparison_stars[:,:,1]) 
+                                                                    - self.comparison_stars[:,0,1]
+                                                                    + 1e-5)
     def make_airmass_model(self):
+        #--------------------------------------------------
         # Load data
         all_stars = self.comparison_stars
-        # Get the signal and weight 
+        # Shape would be like this
+        # "s" stands for star 
+        # "e" stands for exposure
+        # all_stars_t = [ [t(0,0), t(0,1), t(0,2) ... t(0,e)  ],
+        #                 [t(1,0), t(1,1), t(1,2) ...         ],
+        #                 [t(2,0), t(2,1), t(2,2) ...         ],
+        #                     ...
+        #                 [t(s,0), t(s,1), t(s,2) ... t(s,e)  ]]
+
+        all_stars_t = all_stars[:,:,0]
+        all_stars_mag = all_stars[:,:,1]
+        all_stars_err = all_stars[:,:,2]
+        #--------------------------------------------------
+        # Get the tensor of m(e,s) "signal" and w(e,s) "weight" 
+        # tns stands for transpose
         num_eps = len(all_stars[-1])
         num_stars = len(all_stars)
-        weight_tns_shape = (num_stars, num_eps)
-        weights_tns = np.zeros(weight_tns_shape)
-        weights_tns = np.divide(1, np.power(all_stars[:,:,2], 2))
-        weights_tns_filter = np.where(all_stars[:,:,1] == 0.0)
         # m_tns(s, e)
-        signals_tns = all_stars[:, :, 1]
+        signals_tns = all_stars_mag
         # w_tns(s, e)
+        weights_tns = np.divide(1.0, np.power(all_stars_err, 2))
+        weights_tns_filter = np.where(all_stars[:,:,1] == 0.0)
         weights_tns[weights_tns_filter] = 0.0
-        # m(e, s)
+        # Shape would be like this
+        # m(e,s)     = [ [m(0,0), m(0,1), m(0,2) ... m(0,s)  ],
+        #                [m(1,0), m(1,1), m(1,2) ...         ],
+        #                [m(2,0), m(2,1), m(2,2) ...         ],
+        #                    ...
+        #                [m(e,0), m(e,1), m(e,2) ... m(e,s)  ]]
+        # m(e, s) stands for the magnitude(m) measure on the star (s) and on the exposure (e).
         signals = np.transpose(signals_tns)
-        # w(e, s)
+        # w(e, s) stands for the weight(w) measure on the star (s) and on the exposure (e).
         weights = np.transpose(weights_tns)
+        #--------------------------------------------------
         # Create a Matrix M  for saving the weight information.
+        # Let M * a = b, find a
         # To minimize the unknowns, let ems(1) = 0
         M_shape = (num_eps + num_stars, num_eps + num_stars)
         M = np.zeros(M_shape)
@@ -75,30 +98,31 @@ class EP():
                 M[index, index] = np.sum(weights[index])
             else:
                 M[index, index] = np.sum(weights[:,index - num_eps]) 
-        # Create a vector b for saving the observed magnitude information.
+        # Create a vector "b" for saving the observed magnitude information.
         b = np.zeros(num_eps + num_stars)
         for index in xrange(num_eps + num_stars):
             if index < num_eps:
                 b[index] = np.sum(np.multiply(weights[index], signals[index]))
             else:
                 b[index] = np.sum(np.multiply(weights[:,index - num_eps], signals[:, index - num_eps]))
-        # Let M * a = b, find a
-        # To minimize the unknowns, let ems(1) = 0
+        #--------------------------------------------------
+        # Solve a
         answers = np.linalg.solve(M, b)
         ems = answers[:num_eps]
         shifted_ems = ems - ems[0]
         m0s = answers[num_eps:]
         shifted_m0s = m0s
-        # Calculate the uncertainties of all answers.
+        #--------------------------------------------------
+        # Uncertainties of all answers.
         var_m0s = np.zeros(num_stars)
         for s in xrange(num_stars):
             top = np.sum(np.power(signals[:,s] - ems - m0s[s], 2) * weights[:, s])
-            bottom = np.multiply(np.sum(weights[:,s]), float(num_eps - 1))
+            bottom = np.multiply(np.sum(weights[:,s]), float(num_eps - 1.0))
             var_m0s[s] = top/bottom
         var_ems = np.zeros(num_eps)
         for e in xrange(num_eps):
             top = np.sum(np.power(signals[e] - ems[e] - m0s, 2) * weights[e])
-            bottom = np.multiply(np.sum(weights[e]), float(num_stars - 1))
+            bottom = np.multiply(np.sum(weights[e]), float(num_stars - 1.0))
             var_ems[e] = top/bottom
         # Upload to class
         self.ems = shifted_ems
