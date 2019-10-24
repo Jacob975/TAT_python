@@ -122,7 +122,10 @@ def EP_process(data):
     e_inst_mag_index = TAT_env.obs_data_titles.index('E_INST_MAG')
     target_name_index = TAT_env.obs_data_titles.index('NAME')
     fileID_index = TAT_env.obs_data_titles.index("FILEID")
-    # Pick 10 brightest stars from each frame (They have to be the same star in diff. frames.)
+    #----------------------------------------
+    # Pick several brightest stars from each frame 
+    # They have to be the same set of stars in diff. frames.)
+    
     # Take all the data in the first frame
     first_bjd = np.amin(data[:, bjd_index])
     first_frame_data = data[data[:,bjd_index] == first_bjd]
@@ -147,18 +150,21 @@ def EP_process(data):
                                                     source_error])) 
             source_list.append(source_data_lite)
             selected_source_name.append(source[target_name_index])
-        if len(source_list) > int(no_of_aux):
+        if len(source_list) >= int(no_of_aux):
             break
     #----------------------------------------
     # Do photometry on Bright Stars only, save the result.
     source_data_array = np.array(source_list)
+    print (np.array(selected_source_name))
+    print (source_data_array.shape)
     stu = photometry_lib.EP(source_data_array[0], source_data_array)
     ems, var_ems, m0s, var_m0s = stu.make_airmass_model()
+
     #----------------------------------------
     # Pick a image, find the center position. 
     cnx = TAT_auth()
     cursor = cnx.cursor()
-    print fileIDs
+    print (fileIDs)
     cursor.execute('select * from {0} where `ID` = {1}'.format(TAT_env.im_tb_name, fileIDs[0]))
     img_data = cursor.fetchall()
     cursor.close()
@@ -171,13 +177,13 @@ def EP_process(data):
     for source in observed_targets:
         # Take the name of the source
         source_name = source[target_name_index]
-        # Get all the data of the source
+        # Get the data of the source from original dataset.
         data2 = data[np.isin(data[:,target_name_index], source_name)]
-        # Take time, magnitude, and error of magnitude.
+        # Take the ID, time, magnitude, and uncertainties. 
         observation_data_ID = data2[:,0]
-        time_array = data2[:,bjd_index]
-        mag_array  = data2[:, inst_mag_index]
-        err_mag_array = data2[:, e_inst_mag_index] 
+        time_array          = data2[:, bjd_index]
+        mag_array           = data2[:, inst_mag_index]
+        err_mag_array       = data2[:, e_inst_mag_index] 
         # Combine and do EP phot.
         source_data = np.transpose(np.array([time_array, mag_array, err_mag_array]))
         failure, correlated_target, matched = stu.phot(source_data)

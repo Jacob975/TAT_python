@@ -23,6 +23,7 @@ from reduction_lib import header_editor
 from input_lib import option_plotLC
 from astropy.time import Time
 import photometry
+from convert_lib import mag_to_Jy
 
 def take_data_within(name, start_date, end_date):
     #----------------------------------------
@@ -184,36 +185,44 @@ if __name__ == "__main__":
     JD_array =          np.array(data[:,index_JD], dtype = float)
     EP_MAG_array =      np.array(data[:,index_EP_MAG], dtype = float)
     E_EP_MAG_array =    np.array(data[:,index_E_EP_MAG], dtype = float)
-    # Convert mag to delta mag
-    EP_MAG_mean = np.mean(EP_MAG_array[-10:])
-    if np.isnan(EP_MAG_mean):
-        EP_MAG_mean = np.mean(EP_MAG_array[:10])
-    EP_MAG_array = EP_MAG_mean - EP_MAG_array 
-    
-    # Convert delta mag to percentage
-    EP_MAG_array = np.power(10.0, EP_MAG_array/2.5)
+    # Convert mag to percentage
+    EP_FLUX_array, E_EP_FLUX_array = mag_to_Jy(1.0, EP_MAG_array, E_EP_MAG_array)
+    EP_FLUX_mean = np.mean(EP_FLUX_array[-10:])
+    if np.isnan(EP_FLUX_mean):
+        EP_FLUX_mean = np.mean(EP_FLUX_array[:10]) 
+    EP_PER_array = EP_FLUX_array/EP_FLUX_mean
+    E_EP_PER_array = E_EP_FLUX_array/EP_FLUX_mean
     #---------------------------------------
     x_margin = 0.02
     y_margin = 0.05
     fig, axs = plt.subplots(1, 1, figsize = (12, 6))
-    #axs.set_title('The light curve of {0}'.format(data_name))
     axs.set_title('The light curve of {0} in {1} band {2} secs'.format(data_name, band, exptime))
     axs.set_xlabel('JD')
     axs.set_ylabel('Flux Percentage')
-    axs.set_xlim(np.amin(JD_array)-x_margin, np.amax(JD_array)+x_margin)
-    axs.set_ylim( \
-        np.nanmedian(EP_MAG_array) - y_margin, 
-        np.nanmedian(EP_MAG_array) + y_margin,
-        )
+    axs.set_xlim(   np.amin(JD_array)-x_margin, 
+                    np.amax(JD_array)+x_margin)
+    axs.set_ylim(   np.nanmedian(EP_PER_array) - y_margin, 
+                    np.nanmedian(EP_PER_array) + y_margin,
+                )
     axs.grid(True)
     if timing != 'skip':
-        axs.plot([ingress, ingress],
-                    [np.nanmedian(EP_MAG_array)-y_margin, np.nanmedian(EP_MAG_array)+y_margin],
-                    zorder=2, label = 'Ingress time')
-        axs.plot([egress, egress],
-                    [np.nanmedian(EP_MAG_array)-y_margin, np.nanmedian(EP_MAG_array)+y_margin],
-                    zorder=1, label = 'Egress time')
-    axs.errorbar(JD_array, EP_MAG_array, yerr = E_EP_MAG_array, fmt = 'ro', label = data_name, markersize = 3, zorder=3)
+        axs.plot(   [ingress, ingress],
+                    [np.nanmedian(  EP_PER_array)-y_margin, 
+                                    np.nanmedian(EP_PER_array)+y_margin],
+                    zorder=2, 
+                    label = 'Ingress time')
+        axs.plot(   [egress, egress],
+                    [np.nanmedian(  EP_PER_array)-y_margin, 
+                                    np.nanmedian(EP_PER_array)+y_margin],
+                    zorder=1, 
+                    label = 'Egress time')
+    axs.errorbar(   JD_array, 
+                    EP_PER_array, 
+                    yerr = E_EP_PER_array, 
+                    fmt = 'ro', 
+                    label = data_name, 
+                    markersize = 3, 
+                    zorder=3)
     plt.legend()
     plt.savefig('light_curve.png')
     #---------------------------------------
