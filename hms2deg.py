@@ -29,6 +29,7 @@ if __name__ == "__main__":
     if len(argv) != 3:
         print "The number of arguments is wrong."
         print "Usage: hms2deg.py [h:m:s] [d:m:s]"
+        exit(-1)
     ra_hms = argv[1]
     dec_dms = argv[2]
     #----------------------------------------
