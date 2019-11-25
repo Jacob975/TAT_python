@@ -167,7 +167,7 @@ class EP():
         intrinsic_snr_flux  = np.array(unumpy.std_devs(uintrinsic_flux_target))
         intrinsic_a_flux    = np.std(intrinsic_flux)
         intrinsic_e_flux    = np.sqrt(intrinsic_a_flux**2 + intrinsic_snr_flux**2)
-        intrinsic_mag, 
+        intrinsic_mag, \
         intrinsic_e_mag     = Jy_to_mag(1.0, intrinsic_flux, intrinsic_e_flux)
         intrinsic_target    = np.transpose([match_timing, intrinsic_mag, intrinsic_e_mag])
         return False, intrinsic_target, matched 

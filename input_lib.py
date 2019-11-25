@@ -24,8 +24,11 @@ class option_plotLC():
                 '# 1: from given filename, and the name become the filename.',
                 '# 2: from database, and the name become the target name',
                 '2',
-                '# name',
+                '# Catalog name',
                 '# The name of source or the name of files',
+                '',
+                '# Common name',
+                '# The common name of the source',
                 '',
                 '# Ingress timing in JD',
                 '# "skip" means it would not print the ingress timing on plots.',
@@ -34,7 +37,7 @@ class option_plotLC():
                 '# "skip" means it would not print the ingress timing on plots.',
                 'skip',
                 '# Start date in YYYYMMDD',
-                '# The first date of the plot showing.',
+                '# The first date of the plot showing. Input image folder date minus one.',
                 '# "skip" will make the program shows all light curves.',
                 'skip',
                 '# End date in YYYYMMDD',
@@ -46,7 +49,12 @@ class option_plotLC():
                 'V',
                 '# Exptime',
                 '# The exposure time of selected images',
-                '150'
+                '150',
+                '# Path of photometry option file',
+                '# e.g. /home2/TAT/programs/TTV/photometry/',
+                '',
+                '# Name of photometry option file',
+                'option_phot_'
                 ]
         np.savetxt('option_plotLC.txt', s, fmt = '%s')
     def load(self, file_name):
@@ -67,7 +75,7 @@ class option_plot_auxLC():
                 '',
                 '# Start date in YYYYMMDD',
                 '# The first date of the plot showing.',
-                '# "skip" will make the program shows all light curves.',
+                '# "skip" will make the program shows all light curves. Input image folder date-1.',
                 'skip',
                 '# End date in YYYYMMDD',
                 '# The last date of the plot showing.',
@@ -99,6 +107,7 @@ class option_photometry():
                 '# example: 20181208',
                 '',
                 '# The date of end observation',
+                '# Input image folder date minus one.'
                 '# example: 20181209',
                 '',
                 '# RA centroid (deg)',

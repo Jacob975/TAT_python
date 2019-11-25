@@ -1,17 +1,17 @@
 #!/usr/bin/python
 '''
 Program:
-    This is a program to plot the light curve. 
+    This is a program to print the transit file to run EXOFAST. 
 Usage: 
-    plot_light_curve.py [option file] 
+    make_transit_file.py [option file] 
 
 Editor:
-    Jacob975
-20181129
+    Wen-Hsin
+20191025
 #################################
 update log
 
-20181129 version alpha 1
+20191025 version alpha 1
 '''
 from sys import argv
 import numpy as np
@@ -149,9 +149,7 @@ if __name__ == "__main__":
     start_date,\
     end_date,\
     band,\
-    exptime,\
-    phot_option_path,\
-    phot_option, = stu.load(options)
+    exptime, = stu.load(options)
     where_they_from = int(where_they_from)
     timing = 'OK'
     if ingress == 'skip' or egress == 'skip':
@@ -160,10 +158,6 @@ if __name__ == "__main__":
     else:
         ingress = float(ingress)
         egress = float(egress)
-
-    # Load phot data
-    phot_argv = np.loadtxt(phot_option_path+phot_option, dtype='str')
-    begin_of_aux = phot_argv[7]
 
     #---------------------------------------
     # Load data
@@ -200,10 +194,18 @@ if __name__ == "__main__":
     EP_PER_array = EP_FLUX_array/EP_FLUX_mean
     E_EP_PER_array = E_EP_FLUX_array/EP_FLUX_mean
     #---------------------------------------
+    # Make transit file
+    h_trans_f = np.vstack((JD_array, EP_PER_array, E_EP_PER_array))
+    v_trans_f = np.transpose(h_trans_f)
+    np.savetxt('transit_file_{0}_{1}_{2}{3}.txt'.format(start_date, common_name, band, exptime), v_trans_f)
+
+
+    '''
+    #---------------------------------------
     x_margin = 0.02
     y_margin = 0.05
     fig, axs = plt.subplots(1, 1, figsize = (12, 6))
-    axs.set_title('The light curve of {0} in {1} band {2} secs'.format(common_name, band, exptime))
+    axs.set_title('The light curve of {0} in {1} band {2} secs'.format(data_name, band, exptime))
     axs.set_xlabel('JD')
     axs.set_ylabel('Flux Percentage')
     axs.set_xlim(   np.amin(JD_array)-x_margin, 
@@ -231,7 +233,8 @@ if __name__ == "__main__":
                     markersize = 3, 
                     zorder=3)
     plt.legend()
-    plt.savefig('light_curve_{0}_{1}_{2}_{3}{4}.png'.format(int(start_date)+1, common_name, begin_of_aux, band, exptime))
+    plt.savefig('light_curve.png')
+    '''
     #---------------------------------------
     # Measure time
     elapsed_time = time.time() - start_time
