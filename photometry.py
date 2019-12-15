@@ -138,11 +138,16 @@ def EP_process(data):
     selected_source_name = []
     # Find sources found in all frames.
     for source in first_frame_data[int(begin_of_aux):]:
+        if len(source_list) >= int(no_of_aux):
+            break
         if source[target_name_index] == var_star:
+            #print ("Skipped, it is an var star")
             continue
         source_data = data[data[:,target_name_index] == source[target_name_index]]
         source_fileIDs = source_data[:,fileID_index]
+        #print ('# of A frames: {0}, # of B frames: {1}'.format(len(source_fileIDs), len(fileIDs)))
         if len(source_fileIDs) == len(fileIDs):
+            #print ("Take it")
             source_error = source_data[:, e_inst_mag_index]
             source_error[source_error == 0.0] = 1e-4
             source_data_lite = np.transpose(np.array([source_data[:, bjd_index], 
@@ -150,8 +155,10 @@ def EP_process(data):
                                                     source_error])) 
             source_list.append(source_data_lite)
             selected_source_name.append(source[target_name_index])
-        if len(source_list) >= int(no_of_aux):
-            break
+            continue
+        else:
+            #print ("Abort it")
+            continue
     #----------------------------------------
     # Do photometry on Bright Stars only, save the result.
     source_data_array = np.array(source_list)
@@ -198,7 +205,9 @@ def EP_process(data):
 def find_filter(fileID):
     cnx = TAT_auth()
     cursor = cnx.cursor()
-    cursor.execute("select `FILTER` from TAT.data_file where ID='{0}'".format(fileID))
+    cursor.execute("select `FILTER` from TAT.{0} where ID='{1}'".format(
+        TAT_env.im_tb_name, 
+        fileID))
     data = cursor.fetchall()
     data = np.array(data).flatten()
     ans = data[0]
@@ -215,17 +224,17 @@ def CATA_process(data):
     # Load data frame by frame
     fileID_array = np.unique(data[:,fileID_index])
     for fileID in fileID_array:
-        frame_data = data[data[:,fileID_index] == fileID]
-        #filter_ = find_filter(fileID)
-        filter_ = 'V'
-        stu = photometry_lib.CATA(frame_data, filter_)
+        # Take all extracted sources on that frame.
+        frame_src_data = data[data[:,fileID_index] == fileID]
+        _filter = find_filter(fileID)
+        stu = photometry_lib.CATA(frame_src_data, _filter)
         failure = stu.make_airmass_model()
         if failure:
             print 'air mass model fail.'
             continue
         mag, err_mag = stu.phot()
         mag_array = np.transpose(np.array([mag, err_mag]))
-        observation_data_ID = frame_data[:,ID_index]
+        observation_data_ID = frame_src_data[:,ID_index]
         # save the result into database
         save2sql_CATA(mag_array, observation_data_ID)
     return 0 
