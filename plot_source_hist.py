@@ -3,7 +3,7 @@
 Program:
     This is a program for finding the minimum magnitude of source found in the image. 
 Usage: 
-    plot_d_mag.py [image_list]
+    plot_source_hist.py [start time] [end time]
 Editor:
     Jacob975
 20181219
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # Initialize
     if len(argv) != 3:
         print "Error!\n The number of arguments is wrong."
-        print "Usage: plot_d_mag.py [start time] [end time]"
+        print "Usage: plot_source_hist.py [start time] [end time]"
         exit(1)
     start_date = argv[1]
     end_date = argv[2]

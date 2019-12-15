@@ -172,7 +172,7 @@ class EP():
         intrinsic_target    = np.transpose([match_timing, intrinsic_mag, intrinsic_e_mag])
         return False, intrinsic_target, matched 
 
-# Catalogue photometry.
+# magnitude calibration using other catalogues.
 class CATA():
     # The demo of data structure.
     #   stars are all rows in `observation_data` database.

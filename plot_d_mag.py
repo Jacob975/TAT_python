@@ -3,7 +3,7 @@
 Program:
     This is a program for finding the minimum magnitude of source found in the image. 
 Usage: 
-    plot_d_mag.py [image_list]
+    plot_d_mag.py [image name]
 Editor:
     Jacob975
 20181219
